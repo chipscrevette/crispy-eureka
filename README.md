@@ -4,7 +4,7 @@
 
 Adresse is an open-source location-intelligence studio for luxury retail. It scores every street block in Paris for a brand profile (jewellery & watches, fashion house, beauty), explains each score, compares two addresses side by side, and writes a one-page site memo. It is built only from open data.
 
-> Status: **Week 2 of 8.** Paris is on a grid of 1,118 H3 cells, each with retail, tourism, footfall, income and property-price features, next to a map of 290 existing luxury street boutiques that have been cross-checked against OpenStreetMap. Opportunity scores arrive in Week 3. See the [roadmap](#roadmap).
+> Status: **Week 3 of 8.** Every one of Paris's 1,118 H3 blocks now has a 0–100 opportunity score for each brand profile, with the top drivers behind it. Tested on brands the model never saw, their boutiques land around the 90th percentile. Beside it: retail, tourism, footfall, income and property-price layers, and 290 luxury street boutiques cross-checked against OpenStreetMap. See the [roadmap](#roadmap).
 
 ## What it will do
 
@@ -16,7 +16,19 @@ Adresse is an open-source location-intelligence studio for luxury retail. It sco
 
 ## Method
 
-There is no public data on boutique sales, so Adresse learns from where luxury brands *already chose* to open. Their existing stores are positive examples, and every other block is unlabelled. A gradient-boosted model (LightGBM) learns what those surroundings share, and SHAP explains each score. To validate, whole brands are held out and we check that their real stores rank high. Satellite embeddings from Google AlphaEarth and Ai2 OlmoEarth are tested as extra features, and the results will be published either way.
+There is no public data on boutique sales, so Adresse learns from where luxury brands *already chose* to open. Their existing stores are positive examples, and every other block is unlabelled. A gradient-boosted model (LightGBM) learns what those surroundings share, and SHAP explains each score. To validate, whole brands are held out and we check that their real stores rank high. 
+
+How well it works, with brands held out (mean percentile of their boutiques among blocks with no training boutique; 100 is best):
+
+| Profile | Model | Baseline: nearby luxury boutiques | Baseline: apartment price |
+|---------|------:|------:|------:|
+| Fashion house | **89** | 68 | 83 |
+| Beauty | **92** | 62 | 88 |
+| Jewellery & watches | 89 | **96** | 90 |
+
+For jewellery and watches the simple baseline wins: those brands cluster so tightly around Place Vendôme and rue de la Paix that "go next to the others" is hard to beat. The app says so next to the map. Full numbers are in `pipeline/output/model_report.json`.
+
+Satellite embeddings from Google AlphaEarth and Ai2 OlmoEarth are tested as extra features, and the results will be published either way.
 
 ## Data
 
@@ -36,6 +48,7 @@ Licences and attribution: [DATA_LICENSES.md](DATA_LICENSES.md).
 # data pipeline
 cd pipeline && pip install -e ".[dev]" && pytest
 python -m adresse_pipeline.build --overture-release 2026-10-21.0
+python -m adresse_pipeline.model   # scores, drivers and the validation report
 # add `--skip dvf insee` if your network can't reach data.gouv.fr or insee.fr
 
 # web app

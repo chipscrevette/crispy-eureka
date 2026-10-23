@@ -30,6 +30,17 @@ We have no sales data, so we learn from where luxury brands already chose to be.
 - **Data-quality warning:** Overture rarely has a brand Wikidata ID for these brands (only 7 of 74 do). Matching by name alone also catches false hits, like clinics run by someone named "Céline", or "Cartier" dental offices. We keep only shop categories, and the pipeline must also deduplicate stores and remove department-store concessions. OpenStreetMap `brand:wikidata` tags should be added in Week 1 to cross-check.
 - The DuckDB extensions server is blocked from the build container, so the pipeline uses PyArrow for S3 reads. On a normal laptop, DuckDB works fine.
 
+## Week 3: what the model learned
+
+- One LightGBM model per profile, trained on 16 block features plus "luxury neighbours" (catalogue boutiques in the six surrounding blocks, never the block itself, so the label does not leak in).
+- **Validation:** five folds, each holding out a fifth of the brands. The held-out brands' OSM-confirmed boutique blocks are ranked among all blocks with no training boutique.
+  - Fashion house: model 89th percentile on average, nearby-luxury baseline 68th, apartment-price baseline 83rd (20 held-out blocks).
+  - Beauty: model 92nd, baselines 62nd and 88th (12 blocks).
+  - Jewellery & watches: model 89th, but the nearby-luxury baseline reaches 96th (15 blocks). The baseline wins here, and we show that in the app.
+- Training on OSM-confirmed boutiques only, on Overture boutiques, or on Overture plus OSM gives the same average (89.8 to 89.9). The difference is noise, so we keep Overture: it has the most examples and does not depend on OSM coverage.
+- Strongest drivers across Paris (mean |SHAP|): fashion stores nearby for all three profiles, then culture (jewellery), offices and dining (fashion), and resident living standard (beauty).
+- The held-out sets are small (12 to 20 blocks), so treat differences of a few points as noise.
+
 ## Decision log
 
 | # | Decision | Why | Date |
@@ -42,6 +53,9 @@ We have no sales data, so we learn from where luxury brands already chose to be.
 | 6 | Code under MIT; data licences listed per source in `DATA_LICENSES.md` | Open source, and respects ODbL and CC-BY attribution | 2026-10-23 |
 | 7 | Leave department-store concessions out of the boutique layer | They are not street location choices, and they made up most of the boutiques OSM could not confirm | 2026-10-23 |
 | 8 | Use station entries (IDFM, Q4 2025) as the footfall proxy | No open pedestrian counts exist for Paris; rail entries are measured, daily and citywide | 2026-10-23 |
+| 9 | Show the score as a percentile within Paris (0–100), not a probability | Positive-unlabelled models are not calibrated; a rank is honest and easy to read | 2026-10-23 |
+| 10 | Train on Overture boutiques (not OSM-confirmed only) | Same held-out accuracy, more examples | 2026-10-23 |
+| 11 | Publish the baseline comparison in the app, including where it wins | "Honest by design"; a recruiter trusts a model that shows its limits | 2026-10-23 |
 
 ## Open questions for Kevin
 
