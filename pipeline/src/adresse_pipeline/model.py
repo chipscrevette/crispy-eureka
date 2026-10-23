@@ -226,7 +226,12 @@ def main() -> None:
     train_b = [b for b in boutiques if in_set(b, chosen)]
     x = design_matrix(grid, train_b)
     keys = list(x.columns)
-    scores: dict = {"positives": chosen.value, "profiles": {}}
+    scores: dict = {
+        "positives": chosen.value,
+        "profiles": {},
+        # the one model feature that is not on the grid layer, for the compare view
+        NEIGHBOURS: dict(zip(grid.index, x[NEIGHBOURS].astype(int).tolist(), strict=True)),
+    }
     for profile in Profile:
         y = labels(grid, train_b, profile)
         model = fit(x, y)

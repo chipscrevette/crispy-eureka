@@ -56,6 +56,7 @@ We have no sales data, so we learn from where luxury brands already chose to be.
 | 9 | Show the score as a percentile within Paris (0–100), not a probability | Positive-unlabelled models are not calibrated; a rank is honest and easy to read | 2026-10-23 |
 | 10 | Train on Overture boutiques (not OSM-confirmed only) | Same held-out accuracy, more examples | 2026-10-23 |
 | 11 | Publish the baseline comparison in the app, including where it wins | "Honest by design"; a recruiter trusts a model that shows its limits | 2026-10-23 |
+| 12 | Build the site memo in the browser and print it with the system dialog | No server, no PDF library; one A4 page, and every view is a shareable link (`#profile=…&a=…&memo=1`) | 2026-10-23 |
 
 ## Open questions for Kevin
 

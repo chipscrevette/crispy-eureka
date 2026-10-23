@@ -1,8 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import maplibregl, { type ExpressionSpecification, type StyleSpecification } from 'maplibre-gl'
 import { PROFILES, countByProfile, loadStores, type ProfileId, type StoreProps, type Stores } from './stores'
 import { formatValue, loadGrid, loadGridMeta, quantileBreaks, type CellProps, type Grid, type GridMeta } from './grid'
-import { SCORE_BREAKS, loadScores, scoreKey, withScores, type Scores } from './scores'
+import { SCORE_BREAKS, loadScores, ordinal, scoreKey, withScores, type Scores } from './scores'
+import { CellScore, Compare } from './CellPanels'
+import { cellIndex } from './geo'
+import { readHash, writeHash } from './hash'
+import Memo from './Memo'
 
 const PARIS: [number, number] = [2.3325, 48.8665]
 const BASEMAP: string | StyleSpecification =
@@ -25,8 +29,6 @@ const SCORE = 'score'
 type Data = { stores: Stores; grid: Grid; meta: GridMeta; scores: Scores }
 type Hover = { arrondissement?: string; value?: number }
 
-const arrondissementOf = (p: CellProps) => p.arrondissement ?? 'Paris'
-
 function cssVar(name: string) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim()
 }
@@ -41,10 +43,17 @@ export default function App() {
   const map = useRef<maplibregl.Map | null>(null)
   const [data, setData] = useState<Data | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [profile, setProfile] = useState<ProfileId>('jewellery-watches')
+  const initial = useMemo(readHash, [])
+  const [profile, setProfile] = useState<ProfileId>(initial.profile)
   const [layer, setLayer] = useState<string>(SCORE)
   const [selected, setSelected] = useState<StoreProps | null>(null)
-  const [cell, setCell] = useState<CellProps | null>(null)
+  const [cellA, setCellA] = useState<string | null>(initial.a)
+  const [cellB, setCellB] = useState<string | null>(initial.b)
+  const [picking, setPicking] = useState(false)
+  const [memo, setMemo] = useState(initial.memo)
+  const [sheetOpen, setSheetOpen] = useState(true)
+  const pickingRef = useRef(picking)
+  pickingRef.current = picking
   const [hover, setHover] = useState<Hover | null>(null)
   const [ready, setReady] = useState(false)
 
@@ -96,6 +105,13 @@ export default function App() {
         filter: ['==', ['get', 'cell'], ''],
         paint: { 'line-color': cssVar('--brass'), 'line-width': 2.5 },
       })
+      m.addLayer({
+        id: 'grid-compare',
+        type: 'line',
+        source: 'grid',
+        filter: ['==', ['get', 'cell'], ''],
+        paint: { 'line-color': cssVar('--ink'), 'line-width': 2.5, 'line-dasharray': [2, 1] },
+      })
       m.addSource('stores', {
         type: 'geojson',
         data: data.stores,
@@ -142,8 +158,16 @@ export default function App() {
         const block = m.queryRenderedFeatures(e.point, {
           layers: ['grid-hit'],
         })[0]
+        const id = block ? (block.properties as CellProps).cell : null
+        if (pickingRef.current) {
+          if (id) setCellB(id)
+          setPicking(false)
+          return
+        }
         setSelected(store ? (store.properties as StoreProps) : null)
-        setCell(block ? (block.properties as CellProps) : null)
+        setCellA(id)
+        setCellB(null)
+        if (id) setSheetOpen(true)
       })
       m.on('mouseenter', 'stores-profile', () => (m.getCanvas().style.cursor = 'pointer'))
       m.on('mouseleave', 'stores-profile', () => (m.getCanvas().style.cursor = ''))
@@ -164,8 +188,17 @@ export default function App() {
   }, [ready, selected])
 
   useEffect(() => {
-    if (ready) map.current!.setFilter('grid-selected', ['==', ['get', 'cell'], cell?.cell ?? ''])
-  }, [ready, cell])
+    if (!ready) return
+    map.current!.setFilter('grid-selected', ['==', ['get', 'cell'], cellA ?? ''])
+    map.current!.setFilter('grid-compare', ['==', ['get', 'cell'], cellB ?? ''])
+  }, [ready, cellA, cellB])
+
+  useEffect(() => writeHash({ profile, a: cellA, b: cellB, memo }), [profile, cellA, cellB, memo])
+
+  const cells = useMemo(() => (data ? cellIndex(data.grid) : null), [data])
+  const a = (cellA && cells?.get(cellA)?.properties) || null
+  const b = (cellB && cells?.get(cellB)?.properties) || null
+  const closeMemo = useCallback(() => setMemo(false), [])
 
   const isScore = layer === SCORE
   const key = isScore ? scoreKey(profile) : layer
@@ -217,7 +250,15 @@ export default function App() {
     <div className="app">
       <div ref={container} className="map" aria-label="Map of luxury boutiques in Paris" role="region" />
 
-      <aside className="panel">
+      <aside id="panel" className={`panel${sheetOpen ? '' : ' collapsed'}${a ? ' has-selection' : ''}`}>
+        <button
+          className="handle"
+          aria-expanded={sheetOpen}
+          aria-controls="panel"
+          onClick={() => setSheetOpen((x) => !x)}
+        >
+          <span className="visually-hidden">{sheetOpen ? 'Hide details' : 'Show details'}</span>
+        </button>
         <header>
           <h1>Adresse</h1>
           <p className="tagline">Where should a luxury brand open its next Paris boutique, and why?</p>
@@ -316,9 +357,9 @@ export default function App() {
           )}
         </section>
 
-        {(selected || cell) && data && (
+        {(selected || a) && data && (
           <section className="selected" aria-live="polite">
-            <h2 className="label">Selected</h2>
+            <h2 className="label">{b ? 'Block A' : 'Selected'}</h2>
             {selected && (
               <>
                 <p className="brand">{selected.brand}</p>
@@ -332,12 +373,33 @@ export default function App() {
                 )}
               </>
             )}
-            {cell && <CellScore cell={cell} profile={profile} scores={data.scores} />}
+            {a && !b && (
+              <CellScore
+                cell={a}
+                profile={profile}
+                scores={data.scores}
+                picking={picking}
+                onCompare={() => setPicking((x) => !x)}
+                onMemo={() => setMemo(true)}
+              />
+            )}
+            {a && b && (
+              <Compare
+                a={a}
+                b={b}
+                profile={profile}
+                scores={data.scores}
+                onMemo={() => setMemo(true)}
+                onClear={() => setCellB(null)}
+              />
+            )}
             <button
               className="link"
               onClick={() => {
                 setSelected(null)
-                setCell(null)
+                setCellA(null)
+                setCellB(null)
+                setPicking(false)
               }}
             >
               Clear selection
@@ -345,57 +407,20 @@ export default function App() {
           </section>
         )}
 
-        <footer className="muted small">Week 3 preview. Data: {data?.meta.sources.join(' · ') ?? 'loading'}.</footer>
+        <footer className="muted small">Week 4 preview. Data: {data?.meta.sources.join(' · ') ?? 'loading'}.</footer>
       </aside>
-    </div>
-  )
-}
 
-function ordinal(n: number) {
-  const r = Math.round(n)
-  const suffix =
-    r % 100 >= 11 && r % 100 <= 13 ? 'th' : (({ 1: 'st', 2: 'nd', 3: 'rd' } as Record<number, string>)[r % 10] ?? 'th')
-  return `${r}${suffix}`
-}
-
-function CellScore({ cell, profile, scores }: { cell: CellProps; profile: ProfileId; scores: Scores }) {
-  const entry = scores.profiles[profile].cells[cell.cell]
-  if (!entry) return null
-  const [score, drivers] = entry
-  const largest = Math.max(...drivers.map((d) => Math.abs(d[1])), 1e-9)
-  return (
-    <div className="cell-score">
-      <p className="score">
-        <span className="big">{Math.round(score)}</span>
-        <span className="muted"> / 100 in {arrondissementOf(cell)}</span>
-      </p>
-      <p className="muted small">
-        {PROFILES.find((p) => p.id === profile)?.label} opportunity: this block scores higher than {Math.round(score)}%
-        of Paris.
-      </p>
-      <h3 className="label">What drives it</h3>
-      <p className="muted small">Teal bars raise the score, grey bars lower it.</p>
-      <ul className="drivers">
-        {drivers.map(([key, contribution, value]) => {
-          const f = scores.features.find((x) => x.key === key)
-          return (
-            <li key={key} title={f?.description}>
-              <span className="driver-name">{f?.label ?? key}</span>
-              <span className="driver-value">{value === null ? 'no data' : formatValue(value, f?.unit ?? '')}</span>
-              <span
-                className={`bar ${contribution > 0 ? 'up' : 'down'}`}
-                aria-label={contribution > 0 ? 'raises the score' : 'lowers the score'}
-              >
-                <span
-                  style={{
-                    width: `${(Math.abs(contribution) / largest) * 100}%`,
-                  }}
-                />
-              </span>
-            </li>
-          )
-        })}
-      </ul>
+      {memo && a && data && (
+        <Memo
+          cell={a}
+          profile={profile}
+          grid={data.grid}
+          stores={data.stores}
+          scores={data.scores}
+          meta={data.meta}
+          onClose={closeMemo}
+        />
+      )}
     </div>
   )
 }
