@@ -4,7 +4,7 @@
 
 Adresse is an open-source location-intelligence studio for luxury retail. It scores every street block in Paris for a brand profile (jewellery & watches, fashion house, beauty), explains each score, compares two addresses side by side, and writes a one-page site memo. It is built only from open data.
 
-> Status: **Week 0 of 8.** The data foundation and a first map of 382 existing luxury boutiques are in place. Opportunity scores arrive in Week 3. See the [roadmap](#roadmap).
+> Status: **Week 1 of 8.** Paris is on a grid of 1,118 H3 cells, each with retail, tourism, income and property-price features, next to a map of the existing luxury boutiques. Opportunity scores arrive in Week 3. See the [roadmap](#roadmap).
 
 ## What it will do
 
@@ -35,8 +35,8 @@ Licences and attribution: [DATA_LICENSES.md](DATA_LICENSES.md).
 ```bash
 # data pipeline
 cd pipeline && pip install -e ".[dev]" && pytest
-python -m adresse_pipeline.luxury_stores --release 2026-10-21.0 \
-    --out ../web/public/data/luxury_stores.geojson
+python -m adresse_pipeline.build --overture-release 2026-10-21.0
+# add `--skip dvf insee` if your network can't reach data.gouv.fr or insee.fr
 
 # web app
 cd web && npm ci && npm run dev
@@ -45,6 +45,8 @@ cd web && npm ci && npm run dev
 The basemap is OpenFreeMap Positron. To use another one, set `VITE_BASEMAP_STYLE` to a style URL, or to `blank` for no basemap.
 
 ## Roadmap
+
+The [Build data](.github/workflows/data.yml) workflow rebuilds every layer from the original sources and commits the result.
 
 | Week | Milestone |
 |------|-----------|
