@@ -37,6 +37,11 @@ def read_csv(path: Path) -> Iterator[dict[str, str]]:
         yield {k.strip().lower(): (v or "").strip() for k, v in row.items() if k}
 
 
+def zdc_id(raw: str) -> str:
+    """Station ids come as "71320" in one file and "71320.0" in the other."""
+    return str(int(float(raw)))
+
+
 def daily_entries_by_zdc(rows: Iterable[dict[str, str]]) -> dict[str, float]:
     """Mean entries per day for each ZdC, summed over ticket types.
 
@@ -50,7 +55,7 @@ def daily_entries_by_zdc(rows: Iterable[dict[str, str]]) -> dict[str, float]:
     for row in rows:
         days.add(row["jour"])
         try:
-            totals[row["id_zdc"]] += float(row["nb_vald"])
+            totals[zdc_id(row["id_zdc"])] += float(row["nb_vald"])
         except ValueError:
             continue
     return {zdc: total / len(days) for zdc, total in totals.items()}
@@ -64,7 +69,7 @@ def stations(rows: Iterable[dict[str, str]], entries: dict[str, float]) -> list[
     if not rows or not {"id_ref_zdc", "nom_zdc", "geo point"} <= rows[0].keys():
         raise ValueError(f"unexpected stations file: {len(rows)} rows, columns {_columns(rows)}")
     for row in rows:
-        zdc = row["id_ref_zdc"]
+        zdc = zdc_id(row["id_ref_zdc"])
         lat, lon = (float(v) for v in row["geo point"].split(","))
         points[zdc].append((lon, lat))
         names[zdc] = row["nom_zdc"]
