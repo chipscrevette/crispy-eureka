@@ -2,7 +2,8 @@ name: Build data
 
 # Rebuilds every Paris layer from the original sources and commits the result to
 # the branch. It runs in Actions because the sources (Overture S3, data.gouv.fr,
-# insee.fr) are reachable from here on any machine.
+# insee.fr) are reachable from here on any machine. The opportunity scores are
+# retrained on every rebuild so they always match the layers.
 
 on:
   workflow_dispatch:
@@ -45,6 +46,16 @@ jobs:
           set -o pipefail
           python -m adresse_pipeline.build --overture-release "${{ inputs.overture_release || '2026-10-21.0' }}" 2>&1 | tee build.log || {
             echo "::error title=Build failed::$(grep -E 'Error|Exception' build.log | tail -n 3 | tr '\n' ' ')"
+            exit 1
+          }
+      - name: Score cells
+        shell: bash
+        env:
+          PYTHONUNBUFFERED: "1"
+        run: |
+          set -o pipefail
+          python -m adresse_pipeline.model 2>&1 | tee -a build.log || {
+            echo "::error title=Model failed::$(grep -E 'Error|Exception' build.log | tail -n 3 | tr '\n' ' ')"
             exit 1
           }
       - name: Commit changed layers

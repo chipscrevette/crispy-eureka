@@ -117,8 +117,25 @@ select:focus-visible { outline: 2px solid var(--seine); outline-offset: 2px; }
   .chip { flex-direction: column; align-items: flex-start; gap: 2px; font-size: 0.8rem; }
   h1 { font-size: 1.5rem; }
   .tagline, .panel footer { display: none; }
+  /* the sheet owns the bottom of the screen: pinch to zoom, and the credits move to the top */
+  .maplibregl-ctrl-bottom-right { top: 0; bottom: auto; }
+  .maplibregl-ctrl-bottom-right .maplibregl-ctrl-group { display: none; }
+  /* the sheet owns the bottom of the screen: pinch to zoom, credits move to the top */
+  .maplibregl-ctrl-bottom-right .maplibregl-ctrl-group { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
+
+.cell-score { display: grid; gap: 6px; margin-top: 8px; }
+.cell-score p { margin: 0; }
+.cell-score .label { margin: 10px 0 0; }
+.drivers { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.drivers li { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; }
+.driver-name { font-size: 0.85rem; }
+.driver-value { font: 0.8rem var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.bar { grid-column: 1 / -1; height: 4px; background: var(--rule); }
+.bar span { display: block; height: 100%; background: var(--seine); }
+.bar.down span { background: var(--muted); }
+optgroup { font-style: normal; }

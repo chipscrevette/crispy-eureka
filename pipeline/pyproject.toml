@@ -4,7 +4,15 @@ version = "0.1.0"
 description = "Data pipeline for Adresse, luxury retail site selection in Paris"
 requires-python = ">=3.11"
 license = "MIT"
-dependencies = ["pyarrow>=17", "h3>=4.1", "shapely>=2", "pyproj>=3.6"]
+dependencies = [
+    "pyarrow>=17",
+    "h3>=4.1",
+    "shapely>=2",
+    "pyproj>=3.6",
+    "numpy>=1.26",
+    "pandas>=2.2",
+    "lightgbm>=4.5",
+]
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.6"]

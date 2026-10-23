@@ -1,17 +1,31 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import maplibregl, { type ExpressionSpecification, type StyleSpecification } from 'maplibre-gl'
 import { PROFILES, countByProfile, loadStores, type ProfileId, type StoreProps, type Stores } from './stores'
-import { formatValue, loadGrid, loadGridMeta, quantileBreaks, type Grid, type GridMeta } from './grid'
+import { formatValue, loadGrid, loadGridMeta, quantileBreaks, type CellProps, type Grid, type GridMeta } from './grid'
+import { SCORE_BREAKS, loadScores, scoreKey, withScores, type Scores } from './scores'
 
 const PARIS: [number, number] = [2.3325, 48.8665]
 const BASEMAP: string | StyleSpecification =
   import.meta.env.VITE_BASEMAP_STYLE === 'blank'
-    ? { version: 8, sources: {}, layers: [{ id: 'bg', type: 'background', paint: { 'background-color': '#E4E8E6' } }] }
+    ? {
+        version: 8,
+        sources: {},
+        layers: [
+          {
+            id: 'bg',
+            type: 'background',
+            paint: { 'background-color': '#E4E8E6' },
+          },
+        ],
+      }
     : (import.meta.env.VITE_BASEMAP_STYLE ?? 'https://tiles.openfreemap.org/styles/positron')
 const RAMP_OPACITY = [0.06, 0.2, 0.36, 0.54, 0.74]
+const SCORE = 'score'
 
-type Data = { stores: Stores; grid: Grid; meta: GridMeta }
+type Data = { stores: Stores; grid: Grid; meta: GridMeta; scores: Scores }
 type Hover = { arrondissement?: string; value?: number }
+
+const arrondissementOf = (p: CellProps) => p.arrondissement ?? 'Paris'
 
 function cssVar(name: string) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim()
@@ -28,14 +42,15 @@ export default function App() {
   const [data, setData] = useState<Data | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [profile, setProfile] = useState<ProfileId>('jewellery-watches')
-  const [layer, setLayer] = useState<string>('')
+  const [layer, setLayer] = useState<string>(SCORE)
   const [selected, setSelected] = useState<StoreProps | null>(null)
+  const [cell, setCell] = useState<CellProps | null>(null)
   const [hover, setHover] = useState<Hover | null>(null)
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    Promise.all([loadStores(), loadGrid(), loadGridMeta()]).then(
-      ([stores, grid, meta]) => setData({ stores, grid, meta }),
+    Promise.all([loadStores(), loadGrid(), loadGridMeta(), loadScores()]).then(
+      ([stores, grid, meta, scores]) => setData({ stores, grid: withScores(grid, scores), meta, scores }),
       (e: Error) => setError(e.message),
     )
   }, [])
@@ -47,7 +62,10 @@ export default function App() {
       style: BASEMAP,
       center: PARIS,
       zoom: 13.2,
-      attributionControl: { compact: true, customAttribution: 'Places © Overture Maps Foundation · INSEE · DGFiP · Île-de-France Mobilités' },
+      attributionControl: {
+        compact: true,
+        customAttribution: 'Places © Overture Maps Foundation · INSEE · DGFiP · Île-de-France Mobilités',
+      },
     })
     map.current = m
     m.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right')
@@ -59,14 +77,39 @@ export default function App() {
         type: 'fill',
         source: 'grid',
         layout: { visibility: 'none' },
-        paint: { 'fill-color': cssVar('--seine'), 'fill-opacity': 0, 'fill-outline-color': cssVar('--surface') },
+        paint: {
+          'fill-color': cssVar('--seine'),
+          'fill-opacity': 0,
+          'fill-outline-color': cssVar('--surface'),
+        },
       })
-      m.addSource('stores', { type: 'geojson', data: data.stores, promoteId: 'id' })
+      m.addLayer({
+        id: 'grid-hit',
+        type: 'fill',
+        source: 'grid',
+        paint: { 'fill-opacity': 0 },
+      })
+      m.addLayer({
+        id: 'grid-selected',
+        type: 'line',
+        source: 'grid',
+        filter: ['==', ['get', 'cell'], ''],
+        paint: { 'line-color': cssVar('--brass'), 'line-width': 2.5 },
+      })
+      m.addSource('stores', {
+        type: 'geojson',
+        data: data.stores,
+        promoteId: 'id',
+      })
       m.addLayer({
         id: 'stores-context',
         type: 'circle',
         source: 'stores',
-        paint: { 'circle-radius': 3, 'circle-color': cssVar('--muted'), 'circle-opacity': 0.35 },
+        paint: {
+          'circle-radius': 3,
+          'circle-color': cssVar('--muted'),
+          'circle-opacity': 0.35,
+        },
       })
       m.addLayer({
         id: 'stores-profile',
@@ -92,9 +135,15 @@ export default function App() {
           'circle-stroke-width': 2,
         },
       })
-      m.on('click', 'stores-profile', (e) => {
-        const f = e.features?.[0]
-        if (f) setSelected(f.properties as StoreProps)
+      m.on('click', (e) => {
+        const store = m.queryRenderedFeatures(e.point, {
+          layers: ['stores-profile'],
+        })[0]
+        const block = m.queryRenderedFeatures(e.point, {
+          layers: ['grid-hit'],
+        })[0]
+        setSelected(store ? (store.properties as StoreProps) : null)
+        setCell(block ? (block.properties as CellProps) : null)
       })
       m.on('mouseenter', 'stores-profile', () => (m.getCanvas().style.cursor = 'pointer'))
       m.on('mouseleave', 'stores-profile', () => (m.getCanvas().style.cursor = ''))
@@ -114,30 +163,37 @@ export default function App() {
     if (ready) map.current!.setFilter('stores-selected', ['==', ['get', 'id'], selected?.id ?? ''])
   }, [ready, selected])
 
-  const breaks = useMemo(() => (data && layer ? quantileBreaks(data.grid, layer) : []), [data, layer])
-  const info = data?.meta.features.find((f) => f.key === layer)
+  useEffect(() => {
+    if (ready) map.current!.setFilter('grid-selected', ['==', ['get', 'cell'], cell?.cell ?? ''])
+  }, [ready, cell])
+
+  const isScore = layer === SCORE
+  const key = isScore ? scoreKey(profile) : layer
+  const breaks = useMemo(
+    () => (isScore ? SCORE_BREAKS : data && key ? quantileBreaks(data.grid, key) : []),
+    [data, key, isScore],
+  )
+  const info = isScore ? undefined : data?.meta.features.find((f) => f.key === layer)
 
   useEffect(() => {
     if (!ready) return
     const m = map.current!
-    m.setLayoutProperty('grid-fill', 'visibility', layer ? 'visible' : 'none')
-    if (!layer) return
-    m.setPaintProperty('grid-fill', 'fill-opacity', rampOpacity(layer, breaks))
+    m.setLayoutProperty('grid-fill', 'visibility', key ? 'visible' : 'none')
+    if (!key) return
+    m.setPaintProperty('grid-fill', 'fill-opacity', rampOpacity(key, breaks))
     const onMove = (e: maplibregl.MapLayerMouseEvent) => {
       const p = e.features?.[0]?.properties
-      setHover(p ? { arrondissement: p.arrondissement, value: p[layer] } : null)
+      setHover(p ? { arrondissement: p.arrondissement, value: p[key] } : null)
     }
     const onLeave = () => setHover(null)
     m.on('mousemove', 'grid-fill', onMove)
-    m.on('click', 'grid-fill', onMove)
     m.on('mouseleave', 'grid-fill', onLeave)
     return () => {
       m.off('mousemove', 'grid-fill', onMove)
-      m.off('click', 'grid-fill', onMove)
       m.off('mouseleave', 'grid-fill', onLeave)
       setHover(null)
     }
-  }, [ready, layer, breaks])
+  }, [ready, key, breaks])
 
   const counts = useMemo(() => (data ? countByProfile(data.stores) : null), [data])
   const brands = useMemo(
@@ -148,6 +204,14 @@ export default function App() {
         : 0,
     [data, profile],
   )
+
+  const validation = data?.scores.validation[profile]
+  const hoverText = (unit: string) =>
+    hover?.value !== undefined
+      ? `${hover.arrondissement ?? 'Paris'}: ${isScore ? `${Math.round(hover.value)} / 100` : formatValue(hover.value, unit)}`
+      : hover
+        ? `${hover.arrondissement ?? 'Paris'}: no data`
+        : 'Hover or tap a block to read its value.'
 
   return (
     <div className="app">
@@ -160,7 +224,9 @@ export default function App() {
         </header>
 
         <section aria-labelledby="profile-label">
-          <h2 id="profile-label" className="label">Brand profile</h2>
+          <h2 id="profile-label" className="label">
+            Brand profile
+          </h2>
           <div className="chips" role="radiogroup" aria-labelledby="profile-label">
             {PROFILES.map((p) => (
               <button
@@ -188,7 +254,8 @@ export default function App() {
             <>
               <span className="big">{counts ? counts[profile] : '–'}</span>
               <span className="muted">
-                existing boutiques from {brands} brands. The model will learn from where they chose to be.
+                existing boutiques from {brands} brands. Every block of Paris is scored by how closely it resembles
+                where they chose to be.
               </span>
             </>
           )}
@@ -196,17 +263,20 @@ export default function App() {
 
         <section className="layers">
           <label htmlFor="layer" className="label">
-            Neighbourhood data
+            Map colour
           </label>
           <select id="layer" value={layer} onChange={(e) => setLayer(e.target.value)} disabled={!data}>
+            <option value={SCORE}>Opportunity score</option>
             <option value="">None</option>
-            {data?.meta.features.map((f) => (
-              <option key={f.key} value={f.key}>
-                {f.label}
-              </option>
-            ))}
+            <optgroup label="Neighbourhood data">
+              {data?.meta.features.map((f) => (
+                <option key={f.key} value={f.key}>
+                  {f.label}
+                </option>
+              ))}
+            </optgroup>
           </select>
-          {info && breaks.length > 0 && (
+          {(isScore || info) && breaks.length > 0 && (
             <div className="legend">
               <div className="ramp" aria-hidden="true">
                 {RAMP_OPACITY.slice(0, breaks.length + 1).map((o) => (
@@ -214,45 +284,118 @@ export default function App() {
                 ))}
               </div>
               <div className="ramp-labels">
-                <span>Lower</span>
-                <span>Higher</span>
+                {isScore ? (
+                  <>
+                    <span>Bottom half</span>
+                    <span>Top 5%</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Lower</span>
+                    <span>Higher</span>
+                  </>
+                )}
               </div>
-              <p className="muted small">
-                {info.description}. Source: {info.source}.
-              </p>
+              {isScore && validation ? (
+                <p className="muted small">
+                  Tested on brands the model never saw: their boutiques landed at the{' '}
+                  {ordinal(validation.model.mean_percentile)} percentile on average. Following other luxury boutiques
+                  alone gives the {ordinal(validation['luxury neighbours'].mean_percentile)}.
+                </p>
+              ) : (
+                info && (
+                  <p className="muted small">
+                    {info.description}. Source: {info.source}.
+                  </p>
+                )
+              )}
               <p className="hover" aria-live="polite">
-                {hover?.value !== undefined
-                  ? `${hover.arrondissement ?? 'Paris'}: ${formatValue(hover.value, info.unit)}`
-                  : hover
-                    ? `${hover.arrondissement ?? 'Paris'}: no data`
-                    : 'Hover or tap a block to read its value.'}
+                {hoverText(info?.unit ?? '')}
               </p>
             </div>
           )}
         </section>
 
-        {selected && (
+        {(selected || cell) && data && (
           <section className="selected" aria-live="polite">
             <h2 className="label">Selected</h2>
-            <p className="brand">{selected.brand}</p>
-            <p className="muted">{selected.segment}</p>
-            {selected.osm_confirmed !== undefined && (
-              <p className="muted small">
-                {selected.osm_confirmed
-                  ? 'Also mapped in OpenStreetMap within 75 m.'
-                  : 'Not found in OpenStreetMap. Treat this location with care.'}
-              </p>
+            {selected && (
+              <>
+                <p className="brand">{selected.brand}</p>
+                <p className="muted">{selected.segment}</p>
+                {selected.osm_confirmed !== undefined && (
+                  <p className="muted small">
+                    {selected.osm_confirmed
+                      ? 'Also mapped in OpenStreetMap within 75 m.'
+                      : 'Not found in OpenStreetMap. Treat this location with care.'}
+                  </p>
+                )}
+              </>
             )}
-            <button className="link" onClick={() => setSelected(null)}>
+            {cell && <CellScore cell={cell} profile={profile} scores={data.scores} />}
+            <button
+              className="link"
+              onClick={() => {
+                setSelected(null)
+                setCell(null)
+              }}
+            >
               Clear selection
             </button>
           </section>
         )}
 
-        <footer className="muted small">
-          Week 2 preview. Opportunity scores arrive in Week 3. Data: {data?.meta.sources.join(' · ') ?? 'loading'}.
-        </footer>
+        <footer className="muted small">Week 3 preview. Data: {data?.meta.sources.join(' · ') ?? 'loading'}.</footer>
       </aside>
+    </div>
+  )
+}
+
+function ordinal(n: number) {
+  const r = Math.round(n)
+  const suffix =
+    r % 100 >= 11 && r % 100 <= 13 ? 'th' : (({ 1: 'st', 2: 'nd', 3: 'rd' } as Record<number, string>)[r % 10] ?? 'th')
+  return `${r}${suffix}`
+}
+
+function CellScore({ cell, profile, scores }: { cell: CellProps; profile: ProfileId; scores: Scores }) {
+  const entry = scores.profiles[profile].cells[cell.cell]
+  if (!entry) return null
+  const [score, drivers] = entry
+  const largest = Math.max(...drivers.map((d) => Math.abs(d[1])), 1e-9)
+  return (
+    <div className="cell-score">
+      <p className="score">
+        <span className="big">{Math.round(score)}</span>
+        <span className="muted"> / 100 in {arrondissementOf(cell)}</span>
+      </p>
+      <p className="muted small">
+        {PROFILES.find((p) => p.id === profile)?.label} opportunity: this block scores higher than {Math.round(score)}%
+        of Paris.
+      </p>
+      <h3 className="label">What drives it</h3>
+      <p className="muted small">Teal bars raise the score, grey bars lower it.</p>
+      <ul className="drivers">
+        {drivers.map(([key, contribution, value]) => {
+          const f = scores.features.find((x) => x.key === key)
+          return (
+            <li key={key} title={f?.description}>
+              <span className="driver-name">{f?.label ?? key}</span>
+              <span className="driver-value">{value === null ? 'no data' : formatValue(value, f?.unit ?? '')}</span>
+              <span
+                className={`bar ${contribution > 0 ? 'up' : 'down'}`}
+                aria-label={contribution > 0 ? 'raises the score' : 'lowers the score'}
+              >
+                <span
+                  style={{
+                    width: `${(Math.abs(contribution) / largest) * 100}%`,
+                  }}
+                />
+              </span>
+            </li>
+          )
+        })}
+      </ul>
     </div>
   )
 }
