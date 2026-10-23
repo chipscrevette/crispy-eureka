@@ -10,7 +10,7 @@ from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 
 from adresse_pipeline.brands import Brand, Catalogue, Place, Store, distance_m
-from adresse_pipeline.download import urlopen
+from adresse_pipeline.download import retrying
 
 # The main instance is often busy or unreachable from CI runners; the mirrors serve the same data.
 OVERPASS_URLS = (
@@ -49,10 +49,14 @@ def fetch_paris_shops() -> dict:
         request = urllib.request.Request(
             url, data=body, headers={"User-Agent": "adresse (github.com/chipscrevette)"}
         )
-        try:
-            with urlopen(request, timeout=200, attempts=2) as res:
+
+        def query(request: urllib.request.Request = request) -> dict:
+            with urllib.request.urlopen(request, timeout=200) as res:
                 return json.load(res)
-        except (urllib.error.URLError, TimeoutError) as e:
+
+        try:
+            return retrying(query, attempts=2)
+        except (urllib.error.URLError, TimeoutError, ConnectionError) as e:
             print(f"osm: {url} failed ({e}), trying the next instance", flush=True)
             errors.append(e)
     raise RuntimeError(f"every Overpass instance failed: {errors}")

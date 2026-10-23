@@ -45,7 +45,7 @@ jobs:
         run: |
           set -o pipefail
           python -m adresse_pipeline.build --overture-release "${{ inputs.overture_release || '2026-10-21.0' }}" 2>&1 | tee build.log || {
-            echo "::error title=Build failed::$(grep -E 'Error|Exception' build.log | tail -n 3 | tr '\n' ' ')"
+            echo "::error title=Build failed::$(tail -n 8 build.log | tr '\n' ' ')"
             exit 1
           }
       - name: Score cells
@@ -55,7 +55,7 @@ jobs:
         run: |
           set -o pipefail
           python -m adresse_pipeline.model 2>&1 | tee -a build.log || {
-            echo "::error title=Model failed::$(grep -E 'Error|Exception' build.log | tail -n 3 | tr '\n' ' ')"
+            echo "::error title=Model failed::$(tail -n 8 build.log | tr '\n' ' ')"
             exit 1
           }
       - name: Commit changed layers

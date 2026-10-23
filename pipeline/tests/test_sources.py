@@ -154,31 +154,39 @@ def test_no_median_without_enough_sales():
 # --- retries on busy servers ---
 
 
-def test_urlopen_retries_busy_servers_then_gives_up(monkeypatch):
-    import io
+def test_downloads_retry_busy_or_stalled_servers_but_not_missing_files(monkeypatch):
     import urllib.error
 
     from adresse_pipeline import download
 
+    monkeypatch.setattr(download.time, "sleep", lambda s: None)
+    failures = [
+        urllib.error.HTTPError("u", 502, "Bad Gateway", {}, None),
+        TimeoutError("read timed out"),
+    ]
+
+    def flaky():
+        if failures:
+            raise failures.pop(0)
+        return "ok"
+
+    assert download.retrying(flaky) == "ok"
+
     calls = []
 
-    def busy_then_ok(request, timeout):
-        calls.append(request)
-        if len(calls) < 3:
-            raise urllib.error.HTTPError("u", 502, "Bad Gateway", {}, None)
-        return io.BytesIO(b"ok")
-
-    monkeypatch.setattr(download.urllib.request, "urlopen", busy_then_ok)
-    monkeypatch.setattr(download.time, "sleep", lambda s: None)
-    assert download.urlopen("u", timeout=1).read() == b"ok"
-    assert len(calls) == 3
-
-    def not_found(request, timeout):
-        calls.append(request)
+    def missing():
+        calls.append(1)
         raise urllib.error.HTTPError("u", 404, "Not Found", {}, None)
 
-    calls.clear()
-    monkeypatch.setattr(download.urllib.request, "urlopen", not_found)
     with pytest.raises(urllib.error.HTTPError):
-        download.urlopen("u", timeout=1)
+        download.retrying(missing)
     assert len(calls) == 1
+
+    def always_stalls():
+        calls.append(1)
+        raise TimeoutError("read timed out")
+
+    calls.clear()
+    with pytest.raises(TimeoutError):
+        download.retrying(always_stalls, attempts=3)
+    assert len(calls) == 3
