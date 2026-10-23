@@ -4,7 +4,7 @@
 
 Adresse is an open-source location-intelligence studio for luxury retail. It scores every street block in Paris for a brand profile (jewellery & watches, fashion house, beauty), explains each score, compares two addresses side by side, and writes a one-page site memo. It is built only from open data.
 
-> Status: **Week 4 of 8.** Every one of Paris's 1,118 H3 blocks has a 0–100 opportunity score for each brand profile, with the drivers behind it. You can compare two blocks driver by driver, open a one-page site memo that prints to PDF, and share any view as a link. Tested on brands the model never saw, their boutiques land around the 90th percentile. See the [roadmap](#roadmap).
+> Status: **Week 5 of 8.** Every one of Paris's 1,118 H3 blocks has a 0–100 opportunity score for each brand profile, with the drivers behind it. You can compare two blocks driver by driver, open a one-page site memo that prints to PDF, share any view as a link, and read a "How it works" page that explains the data, the model and its validation with the live numbers. Tested on brands the model never saw, their boutiques land around the 90th percentile. See the [roadmap](#roadmap).
 
 ## What it will do
 

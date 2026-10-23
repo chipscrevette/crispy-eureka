@@ -14,6 +14,8 @@ export type Scores = {
   profiles: Record<ProfileId, { boutique_cells: number; cells: Record<string, [number, Driver[]]> }>
   validation: Record<ProfileId, Record<'model' | 'luxury neighbours' | 'apartment price', Validation>>
   [NEIGHBOURS]: Record<string, number>
+  importance: Record<ProfileId, [string, number][]>
+  validation_setup: { folds: number; positives: string }
 }
 
 /** Score classes on the map: the top half, quarter, tenth and twentieth of Paris. */
