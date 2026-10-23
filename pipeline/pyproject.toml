@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Data pipeline for Adresse, luxury retail site selection in Paris"
 requires-python = ">=3.11"
 license = "MIT"
-dependencies = ["pyarrow>=17"]
+dependencies = ["pyarrow>=17", "h3>=4.1", "shapely>=2", "pyproj>=3.6"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.6"]
@@ -22,6 +22,7 @@ src = ["src", "tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501"]  # the formatter owns line length; long strings stay readable
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
