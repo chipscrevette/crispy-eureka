@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import random
 from collections import Counter
+from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
@@ -144,13 +145,19 @@ def score_held_out(scores: np.ndarray, held_out: np.ndarray, unlabelled: np.ndar
 
 
 def validate(
-    grid: pd.DataFrame, boutiques: list[Boutique], profile: Profile, positives: PositiveSet
+    grid: pd.DataFrame,
+    boutiques: list[Boutique],
+    profile: Profile,
+    positives: PositiveSet,
+    exclude: Sequence[str] = (),
+    seed: int = SEED,
 ) -> dict[str, Validation]:
     """Hold out whole brands. Train on `positives` from the other brands, then rank the
     held-out brands' OSM-confirmed boutique cells. Every positive set is judged on the
-    same confirmed boutiques, so the sets can be compared."""
+    same confirmed boutiques, so the sets can be compared. Columns in `exclude` stay available
+    to the baselines but are hidden from the model."""
     brands = sorted({b.brand for b in boutiques if b.profile == profile})
-    random.Random(SEED).shuffle(brands)
+    random.Random(seed).shuffle(brands)
     folds = [brands[i::FOLDS] for i in range(FOLDS)]
     ranks: dict[str, list[float]] = {"model": [], "luxury neighbours": [], "apartment price": []}
 
@@ -166,7 +173,7 @@ def validate(
             continue
         unlabelled = y == 0
         candidates = {
-            "model": fit(x, y).predict(x),
+            "model": fit(x.drop(columns=list(exclude)), y).predict(x.drop(columns=list(exclude))),
             "luxury neighbours": x[NEIGHBOURS].to_numpy(dtype=float),
             "apartment price": x["apartment_price_m2"].fillna(0).to_numpy(dtype=float),
         }

@@ -4,7 +4,7 @@
 
 Adresse is an open-source location-intelligence studio for luxury retail. It scores every street block in Paris for a brand profile (jewellery & watches, fashion house, beauty), explains each score, compares two addresses side by side, and writes a one-page site memo. It is built only from open data.
 
-> Status: **Week 5 of 8.** Every one of Paris's 1,118 H3 blocks has a 0–100 opportunity score for each brand profile, with the drivers behind it. You can compare two blocks driver by driver, open a one-page site memo that prints to PDF, share any view as a link, and read a "How it works" page that explains the data, the model and its validation with the live numbers. Tested on brands the model never saw, their boutiques land around the 90th percentile. See the [roadmap](#roadmap).
+> Status: **Week 6 of 8.** Every one of Paris's 1,118 H3 blocks has a 0–100 opportunity score for each brand profile, with the drivers behind it. You can compare two blocks driver by driver, open a one-page site memo that prints to PDF, share any view as a link, and read a "How it works" page that explains the data, the model and its validation with the live numbers. Tested on brands the model never saw, their boutiques land around the 90th percentile. See the [roadmap](#roadmap).
 
 ## What it will do
 
@@ -38,7 +38,7 @@ Satellite embeddings from Google AlphaEarth and Ai2 OlmoEarth are tested as extr
 | DVF (property sales, Etalab) | Price levels |
 | INSEE Filosofi 200 m grid | Resident income and population |
 | Île-de-France Mobilités ridership | Footfall proxy |
-| AlphaEarth / OlmoEarth embeddings | Urban fabric from satellites |
+| AlphaEarth / OlmoEarth embeddings | Satellite benchmark: does the urban fabric seen from space add anything? (AlphaEarth: no, see the How it works page) |
 
 Licences and attribution: [DATA_LICENSES.md](DATA_LICENSES.md).
 
@@ -49,6 +49,7 @@ Licences and attribution: [DATA_LICENSES.md](DATA_LICENSES.md).
 cd pipeline && pip install -e ".[dev]" && pytest
 python -m adresse_pipeline.build --overture-release 2026-10-21.0
 python -m adresse_pipeline.model   # scores, drivers and the validation report
+python -m adresse_pipeline.alphaearth && python -m adresse_pipeline.benchmark   # satellite benchmark
 # add `--skip dvf insee` if your network can't reach data.gouv.fr or insee.fr
 
 # web app
