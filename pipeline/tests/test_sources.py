@@ -149,3 +149,68 @@ def test_no_median_without_enough_sales():
     medians, _ = dvf.median_price_m2(sales, dvf.Kind.APARTMENT, [centre], min_sales=5)
 
     assert medians[centre] is None
+
+
+# --- retries on busy servers ---
+
+
+def test_downloads_retry_busy_or_stalled_servers_but_not_missing_files(monkeypatch):
+    import urllib.error
+
+    from adresse_pipeline import download
+
+    monkeypatch.setattr(download.time, "sleep", lambda s: None)
+    failures = [
+        urllib.error.HTTPError("u", 502, "Bad Gateway", {}, None),
+        TimeoutError("read timed out"),
+    ]
+
+    def flaky():
+        if failures:
+            raise failures.pop(0)
+        return "ok"
+
+    assert download.retrying(flaky) == "ok"
+
+    calls = []
+
+    def missing():
+        calls.append(1)
+        raise urllib.error.HTTPError("u", 404, "Not Found", {}, None)
+
+    with pytest.raises(urllib.error.HTTPError):
+        download.retrying(missing)
+    assert len(calls) == 1
+
+    def always_stalls():
+        calls.append(1)
+        raise TimeoutError("read timed out")
+
+    calls.clear()
+    with pytest.raises(TimeoutError):
+        download.retrying(always_stalls, attempts=3)
+    assert len(calls) == 3
+
+
+def test_fetch_replaces_an_html_page_saved_as_a_zip(tmp_path, monkeypatch):
+    import io
+
+    from adresse_pipeline import download
+
+    monkeypatch.setattr(download, "CACHE", tmp_path)
+    monkeypatch.setattr(download.time, "sleep", lambda s: None)
+    url = "https://example.org/data.zip"
+    cached = tmp_path / "example.org" / "data.zip"
+    cached.parent.mkdir(parents=True)
+    cached.write_text("<html>Too many requests</html>")
+
+    good = io.BytesIO()
+    with zipfile.ZipFile(good, "w") as z:
+        z.writestr("a.csv", "x\n1\n")
+    answers = [b"<html>still busy</html>", good.getvalue()]
+    monkeypatch.setattr(
+        download.urllib.request, "urlopen", lambda url, timeout: io.BytesIO(answers.pop(0))
+    )
+
+    assert zipfile.is_zipfile(download.fetch(url))
+    assert answers == []

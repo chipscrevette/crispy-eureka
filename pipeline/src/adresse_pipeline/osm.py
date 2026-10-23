@@ -3,14 +3,21 @@
 from __future__ import annotations
 
 import json
+import urllib.error
 import urllib.parse
 import urllib.request
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 
 from adresse_pipeline.brands import Brand, Catalogue, Place, Store, distance_m
+from adresse_pipeline.download import retrying
 
-OVERPASS_URL = "https://overpass-api.de/api/interpreter"
+# The main instance is often busy or unreachable from CI runners; the mirrors serve the same data.
+OVERPASS_URLS = (
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.private.coffee/api/interpreter",
+    "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+)
 LUXURY_SHOP_TAGS = (
     "clothes|jewelry|watches|shoes|bag|leather|perfumery|cosmetics|boutique|"
     "fashion_accessories|beauty|fashion"
@@ -37,11 +44,22 @@ class Shop:
 
 def fetch_paris_shops() -> dict:
     body = urllib.parse.urlencode({"data": PARIS_QUERY}).encode()
-    request = urllib.request.Request(
-        OVERPASS_URL, data=body, headers={"User-Agent": "adresse (github.com/chipscrevette)"}
-    )
-    with urllib.request.urlopen(request, timeout=240) as res:
-        return json.load(res)
+    errors = []
+    for url in OVERPASS_URLS:
+        request = urllib.request.Request(
+            url, data=body, headers={"User-Agent": "adresse (github.com/chipscrevette)"}
+        )
+
+        def query(request: urllib.request.Request = request) -> dict:
+            with urllib.request.urlopen(request, timeout=200) as res:
+                return json.load(res)
+
+        try:
+            return retrying(query, attempts=2)
+        except (urllib.error.URLError, TimeoutError, ConnectionError) as e:
+            print(f"osm: {url} failed ({e}), trying the next instance", flush=True)
+            errors.append(e)
+    raise RuntimeError(f"every Overpass instance failed: {errors}")
 
 
 def shops(overpass: dict) -> Iterator[Shop]:
