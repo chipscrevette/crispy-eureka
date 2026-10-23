@@ -15,16 +15,21 @@ RETRY_STATUS = {429, 500, 502, 503, 504}
 ATTEMPTS = 4
 
 
-def urlopen(request: str | urllib.request.Request, timeout: float, wait: float = 5.0) -> IO[bytes]:
+def urlopen(
+    request: str | urllib.request.Request,
+    timeout: float,
+    wait: float = 5.0,
+    attempts: int = ATTEMPTS,
+) -> IO[bytes]:
     """`urllib.request.urlopen`, retried with backoff on busy-server errors."""
-    for attempt in range(ATTEMPTS):
+    for attempt in range(attempts):
         try:
             return urllib.request.urlopen(request, timeout=timeout)
         except urllib.error.HTTPError as e:
-            if e.code not in RETRY_STATUS or attempt == ATTEMPTS - 1:
+            if e.code not in RETRY_STATUS or attempt == attempts - 1:
                 raise
         except urllib.error.URLError:
-            if attempt == ATTEMPTS - 1:
+            if attempt == attempts - 1:
                 raise
         time.sleep(wait * 2**attempt)
     raise AssertionError("unreachable")
