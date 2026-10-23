@@ -9,6 +9,7 @@ from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 
 from adresse_pipeline.brands import Brand, Catalogue, Place, Store, distance_m
+from adresse_pipeline.download import urlopen
 
 OVERPASS_URL = "https://overpass-api.de/api/interpreter"
 LUXURY_SHOP_TAGS = (
@@ -40,7 +41,7 @@ def fetch_paris_shops() -> dict:
     request = urllib.request.Request(
         OVERPASS_URL, data=body, headers={"User-Agent": "adresse (github.com/chipscrevette)"}
     )
-    with urllib.request.urlopen(request, timeout=240) as res:
+    with urlopen(request, timeout=240) as res:
         return json.load(res)
 
 

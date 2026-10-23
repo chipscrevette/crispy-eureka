@@ -149,3 +149,36 @@ def test_no_median_without_enough_sales():
     medians, _ = dvf.median_price_m2(sales, dvf.Kind.APARTMENT, [centre], min_sales=5)
 
     assert medians[centre] is None
+
+
+# --- retries on busy servers ---
+
+
+def test_urlopen_retries_busy_servers_then_gives_up(monkeypatch):
+    import io
+    import urllib.error
+
+    from adresse_pipeline import download
+
+    calls = []
+
+    def busy_then_ok(request, timeout):
+        calls.append(request)
+        if len(calls) < 3:
+            raise urllib.error.HTTPError("u", 502, "Bad Gateway", {}, None)
+        return io.BytesIO(b"ok")
+
+    monkeypatch.setattr(download.urllib.request, "urlopen", busy_then_ok)
+    monkeypatch.setattr(download.time, "sleep", lambda s: None)
+    assert download.urlopen("u", timeout=1).read() == b"ok"
+    assert len(calls) == 3
+
+    def not_found(request, timeout):
+        calls.append(request)
+        raise urllib.error.HTTPError("u", 404, "Not Found", {}, None)
+
+    calls.clear()
+    monkeypatch.setattr(download.urllib.request, "urlopen", not_found)
+    with pytest.raises(urllib.error.HTTPError):
+        download.urlopen("u", timeout=1)
+    assert len(calls) == 1
