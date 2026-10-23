@@ -39,10 +39,12 @@ jobs:
       - run: pip install -e pipeline
       - name: Build layers
         shell: bash
+        env:
+          PYTHONUNBUFFERED: "1"
         run: |
           set -o pipefail
           python -m adresse_pipeline.build --overture-release "${{ inputs.overture_release || '2026-10-21.0' }}" 2>&1 | tee build.log || {
-            echo "::error title=Build failed::$(tail -n 4 build.log | tr '\n' ' ')"
+            echo "::error title=Build failed::$(grep -E 'Error|Exception' build.log | tail -n 3 | tr '\n' ' ')"
             exit 1
           }
       - name: Commit changed layers
