@@ -82,6 +82,22 @@ h2 { margin: 0; }
 .small { font-size: 0.8rem; }
 .error { color: #8e2f2f; margin: 0; }
 
+select {
+  width: 100%;
+  padding: 9px 10px;
+  font: inherit;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+}
+select:focus-visible { outline: 2px solid var(--seine); outline-offset: 2px; }
+.legend { display: grid; gap: 6px; margin-top: 10px; }
+.ramp { display: grid; grid-template-columns: repeat(5, 1fr); height: 10px; }
+.ramp span { background: var(--seine); }
+.ramp-labels { display: flex; justify-content: space-between; font: 0.72rem var(--mono); color: var(--muted); }
+.legend p { margin: 0; }
+.hover { font: 0.85rem var(--mono); font-variant-numeric: tabular-nums; }
+
 .selected { border-top: 1px solid var(--rule); padding-top: 16px; }
 .selected .brand { font: 500 1.4rem var(--display); margin: 0; color: var(--brass); }
 .selected p { margin: 2px 0; }
