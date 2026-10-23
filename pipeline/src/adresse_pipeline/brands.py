@@ -99,6 +99,9 @@ class Catalogue:
                 ]
             )
 
+    def brand_for_qid(self, qid: str | None) -> Brand | None:
+        return self._by_qid.get(qid) if qid else None
+
     def brand_for_name(self, name: str | None) -> Brand | None:
         key = normalize(name)
         if not key:
@@ -119,9 +122,11 @@ class Catalogue:
             return None
         if place.operating_status not in (None, "open"):
             return None
-        if place.brand_wikidata in self._by_qid:
-            return self._by_qid[place.brand_wikidata]
-        return self.brand_for_name(place.brand_name) or self.brand_for_name(place.name)
+        return (
+            self.brand_for_qid(place.brand_wikidata)
+            or self.brand_for_name(place.brand_name)
+            or self.brand_for_name(place.name)
+        )
 
 
 def distance_m(a: Place, b: Place) -> float:

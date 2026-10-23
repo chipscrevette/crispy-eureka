@@ -19,6 +19,7 @@ class Feature:
 OVERTURE = "Overture Maps Places"
 INSEE = "INSEE Filosofi, 200 m grid"
 DVF = "DVF (DGFiP, Etalab geolocated)"
+IDFM = "Île-de-France Mobilités rail validations"
 
 # Overture `basic_category` values counted for each context feature.
 CONTEXT_CATEGORIES: dict[str, frozenset[str]] = {
@@ -127,6 +128,13 @@ FEATURES: list[Feature] = [
         "€ / m²",
         DVF,
         "Median sale price of commercial premises within about 350 m (700 m where sparse)",
+    ),
+    Feature(
+        "transit_entries_r2",
+        "Station entries",
+        "entries / day",
+        IDFM,
+        "Average daily entries at metro, RER and train stations within about 600 m",
     ),
     Feature(
         "commercial_sales_r1",

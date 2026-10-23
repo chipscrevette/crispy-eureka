@@ -14,7 +14,8 @@ def find_stores(places: Iterable[Place], catalogue: Catalogue) -> list[Store]:
     return dedupe([Store(p, b) for p in places if (b := catalogue.match(p))])
 
 
-def to_geojson(stores: list[Store], release: str) -> dict:
+def to_geojson(stores: list[Store], release: str, confirmed: set[str] | None = None) -> dict:
+    """`confirmed` holds the ids OpenStreetMap agrees on; None when OSM was not checked."""
     return {
         "type": "FeatureCollection",
         "metadata": {
@@ -34,6 +35,7 @@ def to_geojson(stores: list[Store], release: str) -> dict:
                     "segment": s.brand.segment.value,
                     "profile": s.brand.profile.value,
                     "name": s.place.name,
+                    **({} if confirmed is None else {"osm_confirmed": s.place.id in confirmed}),
                 },
             }
             for s in sorted(stores, key=lambda s: (s.brand.name, s.place.id))
