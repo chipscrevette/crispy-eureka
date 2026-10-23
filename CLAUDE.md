@@ -4,7 +4,8 @@ Open-source luxury retail site selection for Paris: where should a luxury brand 
 
 ## Layout
 
-- `pipeline/`: Python 3.11+ package `adresse_pipeline`. It turns open data into map layers and, later, the scoring model. Run `pip install -e "pipeline[dev]"`, then `pytest` and `ruff check` from `pipeline/`.
+- `pipeline/`: Python 3.11+ package `adresse_pipeline`. It turns open data into map layers and, later, the scoring model. Run `pip install -e "pipeline[dev]"`, then `pytest` and `ruff check` from `pipeline/`. `python -m adresse_pipeline.build` rebuilds every layer. The feature registry with labels and sources is `adresse_pipeline/features.py`.
+- Data builds run in the `Build data` workflow, which commits `web/public/data/` and `pipeline/output/`. Cloud sessions may not reach data.gouv.fr or insee.fr, so use `--skip dvf insee` locally and let the workflow do the full build.
 - `pipeline/data/luxury_brands.csv`: the curated brand catalogue. Each segment maps to one of three profiles (jewellery-watches, fashion-house, beauty).
 - `web/`: Vite + React + TypeScript + MapLibre. Run `npm ci`, then `npm run dev`, `npm run build` and `npm run lint` from `web/`. Data layers live in `web/public/data/`.
 - `.claude/skills/`, `.claude/agents/`: pstack, vendored (see below).
