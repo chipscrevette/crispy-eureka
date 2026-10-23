@@ -190,3 +190,27 @@ def test_downloads_retry_busy_or_stalled_servers_but_not_missing_files(monkeypat
     with pytest.raises(TimeoutError):
         download.retrying(always_stalls, attempts=3)
     assert len(calls) == 3
+
+
+def test_fetch_replaces_an_html_page_saved_as_a_zip(tmp_path, monkeypatch):
+    import io
+
+    from adresse_pipeline import download
+
+    monkeypatch.setattr(download, "CACHE", tmp_path)
+    monkeypatch.setattr(download.time, "sleep", lambda s: None)
+    url = "https://example.org/data.zip"
+    cached = tmp_path / "example.org" / "data.zip"
+    cached.parent.mkdir(parents=True)
+    cached.write_text("<html>Too many requests</html>")
+
+    good = io.BytesIO()
+    with zipfile.ZipFile(good, "w") as z:
+        z.writestr("a.csv", "x\n1\n")
+    answers = [b"<html>still busy</html>", good.getvalue()]
+    monkeypatch.setattr(
+        download.urllib.request, "urlopen", lambda url, timeout: io.BytesIO(answers.pop(0))
+    )
+
+    assert zipfile.is_zipfile(download.fetch(url))
+    assert answers == []
