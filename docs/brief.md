@@ -25,7 +25,8 @@ We have no sales data, so we learn from where luxury brands already chose to be.
 ## Week 0 facts we already checked
 
 - **Overture Maps (release 2026-10-21.0)** has 315,635 places in the Paris bounding box. It is readable straight from its public S3 bucket, and the extraction takes about 8 seconds (`pipeline/src/adresse_pipeline/overture.py`).
-- Our list of 74 luxury brands (`pipeline/data/luxury_brands.csv`) matches **394 store-type places across 72 brands** in Paris, which become **382 boutiques** after removing duplicates within 40 m. That is enough positive examples for the model.
+- Our list of 74 luxury brands (`pipeline/data/luxury_brands.csv`) matches **394 store-type places across 72 brands** in Paris, which become **382 boutiques** after removing duplicates within 40 m.
+- **Week 2 cross-check:** OpenStreetMap confirmed only 142 of those 382. Of the 241 it did not confirm, 90 sat inside Galeries Lafayette, Printemps, Le Bon Marché, La Samaritaine or BHV, because Overture puts concessions at the store's address. With concessions left out, the layer holds **290 street boutiques**: 158 fashion house, 80 jewellery & watches, 52 beauty. OSM confirms 139 of them within 75 m, and OSM has 50 more catalogue boutiques that Overture misses. That is still enough positive examples for the model.
 - **Data-quality warning:** Overture rarely has a brand Wikidata ID for these brands (only 7 of 74 do). Matching by name alone also catches false hits, like clinics run by someone named "Céline", or "Cartier" dental offices. We keep only shop categories, and the pipeline must also deduplicate stores and remove department-store concessions. OpenStreetMap `brand:wikidata` tags should be added in Week 1 to cross-check.
 - The DuckDB extensions server is blocked from the build container, so the pipeline uses PyArrow for S3 reads. On a normal laptop, DuckDB works fine.
 
@@ -39,6 +40,8 @@ We have no sales data, so we learn from where luxury brands already chose to be.
 | 4 | H3 resolution 9 as the analysis grid | Street-block scale, light enough for the browser | 2026-10-23 |
 | 5 | Static PMTiles + small API, no paid map keys | Free live demo, fully open source | 2026-10-23 |
 | 6 | Code under MIT; data licences listed per source in `DATA_LICENSES.md` | Open source, and respects ODbL and CC-BY attribution | 2026-10-23 |
+| 7 | Leave department-store concessions out of the boutique layer | They are not street location choices, and they made up most of the boutiques OSM could not confirm | 2026-10-23 |
+| 8 | Use station entries (IDFM, Q4 2025) as the footfall proxy | No open pedestrian counts exist for Paris; rail entries are measured, daily and citywide | 2026-10-23 |
 
 ## Open questions for Kevin
 
