@@ -1,0 +1,135 @@
+{
+ "sources": [
+  "Overture Maps Places, release 2026-10-21.0",
+  "INSEE Filosofi, 200 m grid, Filosofi 2021",
+  "DVF (DGFiP, Etalab geolocated), 2021-2025"
+ ],
+ "features": [
+  {
+   "key": "hotels_r1",
+   "label": "Hotels",
+   "unit": "places",
+   "source": "Overture Maps Places",
+   "description": "Hotels and lodgings in the cell and its six neighbours (about 350 m around)"
+  },
+  {
+   "key": "dining_r1",
+   "label": "Restaurants & cafés",
+   "unit": "places",
+   "source": "Overture Maps Places",
+   "description": "Restaurants, cafés and bars in the cell and its six neighbours (about 350 m around)"
+  },
+  {
+   "key": "culture_r1",
+   "label": "Culture",
+   "unit": "places",
+   "source": "Overture Maps Places",
+   "description": "Galleries, museums, historic sites and venues in the cell and its six neighbours (about 350 m around)"
+  },
+  {
+   "key": "fashion_stores_r1",
+   "label": "Fashion stores",
+   "unit": "places",
+   "source": "Overture Maps Places",
+   "description": "All fashion and apparel stores in the cell and its six neighbours (about 350 m around)"
+  },
+  {
+   "key": "beauty_stores_r1",
+   "label": "Beauty stores",
+   "unit": "places",
+   "source": "Overture Maps Places",
+   "description": "All beauty and personal-care stores in the cell and its six neighbours (about 350 m around)"
+  },
+  {
+   "key": "mass_market_r1",
+   "label": "Mass-market outlets",
+   "unit": "places",
+   "source": "Overture Maps Places",
+   "description": "Fast food and convenience stores in the cell and its six neighbours (about 350 m around)"
+  },
+  {
+   "key": "offices_r1",
+   "label": "Offices",
+   "unit": "places",
+   "source": "Overture Maps Places",
+   "description": "Corporate offices and financial services in the cell and its six neighbours (about 350 m around)"
+  },
+  {
+   "key": "luxury_jewellery-watches_r1",
+   "label": "Luxury boutiques (jewellery-watches)",
+   "unit": "boutiques",
+   "source": "Overture Maps Places",
+   "description": "Catalogue boutiques of the jewellery-watches profile in the cell and its six neighbours (about 350 m around)"
+  },
+  {
+   "key": "luxury_fashion-house_r1",
+   "label": "Luxury boutiques (fashion-house)",
+   "unit": "boutiques",
+   "source": "Overture Maps Places",
+   "description": "Catalogue boutiques of the fashion-house profile in the cell and its six neighbours (about 350 m around)"
+  },
+  {
+   "key": "luxury_beauty_r1",
+   "label": "Luxury boutiques (beauty)",
+   "unit": "boutiques",
+   "source": "Overture Maps Places",
+   "description": "Catalogue boutiques of the beauty profile in the cell and its six neighbours (about 350 m around)"
+  },
+  {
+   "key": "population_r1",
+   "label": "Residents",
+   "unit": "people",
+   "source": "INSEE Filosofi, 200 m grid",
+   "description": "Residents in the cell and its six neighbours (about 350 m around)"
+  },
+  {
+   "key": "living_standard_r1",
+   "label": "Living standard",
+   "unit": "€ / person / year",
+   "source": "INSEE Filosofi, 200 m grid",
+   "description": "Mean disposable income per consumption unit of residents in the cell and its six neighbours (about 350 m around)"
+  },
+  {
+   "key": "owners_share_r1",
+   "label": "Home owners",
+   "unit": "share",
+   "source": "INSEE Filosofi, 200 m grid",
+   "description": "Share of households owning their home in the cell and its six neighbours (about 350 m around)"
+  },
+  {
+   "key": "poverty_share_r1",
+   "label": "Households in poverty",
+   "unit": "share",
+   "source": "INSEE Filosofi, 200 m grid",
+   "description": "Share of households below the poverty line in the cell and its six neighbours (about 350 m around)"
+  },
+  {
+   "key": "apartment_price_m2",
+   "label": "Apartment price",
+   "unit": "€ / m²",
+   "source": "DVF (DGFiP, Etalab geolocated)",
+   "description": "Median sale price of apartments within about 350 m (700 m where sales are sparse)"
+  },
+  {
+   "key": "apartment_sales_r1",
+   "label": "Apartment sales",
+   "unit": "sales",
+   "source": "DVF (DGFiP, Etalab geolocated)",
+   "description": "Single-apartment sales in the cell and its six neighbours (about 350 m around)"
+  },
+  {
+   "key": "commercial_price_m2",
+   "label": "Retail premises price",
+   "unit": "€ / m²",
+   "source": "DVF (DGFiP, Etalab geolocated)",
+   "description": "Median sale price of commercial premises within about 350 m (700 m where sparse)"
+  },
+  {
+   "key": "commercial_sales_r1",
+   "label": "Retail premises sales",
+   "unit": "sales",
+   "source": "DVF (DGFiP, Etalab geolocated)",
+   "description": "Commercial-premises sales in the cell and its six neighbours (about 350 m around)"
+  }
+ ]
+}
