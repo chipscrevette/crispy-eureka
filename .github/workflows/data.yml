@@ -38,7 +38,15 @@ jobs:
           key: sources-${{ hashFiles('pipeline/src/adresse_pipeline/dvf.py', 'pipeline/src/adresse_pipeline/insee.py') }}
       - run: pip install -e pipeline
       - name: Build layers
-        run: python -m adresse_pipeline.build --overture-release "${{ inputs.overture_release || '2026-10-21.0' }}" | tee build.log
+        shell: bash
+        env:
+          PYTHONUNBUFFERED: "1"
+        run: |
+          set -o pipefail
+          python -m adresse_pipeline.build --overture-release "${{ inputs.overture_release || '2026-10-21.0' }}" 2>&1 | tee build.log || {
+            echo "::error title=Build failed::$(grep -E 'Error|Exception' build.log | tail -n 3 | tr '\n' ' ')"
+            exit 1
+          }
       - name: Commit changed layers
         run: |
           git config user.name "github-actions[bot]"

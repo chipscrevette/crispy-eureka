@@ -47,7 +47,7 @@ export default function App() {
       style: BASEMAP,
       center: PARIS,
       zoom: 13.2,
-      attributionControl: { compact: true, customAttribution: 'Places © Overture Maps Foundation · INSEE · DGFiP' },
+      attributionControl: { compact: true, customAttribution: 'Places © Overture Maps Foundation · INSEE · DGFiP · Île-de-France Mobilités' },
     })
     map.current = m
     m.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right')
@@ -236,6 +236,13 @@ export default function App() {
             <h2 className="label">Selected</h2>
             <p className="brand">{selected.brand}</p>
             <p className="muted">{selected.segment}</p>
+            {selected.osm_confirmed !== undefined && (
+              <p className="muted small">
+                {selected.osm_confirmed
+                  ? 'Also mapped in OpenStreetMap within 75 m.'
+                  : 'Not found in OpenStreetMap. Treat this location with care.'}
+              </p>
+            )}
             <button className="link" onClick={() => setSelected(null)}>
               Clear selection
             </button>
@@ -243,7 +250,7 @@ export default function App() {
         )}
 
         <footer className="muted small">
-          Week 1 preview. Opportunity scores arrive in Week 3. Data: {data?.meta.sources.join(' · ') ?? 'loading'}.
+          Week 2 preview. Opportunity scores arrive in Week 3. Data: {data?.meta.sources.join(' · ') ?? 'loading'}.
         </footer>
       </aside>
     </div>

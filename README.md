@@ -4,7 +4,7 @@
 
 Adresse is an open-source location-intelligence studio for luxury retail. It scores every street block in Paris for a brand profile (jewellery & watches, fashion house, beauty), explains each score, compares two addresses side by side, and writes a one-page site memo. It is built only from open data.
 
-> Status: **Week 1 of 8.** Paris is on a grid of 1,118 H3 cells, each with retail, tourism, income and property-price features, next to a map of the existing luxury boutiques. Opportunity scores arrive in Week 3. See the [roadmap](#roadmap).
+> Status: **Week 2 of 8.** Paris is on a grid of 1,118 H3 cells, each with retail, tourism, footfall, income and property-price features, next to a map of 290 existing luxury street boutiques that have been cross-checked against OpenStreetMap. Opportunity scores arrive in Week 3. See the [roadmap](#roadmap).
 
 ## What it will do
 

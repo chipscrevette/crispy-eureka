@@ -12,6 +12,7 @@ export type StoreProps = {
   id: string
   brand: string
   segment: string
+  osm_confirmed?: boolean
   profile: ProfileId
   name: string | null
 }

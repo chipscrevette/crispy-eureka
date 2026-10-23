@@ -2,7 +2,8 @@
  "sources": [
   "Overture Maps Places, release 2026-10-21.0",
   "INSEE Filosofi, 200 m grid, Filosofi 2021",
-  "DVF (DGFiP, Etalab geolocated), 2021-2025"
+  "DVF (DGFiP, Etalab geolocated), 2021-2025",
+  "Île-de-France Mobilités rail validations, Q4 2025"
  ],
  "features": [
   {
@@ -123,6 +124,13 @@
    "unit": "€ / m²",
    "source": "DVF (DGFiP, Etalab geolocated)",
    "description": "Median sale price of commercial premises within about 350 m (700 m where sparse)"
+  },
+  {
+   "key": "transit_entries_r2",
+   "label": "Station entries",
+   "unit": "entries / day",
+   "source": "Île-de-France Mobilités rail validations",
+   "description": "Average daily entries at metro, RER and train stations within about 600 m"
   },
   {
    "key": "commercial_sales_r1",

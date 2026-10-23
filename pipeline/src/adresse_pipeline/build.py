@@ -3,9 +3,10 @@
     python -m adresse_pipeline.build --overture-release 2026-10-21.0
 
 Writes the boutique layer and the H3 grid to web/public/data/, and the grid's
-feature table to pipeline/output/. `--skip dvf insee` builds without the French
-sources (for machines that can't reach data.gouv.fr or insee.fr); those features
-are then left empty.
+feature table and the boutique cross-check to pipeline/output/. `--skip dvf insee
+idfm osm` builds without those sources (for machines that can't reach data.gouv.fr,
+insee.fr, data.iledefrance-mobilites.fr or the Overpass API); their features are then
+left empty.
 """
 
 from __future__ import annotations
@@ -19,11 +20,20 @@ from pathlib import Path
 import h3
 from shapely.geometry import Point
 
-from adresse_pipeline import dvf, insee
+from adresse_pipeline import dvf, idfm, insee, osm
 from adresse_pipeline.brands import Catalogue, Profile
 from adresse_pipeline.download import fetch
-from adresse_pipeline.features import CONTEXT_CATEGORIES, DVF, FEATURES, INSEE, OVERTURE, as_json
+from adresse_pipeline.features import (
+    CONTEXT_CATEGORIES,
+    DVF,
+    FEATURES,
+    IDFM,
+    INSEE,
+    OVERTURE,
+    as_json,
+)
 from adresse_pipeline.grid import (
+    cell_of,
     cell_polygon,
     cells_covering,
     count_by_cell,
@@ -32,6 +42,8 @@ from adresse_pipeline.grid import (
 )
 from adresse_pipeline.luxury_stores import CATALOGUE, find_stores, to_geojson
 from adresse_pipeline.overture import PARIS_PADDED, read_paris_areas, read_places
+
+SKIPPABLE = ["dvf", "insee", "idfm", "osm"]
 
 ROOT = Path(__file__).resolve().parents[3]
 WEB_DATA = ROOT / "web" / "public" / "data"
@@ -51,7 +63,7 @@ def main() -> None:
     parser.add_argument("--overture-release", required=True)
     parser.add_argument("--dvf-years", type=int, nargs="+", default=DVF_YEARS)
     parser.add_argument("--filosofi-year", type=int, default=2021, choices=insee.FILOSOFI_URLS)
-    parser.add_argument("--skip", nargs="*", default=[], choices=["dvf", "insee"])
+    parser.add_argument("--skip", nargs="*", default=[], choices=SKIPPABLE)
     args = parser.parse_args()
 
     areas = read_paris_areas(args.overture_release)
@@ -71,13 +83,17 @@ def main() -> None:
         counts = count_by_cell((p.lon, p.lat) for p in places if p.category in categories)
         columns[key] = ring_sum(counts, cells)
 
-    stores = find_stores(places, Catalogue.from_csv(CATALOGUE))
+    catalogue = Catalogue.from_csv(CATALOGUE)
+    stores, concessions = find_stores(places, catalogue)
     for profile in Profile:
         counts = count_by_cell(
             (s.place.lon, s.place.lat) for s in stores if s.brand.profile == profile
         )
         columns[f"luxury_{profile.value}_r1"] = ring_sum(counts, cells)
-    print(f"overture: {len(places)} open places, {len(stores)} luxury boutiques")
+    print(
+        f"overture: {len(places)} open places, {len(stores)} luxury street boutiques "
+        f"({concessions} department-store concessions left out)"
+    )
 
     sources = [f"{OVERTURE}, release {args.overture_release}"]
 
@@ -117,6 +133,55 @@ def main() -> None:
         )
         sources.append(f"{DVF}, {min(args.dvf_years)}-{max(args.dvf_years)}")
 
+    if "idfm" not in args.skip:
+        entries = idfm.daily_entries_by_zdc(idfm.read_csv(fetch(idfm.VALIDATIONS_URL)))
+        stations = [
+            s
+            for s in idfm.stations(idfm.read_csv(fetch(idfm.STATIONS_URL)), entries)
+            if PARIS_PADDED.xmin <= s.lon <= PARIS_PADDED.xmax
+            and PARIS_PADDED.ymin <= s.lat <= PARIS_PADDED.ymax
+        ]
+        by_cell: dict[str, float] = Counter()
+        for st in stations:
+            by_cell[cell_of(st.lon, st.lat)] += st.daily_entries
+        columns["transit_entries_r2"] = ring_sum(by_cell, cells, k=2)
+        busiest = sorted(stations, key=lambda s: -s.daily_entries)[:5]
+        print(
+            f"idfm: {len(stations)} stations in and around Paris; busiest: "
+            + ", ".join(f"{s.name} {s.daily_entries:,.0f}/day" for s in busiest)
+        )
+        sources.append(f"{IDFM}, {idfm.VALIDATIONS_PERIOD}")
+
+    confirmed: set[str] | None = None
+    if "osm" not in args.skip:
+        check = osm.cross_check(stores, osm.shops(osm.fetch_paris_shops()), catalogue)
+        confirmed = check.confirmed
+        (OUTPUT / "boutique_crosscheck.json").parent.mkdir(parents=True, exist_ok=True)
+        (OUTPUT / "boutique_crosscheck.json").write_text(
+            json.dumps(
+                {
+                    "overture_boutiques": len(stores),
+                    "confirmed_by_osm": len(check.confirmed),
+                    "osm_only": [
+                        {
+                            "brand": b.name,
+                            "name": s.name,
+                            "osm": s.osm_id,
+                            "lon": s.lon,
+                            "lat": s.lat,
+                        }
+                        for b, s in sorted(check.osm_only, key=lambda x: (x[0].name, x[1].osm_id))
+                    ],
+                },
+                ensure_ascii=False,
+                indent=1,
+            )
+        )
+        print(
+            f"osm: {len(check.confirmed)}/{len(stores)} Overture boutiques confirmed within "
+            f"{osm.MATCH_RADIUS_M} m; {len(check.osm_only)} catalogue boutiques only in OSM"
+        )
+
     def arrondissement(cell: str) -> str | None:
         lat, lon = h3.cell_to_latlng(cell)
         point = Point(lon, lat)
@@ -153,7 +218,7 @@ def main() -> None:
         json.dumps(grid, ensure_ascii=False, separators=(",", ":"))
     )
     (WEB_DATA / "luxury_stores.geojson").write_text(
-        json.dumps(to_geojson(stores, args.overture_release), ensure_ascii=False)
+        json.dumps(to_geojson(stores, args.overture_release, confirmed), ensure_ascii=False)
     )
     (WEB_DATA / "features.json").write_text(
         json.dumps(
