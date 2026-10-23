@@ -1,0 +1,65 @@
+# Adresse
+
+**Where should a luxury brand open its next Paris boutique, and why?**
+
+Adresse is an open-source location-intelligence studio for luxury retail. It scores every street block in Paris for a brand profile (jewellery & watches, fashion house, beauty), explains each score, compares two addresses side by side, and writes a one-page site memo. It is built only from open data.
+
+> Status: **Week 0 of 8.** The data foundation and a first map of 382 existing luxury boutiques are in place. Opportunity scores arrive in Week 3. See the [roadmap](#roadmap).
+
+## What it will do
+
+- **Opportunity map:** Paris on an H3 grid (about 0.1 km² cells), coloured by a 0–100 site score.
+- **Explain any block:** the top drivers behind each score, for example tourist flow, prestige neighbours, affluent residents and rent level.
+- **Compare two addresses**, with walking-time catchments.
+- **Site memo:** a clean one-page summary, ready for a real-estate committee.
+- **Ask Adresse:** a copilot that answers questions by running the project's own queries, and cites every number it uses.
+
+## Method
+
+There is no public data on boutique sales, so Adresse learns from where luxury brands *already chose* to open. Their existing stores are positive examples, and every other block is unlabelled. A gradient-boosted model (LightGBM) learns what those surroundings share, and SHAP explains each score. To validate, whole brands are held out and we check that their real stores rank high. Satellite embeddings from Google AlphaEarth and Ai2 OlmoEarth are tested as extra features, and the results will be published either way.
+
+## Data
+
+| Source | Used for |
+|--------|----------|
+| Overture Maps Places | Luxury boutiques, hotels, restaurants, culture |
+| DVF (property sales, Etalab) | Price levels |
+| INSEE Filosofi 200 m grid | Resident income and population |
+| Île-de-France Mobilités ridership | Footfall proxy |
+| AlphaEarth / OlmoEarth embeddings | Urban fabric from satellites |
+
+Licences and attribution: [DATA_LICENSES.md](DATA_LICENSES.md).
+
+## Run it
+
+```bash
+# data pipeline
+cd pipeline && pip install -e ".[dev]" && pytest
+python -m adresse_pipeline.luxury_stores --release 2026-10-21.0 \
+    --out ../web/public/data/luxury_stores.geojson
+
+# web app
+cd web && npm ci && npm run dev
+```
+
+The basemap is OpenFreeMap Positron. To use another one, set `VITE_BASEMAP_STYLE` to a style URL, or to `blank` for no basemap.
+
+## Roadmap
+
+| Week | Milestone |
+|------|-----------|
+| 0 | Brief, design direction, brand catalogue, boutique layer, repo and CI |
+| 1–2 | All data sources on the Paris H3 grid |
+| 3 | Lookalike scoring model, SHAP drivers, hold-out validation |
+| 4–5 | Opportunity map, compare view, site memo |
+| 6 | Copilot, AlphaEarth vs OlmoEarth benchmark |
+| 7 | Mobile, accessibility, performance, demo video |
+| 8 | Public v1 and case study |
+
+## How this is built
+
+The project follows the poteto method ([pstack](https://github.com/cursor/plugins/tree/main/pstack) by Lauren Tan): plan before code, test first, prove it works in the real app, and keep PRs small. It is developed with Claude Code, and the method is vendored in `.claude/`.
+
+## Licence
+
+Code: [MIT](LICENSE). Data stays under its original licences ([DATA_LICENSES.md](DATA_LICENSES.md)). Adresse is not affiliated with any brand shown on the map.
