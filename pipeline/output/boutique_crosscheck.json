@@ -1,6 +1,6 @@
 {
- "overture_boutiques": 383,
- "confirmed_by_osm": 142,
+ "overture_boutiques": 290,
+ "confirmed_by_osm": 139,
  "osm_only": [
   {
    "brand": "Aesop",
@@ -22,6 +22,13 @@
    "osm": "node/4865985714",
    "lon": 2.3339399,
    "lat": 48.8730018
+  },
+  {
+   "brand": "Bottega Veneta",
+   "name": "Bottega Veneta",
+   "osm": "node/4946643428",
+   "lon": 2.3244193,
+   "lat": 48.8505325
   },
   {
    "brand": "Brunello Cucinelli",
@@ -117,9 +124,23 @@
   {
    "brand": "Chanel",
    "name": "Chanel",
+   "osm": "node/6570051726",
+   "lon": 2.3225192,
+   "lat": 48.842527
+  },
+  {
+   "brand": "Chanel",
+   "name": "Chanel",
    "osm": "node/6570051727",
    "lon": 2.3248163,
    "lat": 48.8506838
+  },
+  {
+   "brand": "Chanel",
+   "name": "Chanel",
+   "osm": "node/6570051728",
+   "lon": 2.3325074,
+   "lat": 48.8733152
   },
   {
    "brand": "Chanel",
