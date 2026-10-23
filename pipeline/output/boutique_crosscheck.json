@@ -1,0 +1,335 @@
+{
+ "overture_boutiques": 383,
+ "confirmed_by_osm": 142,
+ "osm_only": [
+  {
+   "brand": "Aesop",
+   "name": "Aesop",
+   "osm": "node/8354199450",
+   "lon": 2.3321922,
+   "lat": 48.8512477
+  },
+  {
+   "brand": "Berluti",
+   "name": "Berluti",
+   "osm": "node/4682446148",
+   "lon": 2.3222905,
+   "lat": 48.8685677
+  },
+  {
+   "brand": "Bottega Veneta",
+   "name": "Bottega Veneta",
+   "osm": "node/4865985714",
+   "lon": 2.3339399,
+   "lat": 48.8730018
+  },
+  {
+   "brand": "Brunello Cucinelli",
+   "name": "Brunello Cucinelli",
+   "osm": "node/3980793489",
+   "lon": 2.3046748,
+   "lat": 48.8659074
+  },
+  {
+   "brand": "Bulgari",
+   "name": "Bulgari",
+   "osm": "node/3981588781",
+   "lon": 2.3016037,
+   "lat": 48.8698094
+  },
+  {
+   "brand": "Burberry",
+   "name": "Burberry",
+   "osm": "node/3985130621",
+   "lon": 2.3194205,
+   "lat": 48.8696131
+  },
+  {
+   "brand": "Cartier",
+   "name": "Cartier",
+   "osm": "node/5058304041",
+   "lon": 2.3078962,
+   "lat": 48.8681063
+  },
+  {
+   "brand": "Celine",
+   "name": "Céline Beauté",
+   "osm": "node/12366210790",
+   "lon": 2.3418572,
+   "lat": 48.8926769
+  },
+  {
+   "brand": "Celine",
+   "name": "Celine",
+   "osm": "node/14242325406",
+   "lon": 2.3080849,
+   "lat": 48.8682088
+  },
+  {
+   "brand": "Celine",
+   "name": "Celine",
+   "osm": "node/3980828286",
+   "lon": 2.325693,
+   "lat": 48.8676799
+  },
+  {
+   "brand": "Celine",
+   "name": "Celine",
+   "osm": "node/3981413158",
+   "lon": 2.305813,
+   "lat": 48.8674684
+  },
+  {
+   "brand": "Celine",
+   "name": "Céline",
+   "osm": "node/3991869872",
+   "lon": 2.3078627,
+   "lat": 48.8675505
+  },
+  {
+   "brand": "Celine",
+   "name": "Céline Nails",
+   "osm": "node/9876503610",
+   "lon": 2.2649742,
+   "lat": 48.8411214
+  },
+  {
+   "brand": "Chanel",
+   "name": "Les Trois Marches",
+   "osm": "node/10869266094",
+   "lon": 2.3350546,
+   "lat": 48.8518632
+  },
+  {
+   "brand": "Chanel",
+   "name": "Chanel",
+   "osm": "node/11549222033",
+   "lon": 2.3260827,
+   "lat": 48.8675712
+  },
+  {
+   "brand": "Chanel",
+   "name": "Chanel",
+   "osm": "node/3980660125",
+   "lon": 2.3233169,
+   "lat": 48.8689854
+  },
+  {
+   "brand": "Chanel",
+   "name": "Chanel",
+   "osm": "node/6570051727",
+   "lon": 2.3248163,
+   "lat": 48.8506838
+  },
+  {
+   "brand": "Chanel",
+   "name": "Chanel",
+   "osm": "node/6570051731",
+   "lon": 2.3591946,
+   "lat": 48.8585093
+  },
+  {
+   "brand": "Chopard",
+   "name": "Chopard",
+   "osm": "node/3578517305",
+   "lon": 2.3284813,
+   "lat": 48.8667667
+  },
+  {
+   "brand": "Chopard",
+   "name": "Chopard",
+   "osm": "node/3985130771",
+   "lon": 2.3180076,
+   "lat": 48.870263
+  },
+  {
+   "brand": "Creed",
+   "name": "Creed",
+   "osm": "node/3656828729",
+   "lon": 2.3311592,
+   "lat": 48.8652078
+  },
+  {
+   "brand": "Dinh Van",
+   "name": "Dinh Van",
+   "osm": "node/3809279162",
+   "lon": 2.2981265,
+   "lat": 48.8724032
+  },
+  {
+   "brand": "Dior",
+   "name": "Dior",
+   "osm": "node/9936159428",
+   "lon": 2.3064268,
+   "lat": 48.8706159
+  },
+  {
+   "brand": "Dolce & Gabbana",
+   "name": "Dolce & Gabbana",
+   "osm": "node/6886954285",
+   "lon": 2.3034066,
+   "lat": 48.8686646
+  },
+  {
+   "brand": "Givenchy",
+   "name": "Givenchy",
+   "osm": "node/14054353057",
+   "lon": 2.3010952,
+   "lat": 48.8653825
+  },
+  {
+   "brand": "Givenchy",
+   "name": "Givenchy",
+   "osm": "node/2036561909",
+   "lon": 2.3024208,
+   "lat": 48.8695994
+  },
+  {
+   "brand": "Goyard",
+   "name": "Goyard",
+   "osm": "node/3980791250",
+   "lon": 2.3289199,
+   "lat": 48.8663285
+  },
+  {
+   "brand": "Gucci",
+   "name": "Gucci",
+   "osm": "node/11510770645",
+   "lon": 2.3285812,
+   "lat": 48.8663929
+  },
+  {
+   "brand": "Guerlain",
+   "name": "La Maison Guerlain",
+   "osm": "node/3980268298",
+   "lon": 2.3052094,
+   "lat": 48.8709239
+  },
+  {
+   "brand": "Guerlain",
+   "name": "L'Institut Guerlain",
+   "osm": "node/9388558820",
+   "lon": 2.3052803,
+   "lat": 48.8711859
+  },
+  {
+   "brand": "Jaeger-LeCoultre",
+   "name": "Jaeger-LeCoultre",
+   "osm": "node/3584325051",
+   "lon": 2.3282852,
+   "lat": 48.8673232
+  },
+  {
+   "brand": "Lanvin",
+   "name": "Lanvin",
+   "osm": "node/14132824565",
+   "lon": 2.3212316,
+   "lat": 48.8676747
+  },
+  {
+   "brand": "Louis Vuitton",
+   "name": "Louis Vuitton",
+   "osm": "node/4382789296",
+   "lon": 2.3243023,
+   "lat": 48.8504479
+  },
+  {
+   "brand": "Louis Vuitton",
+   "name": "Louis Vuitton",
+   "osm": "node/5058359383",
+   "lon": 2.3069087,
+   "lat": 48.8670849
+  },
+  {
+   "brand": "Louis Vuitton",
+   "name": "Louis Vuitton",
+   "osm": "node/5058419207",
+   "lon": 2.3053343,
+   "lat": 48.8662596
+  },
+  {
+   "brand": "Max Mara",
+   "name": "Weekend Max Mara",
+   "osm": "way/393519536",
+   "lon": 2.2837222,
+   "lat": 48.8797872
+  },
+  {
+   "brand": "Omega",
+   "name": "Omega New Style",
+   "osm": "node/9571445517",
+   "lon": 2.3567366,
+   "lat": 48.8718505
+  },
+  {
+   "brand": "Pomellato",
+   "name": "Pomellato",
+   "osm": "node/1649702463",
+   "lon": 2.3185872,
+   "lat": 48.8699313
+  },
+  {
+   "brand": "Rolex",
+   "name": "Rolex",
+   "osm": "node/10814251191",
+   "lon": 2.3544746,
+   "lat": 48.857915
+  },
+  {
+   "brand": "Rolex",
+   "name": "Rolex",
+   "osm": "node/11549222031",
+   "lon": 2.3282917,
+   "lat": 48.8674211
+  },
+  {
+   "brand": "Rolex",
+   "name": "Rolex",
+   "osm": "node/14159309199",
+   "lon": 2.3019658,
+   "lat": 48.8686828
+  },
+  {
+   "brand": "Rolex",
+   "name": "Rolex",
+   "osm": "node/2039904978",
+   "lon": 2.3037854,
+   "lat": 48.8706043
+  },
+  {
+   "brand": "Rolex",
+   "name": "Rolex",
+   "osm": "node/8808683827",
+   "lon": 2.3288214,
+   "lat": 48.8520369
+  },
+  {
+   "brand": "Saint Laurent",
+   "name": "Saint Laurent",
+   "osm": "node/14242969845",
+   "lon": 2.3056646,
+   "lat": 48.8669711
+  },
+  {
+   "brand": "Saint Laurent",
+   "name": "Saint Laurent",
+   "osm": "node/247589882",
+   "lon": 2.3308795,
+   "lat": 48.86534
+  },
+  {
+   "brand": "Tiffany & Co.",
+   "name": "Tiffany & Company",
+   "osm": "node/1439353429",
+   "lon": 2.3026562,
+   "lat": 48.8717571
+  },
+  {
+   "brand": "Valentino",
+   "name": "Valentino",
+   "osm": "node/4682446150",
+   "lon": 2.3209285,
+   "lat": 48.8688859
+  }
+ ]
+}
