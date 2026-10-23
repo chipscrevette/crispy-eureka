@@ -275,7 +275,7 @@ function ValidationChart({ scores }: { scores: Scores }) {
 }
 
 type Benchmark = {
-  embeddings: string
+  embeddings: Record<string, string>
   seeds: number[]
   sets: Record<string, Record<string, { mean_percentile: number; min: number; max: number }>>
 }
@@ -335,8 +335,9 @@ function SatelliteBenchmark() {
         </table>
       </div>
       <p className="muted small">
-        {data.embeddings} annual embeddings. The AlphaEarth Foundations Satellite Embedding dataset is produced by
-        Google and Google DeepMind (CC-BY 4.0).
+        Embeddings: {Object.values(data.embeddings).join('; ')}. The AlphaEarth Foundations Satellite Embedding dataset
+        is produced by Google and Google DeepMind (CC-BY 4.0).
+        {'OlmoEarth' in data.embeddings && ' OlmoEarth by Ai2, under the OlmoEarth Artifact License.'}
       </p>
     </figure>
   )

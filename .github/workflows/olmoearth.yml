@@ -1,0 +1,76 @@
+name: OlmoEarth
+
+# Computes OlmoEarth embeddings for Paris and reruns the satellite benchmark. OlmoEarth has
+# no precomputed archive, so this fetches Sentinel-2 from Microsoft Planetary Computer and
+# runs the model on CPU (about half an hour). It only runs when its inputs change.
+
+on:
+  workflow_dispatch:
+  push:
+    branches-ignore: [main]
+    paths:
+      - pipeline/olmoearth/**
+      - pipeline/src/adresse_pipeline/olmoearth.py
+      - .github/workflows/olmoearth.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: olmoearth-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  embed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    env:
+      DATASET_PATH: ${{ github.workspace }}/olmoearth-dataset
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: |
+          pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          pip install -e pipeline "rslearn==0.1.18" olmoearth-pretrain-minimal planetary_computer pystac_client huggingface_hub einops
+      - name: Compute embeddings
+        shell: bash
+        run: |
+          set -o pipefail
+          {
+            mkdir -p "$DATASET_PATH"
+            cp pipeline/olmoearth/config.json "$DATASET_PATH/config.json"
+            rslearn dataset add_windows --root "$DATASET_PATH" --group default --name paris --utm --resolution 10 \
+              --src_crs EPSG:4326 --box=2.224,48.815,2.470,48.902 \
+              --start 2025-01-01T00:00:00+00:00 --end 2026-01-01T00:00:00+00:00 --grid_size 1024
+            rslearn dataset prepare --root "$DATASET_PATH" --workers 4 --enabled-layers sentinel2_l2a \
+              --retry-max-attempts 5 --retry-backoff-seconds 5
+            rslearn dataset materialize --root "$DATASET_PATH" --workers 4 --no-use-initial-job \
+              --enabled-layers sentinel2_l2a --retry-max-attempts 5 --retry-backoff-seconds 5
+            find "$DATASET_PATH/windows" -maxdepth 4 -type d | head -40
+            rslearn model predict --config pipeline/olmoearth/model.yaml
+            python -m adresse_pipeline.olmoearth "$DATASET_PATH"
+            python -m adresse_pipeline.benchmark
+          } 2>&1 | tee olmoearth.log
+      - name: Keep the log where a reviewer can read it
+        if: failure()
+        run: |
+          echo "::error title=OlmoEarth failed::$(grep -v '^\s*$' olmoearth.log | tail -n 12 | tr '\n' ' ' | cut -c1-3500)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan ci-logs/olmoearth
+          git rm -rq --cached .
+          git add -f olmoearth.log
+          git commit -qm "OlmoEarth run ${{ github.run_id }} log"
+          git push -f origin ci-logs/olmoearth
+      - name: Commit embeddings and benchmark
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pipeline/output/olmoearth_2025.csv pipeline/output/benchmark.json web/public/data/benchmark.json
+          git commit -m "Add OlmoEarth embeddings and rerun the satellite benchmark" -m "$(tail -n 20 olmoearth.log)"
+          git pull --rebase origin "${{ github.ref_name }}"
+          git push
