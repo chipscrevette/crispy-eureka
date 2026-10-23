@@ -258,6 +258,11 @@ def main() -> None:
     infos = [f for f in json.loads((WEB_DATA / "features.json").read_text())["features"]]
     scores["features"] = [f for f in infos if f["key"] in keys] + [NEIGHBOURS_INFO]
     scores["validation"] = report["validation"][chosen.value]
+    # mean |SHAP| across Paris, for the method page
+    scores["importance"] = {
+        profile: list(ranked.items())[:6] for profile, ranked in report["importance"].items()
+    }
+    scores["validation_setup"] = {"folds": FOLDS, "positives": chosen.value}
     (WEB_DATA / "scores.json").write_text(
         json.dumps(scores, ensure_ascii=False, separators=(",", ":"))
     )

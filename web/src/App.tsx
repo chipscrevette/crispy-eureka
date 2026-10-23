@@ -7,6 +7,7 @@ import { CellScore, Compare } from './CellPanels'
 import { cellIndex } from './geo'
 import { readHash, writeHash } from './hash'
 import Memo from './Memo'
+import Method from './Method'
 
 const PARIS: [number, number] = [2.3325, 48.8665]
 const BASEMAP: string | StyleSpecification =
@@ -51,6 +52,7 @@ export default function App() {
   const [cellB, setCellB] = useState<string | null>(initial.b)
   const [picking, setPicking] = useState(false)
   const [memo, setMemo] = useState(initial.memo)
+  const [method, setMethod] = useState(initial.method)
   const [sheetOpen, setSheetOpen] = useState(true)
   const pickingRef = useRef(picking)
   pickingRef.current = picking
@@ -193,12 +195,13 @@ export default function App() {
     map.current!.setFilter('grid-compare', ['==', ['get', 'cell'], cellB ?? ''])
   }, [ready, cellA, cellB])
 
-  useEffect(() => writeHash({ profile, a: cellA, b: cellB, memo }), [profile, cellA, cellB, memo])
+  useEffect(() => writeHash({ profile, a: cellA, b: cellB, memo, method }), [profile, cellA, cellB, memo, method])
 
   const cells = useMemo(() => (data ? cellIndex(data.grid) : null), [data])
   const a = (cellA && cells?.get(cellA)?.properties) || null
   const b = (cellB && cells?.get(cellB)?.properties) || null
   const closeMemo = useCallback(() => setMemo(false), [])
+  const closeMethod = useCallback(() => setMethod(false), [])
 
   const isScore = layer === SCORE
   const key = isScore ? scoreKey(profile) : layer
@@ -262,6 +265,9 @@ export default function App() {
         <header>
           <h1>Adresse</h1>
           <p className="tagline">Where should a luxury brand open its next Paris boutique, and why?</p>
+          <button className="link method-link" onClick={() => setMethod(true)} disabled={!data}>
+            How it works
+          </button>
         </header>
 
         <section aria-labelledby="profile-label">
@@ -407,8 +413,18 @@ export default function App() {
           </section>
         )}
 
-        <footer className="muted small">Week 4 preview. Data: {data?.meta.sources.join(' · ') ?? 'loading'}.</footer>
+        <footer className="muted small">Week 5 preview. Data: {data?.meta.sources.join(' · ') ?? 'loading'}.</footer>
       </aside>
+
+      {method && data && (
+        <Method
+          scores={data.scores}
+          stores={data.stores}
+          meta={data.meta}
+          cells={data.grid.features.length}
+          onClose={closeMethod}
+        />
+      )}
 
       {memo && a && data && (
         <Memo
