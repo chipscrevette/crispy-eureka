@@ -100,3 +100,14 @@ def test_cross_check_confirms_same_brand_nearby_only():
 def test_cross_check_ignores_shops_outside_the_catalogue():
     shops = osm.shops(overpass(node(1, "Zara", 2.33, 48.87)))
     assert osm.cross_check([], shops, CATALOGUE).osm_only == []
+
+
+def test_validations_with_unexpected_columns_fail_loudly(tmp_path):
+    path = write(tmp_path, "v.csv", "date;station;count\n2025-10-01;X;3\n")
+    with pytest.raises(ValueError, match="unexpected validations file"):
+        idfm.daily_entries_by_zdc(idfm.read_csv(path))
+
+
+def test_stations_that_match_no_validation_fail_loudly(tmp_path):
+    with pytest.raises(ValueError, match="no station ids match"):
+        idfm.stations(idfm.read_csv(write(tmp_path, "s.csv", STATIONS)), {"1": 5.0})

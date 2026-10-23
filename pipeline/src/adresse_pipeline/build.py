@@ -84,13 +84,16 @@ def main() -> None:
         columns[key] = ring_sum(counts, cells)
 
     catalogue = Catalogue.from_csv(CATALOGUE)
-    stores = find_stores(places, catalogue)
+    stores, concessions = find_stores(places, catalogue)
     for profile in Profile:
         counts = count_by_cell(
             (s.place.lon, s.place.lat) for s in stores if s.brand.profile == profile
         )
         columns[f"luxury_{profile.value}_r1"] = ring_sum(counts, cells)
-    print(f"overture: {len(places)} open places, {len(stores)} luxury boutiques")
+    print(
+        f"overture: {len(places)} open places, {len(stores)} luxury street boutiques "
+        f"({concessions} department-store concessions left out)"
+    )
 
     sources = [f"{OVERTURE}, release {args.overture_release}"]
 

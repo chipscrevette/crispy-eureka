@@ -5,13 +5,35 @@ from __future__ import annotations
 from collections.abc import Iterable
 from pathlib import Path
 
-from adresse_pipeline.brands import Catalogue, Place, Store, dedupe
+from adresse_pipeline.brands import Catalogue, Place, Store, dedupe, distance_m, normalize
 
 CATALOGUE = Path(__file__).resolve().parents[2] / "data" / "luxury_brands.csv"
 
 
-def find_stores(places: Iterable[Place], catalogue: Catalogue) -> list[Store]:
-    return dedupe([Store(p, b) for p in places if (b := catalogue.match(p))])
+# Paris department stores that host brand concessions. Overture places a concession
+# at the store's address, and OSM rarely maps it; it is not a street location choice.
+GRANDS_MAGASINS = ("galerieslafayette", "printemps", "bonmarche", "samaritaine", "bhv")
+CONCESSION_RADIUS_M = 120
+
+
+def department_stores(places: Iterable[Place]) -> list[Place]:
+    return [
+        p
+        for p in places
+        if p.category == "department_store"
+        and any(name in normalize(p.name) for name in GRANDS_MAGASINS)
+    ]
+
+
+def find_stores(places: Iterable[Place], catalogue: Catalogue) -> tuple[list[Store], int]:
+    """Street boutiques of catalogue brands, and how many concessions were left out."""
+    places = list(places)
+    anchors = department_stores(places)
+    stores = dedupe([Store(p, b) for p in places if (b := catalogue.match(p))])
+    street = [
+        s for s in stores if all(distance_m(s.place, a) > CONCESSION_RADIUS_M for a in anchors)
+    ]
+    return street, len(stores) - len(street)
 
 
 def to_geojson(stores: list[Store], release: str, confirmed: set[str] | None = None) -> dict:

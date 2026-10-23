@@ -76,3 +76,18 @@ def test_dedupe_keeps_different_brands_at_the_same_address():
     chanel = Store(place("Chanel", id="h"), Brand("Chanel", Segment.FASHION_HOUSE, None))
 
     assert len(dedupe([cartier, chanel])) == 2
+
+
+def test_find_stores_leaves_out_department_store_concessions():
+    from adresse_pipeline.luxury_stores import find_stores
+
+    printemps = place(
+        "Printemps Haussmann", category="department_store", id="pr", lon=2.3290, lat=48.8739
+    )
+    inside = place("Dior", id="concession", lon=2.3292, lat=48.8740)
+    street = place("Dior", id="montaigne", lon=2.3045, lat=48.8660)
+
+    stores, concessions = find_stores([printemps, inside, street], CATALOGUE)
+
+    assert [s.place.id for s in stores] == ["montaigne"]
+    assert concessions == 1

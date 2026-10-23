@@ -44,25 +44,31 @@ def daily_entries_by_zdc(rows: Iterable[dict[str, str]]) -> dict[str, float]:
     """
     totals: dict[str, float] = defaultdict(float)
     days: set[str] = set()
+    rows = list(rows)
+    if not rows or not {"jour", "id_zdc", "nb_vald"} <= rows[0].keys():
+        raise ValueError(f"unexpected validations file: {len(rows)} rows, columns {_columns(rows)}")
     for row in rows:
         days.add(row["jour"])
         try:
             totals[row["id_zdc"]] += float(row["nb_vald"])
         except ValueError:
             continue
-    return {zdc: total / len(days) for zdc, total in totals.items()} if days else {}
+    return {zdc: total / len(days) for zdc, total in totals.items()}
 
 
 def stations(rows: Iterable[dict[str, str]], entries: dict[str, float]) -> list[Station]:
     """One station per ZdC with ridership. The source has one row per line served."""
     points: dict[str, list[tuple[float, float]]] = defaultdict(list)
     names: dict[str, str] = {}
+    rows = list(rows)
+    if not rows or not {"id_ref_zdc", "nom_zdc", "geo point"} <= rows[0].keys():
+        raise ValueError(f"unexpected stations file: {len(rows)} rows, columns {_columns(rows)}")
     for row in rows:
         zdc = row["id_ref_zdc"]
         lat, lon = (float(v) for v in row["geo point"].split(","))
         points[zdc].append((lon, lat))
         names[zdc] = row["nom_zdc"]
-    return [
+    joined = [
         Station(
             zdc,
             names[zdc],
@@ -73,3 +79,11 @@ def stations(rows: Iterable[dict[str, str]], entries: dict[str, float]) -> list[
         for zdc, pts in points.items()
         if zdc in entries
     ]
+    if not joined:
+        sample = sorted(points)[:3], sorted(entries)[:3]
+        raise ValueError(f"no station ids match the validations; samples {sample}")
+    return joined
+
+
+def _columns(rows: list[dict[str, str]]) -> list[str]:
+    return sorted(rows[0]) if rows else []
