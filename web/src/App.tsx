@@ -4,10 +4,12 @@ import { PROFILES, countByProfile, loadStores, type ProfileId, type StoreProps, 
 import { formatValue, loadGrid, loadGridMeta, quantileBreaks, type CellProps, type Grid, type GridMeta } from './grid'
 import { SCORE_BREAKS, loadScores, ordinal, scoreKey, withScores, type Scores } from './scores'
 import { CellScore, Compare } from './CellPanels'
-import { cellIndex } from './geo'
+import { cellIndex, centroid } from './geo'
 import { readHash, writeHash } from './hash'
 import Memo from './Memo'
 import Method from './Method'
+import Ask from './Ask'
+import { loadAnswers, type AskAnswer } from './answers'
 
 const PARIS: [number, number] = [2.3325, 48.8665]
 const BASEMAP: string | StyleSpecification =
@@ -54,6 +56,9 @@ export default function App() {
   const [memo, setMemo] = useState(initial.memo)
   const [method, setMethod] = useState(initial.method)
   const [sheetOpen, setSheetOpen] = useState(true)
+  const [ask, setAsk] = useState<string | null>(initial.ask)
+  const [answers, setAnswers] = useState<AskAnswer[] | null>(null)
+  const [answerCells, setAnswerCells] = useState<string[]>([])
   const pickingRef = useRef(picking)
   pickingRef.current = picking
   const [hover, setHover] = useState<Hover | null>(null)
@@ -99,6 +104,13 @@ export default function App() {
         type: 'fill',
         source: 'grid',
         paint: { 'fill-opacity': 0 },
+      })
+      m.addLayer({
+        id: 'grid-answer',
+        type: 'line',
+        source: 'grid',
+        filter: ['in', ['get', 'cell'], ['literal', []]],
+        paint: { 'line-color': cssVar('--ink'), 'line-width': 1.5 },
       })
       m.addLayer({
         id: 'grid-selected',
@@ -195,13 +207,53 @@ export default function App() {
     map.current!.setFilter('grid-compare', ['==', ['get', 'cell'], cellB ?? ''])
   }, [ready, cellA, cellB])
 
-  useEffect(() => writeHash({ profile, a: cellA, b: cellB, memo, method }), [profile, cellA, cellB, memo, method])
+  useEffect(() => {
+    if (ready) map.current!.setFilter('grid-answer', ['in', ['get', 'cell'], ['literal', answerCells]])
+  }, [ready, answerCells])
+
+  useEffect(() => {
+    if (ask === null || answers) return
+    loadAnswers().then(setAnswers, (e: Error) => setError(e.message))
+  }, [ask, answers])
+
+  useEffect(
+    () => writeHash({ profile, a: cellA, b: cellB, memo, method, ask }),
+    [profile, cellA, cellB, memo, method, ask],
+  )
 
   const cells = useMemo(() => (data ? cellIndex(data.grid) : null), [data])
   const a = (cellA && cells?.get(cellA)?.properties) || null
   const b = (cellB && cells?.get(cellB)?.properties) || null
   const closeMemo = useCallback(() => setMemo(false), [])
   const closeMethod = useCallback(() => setMethod(false), [])
+  const closeAsk = useCallback(() => setAsk(null), [])
+  const onAsked = useCallback((id: string) => setAsk(id), [])
+
+  const showAnswer = (ans: AskAnswer, withMemo = false) => {
+    if (ans.profile) setProfile(ans.profile)
+    setLayer(SCORE)
+    setSelected(null)
+    setPicking(false)
+    setCellA(ans.cells[0] ?? null)
+    setCellB(ans.compare ? (ans.cells[1] ?? null) : null)
+    setAnswerCells(ans.cells)
+    setSheetOpen(true)
+    setMemo(withMemo)
+    const points = ans.cells.flatMap((c) => {
+      const f = cells?.get(c)
+      return f ? [centroid(f.geometry.coordinates[0])] : []
+    })
+    if (points.length && map.current) {
+      const bounds = points.reduce((b, p) => b.extend(p), new maplibregl.LngLatBounds(points[0], points[0]))
+      const phone = window.matchMedia('(max-width: 600px)').matches
+      map.current.fitBounds(bounds, {
+        maxZoom: 15,
+        padding: phone ? { top: 60, bottom: 320, left: 40, right: 40 } : { top: 80, bottom: 80, left: 400, right: 470 },
+      })
+    }
+    // on a phone the drawer covers the map, so step aside; a shared link still reopens it
+    if (window.matchMedia('(max-width: 600px)').matches) setAsk(null)
+  }
 
   const isScore = layer === SCORE
   const key = isScore ? scoreKey(profile) : layer
@@ -250,7 +302,7 @@ export default function App() {
         : 'Hover or tap a block to read its value.'
 
   return (
-    <div className="app">
+    <div className={`app${ask !== null ? ' asking' : ''}`}>
       <div ref={container} className="map" aria-label="Map of luxury boutiques in Paris" role="region" />
 
       <aside id="panel" className={`panel${sheetOpen ? '' : ' collapsed'}${a ? ' has-selection' : ''}`}>
@@ -265,9 +317,14 @@ export default function App() {
         <header>
           <h1>Adresse</h1>
           <p className="tagline">Where should a luxury brand open its next Paris boutique, and why?</p>
-          <button className="link method-link" onClick={() => setMethod(true)} disabled={!data}>
-            How it works
-          </button>
+          <div className="header-links">
+            <button className="button ask-open" onClick={() => setAsk('1')} disabled={!data}>
+              Ask Adresse
+            </button>
+            <button className="link method-link" onClick={() => setMethod(true)} disabled={!data}>
+              How it works
+            </button>
+          </div>
         </header>
 
         <section aria-labelledby="profile-label">
@@ -406,6 +463,7 @@ export default function App() {
                 setCellA(null)
                 setCellB(null)
                 setPicking(false)
+                setAnswerCells([])
               }}
             >
               Clear selection
@@ -413,8 +471,20 @@ export default function App() {
           </section>
         )}
 
-        <footer className="muted small">Week 5 preview. Data: {data?.meta.sources.join(' · ') ?? 'loading'}.</footer>
+        <footer className="muted small">Week 6 preview. Data: {data?.meta.sources.join(' · ') ?? 'loading'}.</footer>
       </aside>
+
+      {ask !== null && data && answers && (
+        <Ask
+          answers={answers}
+          first={ask}
+          onAsked={onAsked}
+          onShow={(a) => showAnswer(a)}
+          onMemo={(a) => showAnswer(a, true)}
+          onMethod={() => setMethod(true)}
+          onClose={closeAsk}
+        />
+      )}
 
       {method && data && (
         <Method
