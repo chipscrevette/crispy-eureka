@@ -479,10 +479,26 @@ def satellite(t: Tools) -> Answer:
         f"best with (splits vary by {r['spread']})"
         for p, r in b["profiles"].items()
     )
+    helps = [
+        PROFILE_PLURAL[Profile(p)]
+        for p, r in b["profiles"].items()
+        if r["best_with_satellite"] - r["open_data"] > r["spread"]
+    ]
+    verdict, close = (
+        (
+            "Not for this question.",
+            "Any gain is smaller than the variation between splits, so the satellite fingerprints "
+            "stay out of the score.",
+        )
+        if not helps
+        else (
+            "For some brands.",
+            f"The gain beats the variation between splits for {' and '.join(helps)}.",
+        )
+    )
     text = (
-        f"Not for this question. We tested {' and '.join(b['embeddings'])} over {b['splits']} brand "
-        f"splits. Mean held-out percentile: {rows}. Any gain is smaller than the variation between "
-        "splits, so the satellite fingerprints stay out of the score."
+        f"{verdict} We tested {' and '.join(b['embeddings'])} over {b['splits']} brand splits. "
+        f"Mean held-out percentile: {rows}. {close}"
     )
     return Answer(text)
 
