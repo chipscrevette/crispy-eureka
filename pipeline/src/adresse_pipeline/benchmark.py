@@ -26,7 +26,10 @@ PCA_DIMS = 8
 # Different splits of brands into folds; the spread across them shows how much is noise.
 SEEDS = (7, 11, 23, 42, 101)
 # Map overlays tried as model features, each on top of the open data.
-CANDIDATES = {"upscale hotel rooms": ["upscale_rooms_r1"]}
+CANDIDATES = {
+    "upscale hotel rooms": ["upscale_rooms_r1"],
+    "international tourist zones": ["tourist_zone_r1"],
+}
 OVERLAYS = OUTPUT / "paris_h3_overlays.csv"
 
 

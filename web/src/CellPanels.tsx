@@ -171,6 +171,10 @@ function keyFacts(cell: CellProps) {
   const share = num(VACANCY)
   if (share !== undefined && cell[WEAK_KEY] === 1)
     out.push(`${Math.round(share * 100)}% of the shops around stand empty, more than in most of Paris`)
+  // at least four of the seven blocks inside: the block is in the zone or on its edge
+  const tourist = num('tourist_zone_r1')
+  if (tourist !== undefined && tourist >= 0.5)
+    out.push('In an international tourist zone: shops may open on Sundays and late in the evening')
   const demand = num('demand')
   if (demand !== undefined)
     out.push(

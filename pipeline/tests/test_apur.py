@@ -76,3 +76,35 @@ def test_every_page_is_read_and_checked_against_the_count(tmp_path, monkeypatch)
     pages[apur.query_url(2)] = {"features": []}
     with pytest.raises(ValueError, match="listed 3 units but returned 2"):
         apur.fetch_units()
+
+
+def zone(name, kind, rings):
+    """A row shaped like the BDCOM 2023 'Périmètre de zones touristiques' layer answers."""
+    return {"attributes": {"nom": name, "c_type": kind}, "geometry": {"rings": rings}}
+
+
+# clockwise in lon/lat, as ArcGIS writes an outline; reversed, the same square is a hole
+SQUARE = [[2.33, 48.86], [2.33, 48.87], [2.34, 48.87], [2.34, 48.86], [2.33, 48.86]]
+INNER = [[2.334, 48.864], [2.336, 48.864], [2.336, 48.866], [2.334, 48.866], [2.334, 48.864]]
+
+
+def test_international_zones_are_told_apart_and_holes_are_cut_out():
+    from shapely.geometry import Point
+
+    zones = list(
+        apur.tourist_zones(
+            [
+                zone("Haussmann", "zti", [SQUARE, INNER]),
+                zone("Montmartre", "ZT", [SQUARE]),
+                zone("Empty", "ZTI", []),
+            ]
+        )
+    )
+
+    assert [(z.name, z.international) for z in zones] == [
+        ("Haussmann", True),
+        ("Montmartre", False),
+    ]
+    assert zones[0].area.contains(Point(2.331, 48.861))
+    assert not zones[0].area.contains(Point(2.335, 48.865))  # in the hole
+    assert zones[1].area.contains(Point(2.335, 48.865))

@@ -58,6 +58,29 @@
     "luxury_neighbours_baseline": 63.5
    }
   },
+  "open data + international tourist zones": {
+   "jewellery-watches": {
+    "mean_percentile": 89.9,
+    "min": 88.3,
+    "max": 92.8,
+    "top10_hit_rate": 0.704,
+    "luxury_neighbours_baseline": 95.0
+   },
+   "fashion-house": {
+    "mean_percentile": 88.3,
+    "min": 87.8,
+    "max": 88.8,
+    "top10_hit_rate": 0.681,
+    "luxury_neighbours_baseline": 70.6
+   },
+   "beauty": {
+    "mean_percentile": 89.6,
+    "min": 89.1,
+    "max": 90.4,
+    "top10_hit_rate": 0.613,
+    "luxury_neighbours_baseline": 63.5
+   }
+  },
   "open data + AlphaEarth (8 components)": {
    "jewellery-watches": {
     "mean_percentile": 87.2,

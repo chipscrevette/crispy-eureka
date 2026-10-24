@@ -5,6 +5,9 @@ lists shops, offices, surgeries and the units standing empty, with where they si
 street, on a corner, in a mall, in a courtyard) and a size band. From it we know, around each
 block, how many shopfronts stand empty, what share of all shopfronts that is (a street where
 many stand empty is a weak street), and how many empty ones are big enough for a flagship.
+
+The same service maps the tourist zones where shops may open on Sundays and late in the
+evening. The international ones (ZTI) are where the State expects foreign visitors to shop.
 """
 
 from __future__ import annotations
@@ -16,6 +19,10 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 
+from shapely.geometry import LinearRing, Polygon
+from shapely.geometry.base import BaseGeometry
+from shapely.ops import unary_union
+
 from adresse_pipeline.download import fetch
 
 RELEASE = "BDCOM 2023"
@@ -23,6 +30,8 @@ LAYER = "https://carto2.apur.org/apur/rest/services/BDCOM/bdcom2023/MapServer/1"
 # BDCOM `type` code of an empty unit ("Local vacant")
 VACANT = "V"
 PAGE = 1000  # the server's maxRecordCount
+ZONES_LAYER = "https://carto2.apur.org/apur/rest/services/BDCOM/bdcom2023/MapServer/4"
+INTERNATIONAL = "ZTI"  # `c_type` of an international tourist zone
 
 
 class Situation(Enum):
@@ -56,6 +65,17 @@ class Unit:
     @property
     def flagship_size(self) -> bool:
         return self.size in (Size.FROM_300_TO_1000, Size.OVER_1000)
+
+
+@dataclass(frozen=True)
+class TouristZone:
+    name: str
+    kind: str  # the `c_type` code, ZTI for an international zone
+    area: BaseGeometry
+
+    @property
+    def international(self) -> bool:
+        return self.kind == INTERNATIONAL
 
 
 def query_url(offset: int | None = None) -> str:
@@ -114,3 +134,34 @@ def units(features: Iterable[dict]) -> Iterator[Unit]:
             Size(a["surf"]) if a["surf"] in {s.value for s in Size} else None,
             (a["type"] or "").strip().upper() == VACANT,
         )
+
+
+def zones_url() -> str:
+    params = {"where": "1=1", "outFields": "nom,c_type", "outSR": "4326", "f": "json"}
+    return f"{ZONES_LAYER}/query?{urllib.parse.urlencode(params)}"
+
+
+def area_of(rings: list[list[list[float]]]) -> BaseGeometry:
+    """An ArcGIS polygon: clockwise rings are outlines, counter-clockwise ones are holes."""
+    outlines = [r for r in rings if not LinearRing(r).is_ccw]
+    holes = [Polygon(r) for r in rings if LinearRing(r).is_ccw]
+    shape = unary_union([Polygon(r) for r in outlines])
+    return shape.difference(unary_union(holes)) if holes else shape
+
+
+def tourist_zones(features: Iterable[dict]) -> Iterator[TouristZone]:
+    for f in features:
+        a, g = f["attributes"], f.get("geometry")
+        if not g or not g.get("rings"):
+            continue
+        yield TouristZone(
+            (a["nom"] or "").strip(), (a["c_type"] or "").strip().upper(), area_of(g["rings"])
+        )
+
+
+def fetch_tourist_zones() -> list[TouristZone]:
+    zones = list(tourist_zones(read_page(fetch(zones_url()))["features"]))
+    if not any(z.international for z in zones):
+        kinds = sorted({z.kind for z in zones})
+        raise ValueError(f"no {INTERNATIONAL} among the {len(zones)} APUR zones; kinds {kinds}")
+    return zones

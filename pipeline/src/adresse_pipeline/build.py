@@ -23,6 +23,7 @@ from pathlib import Path
 
 import h3
 from shapely.geometry import Point
+from shapely.ops import unary_union
 
 from adresse_pipeline import apur, dvf, hotels, idfm, insee, osm, sirene
 from adresse_pipeline.brands import Catalogue, Profile
@@ -201,6 +202,18 @@ def main() -> None:
         print(
             f"apur: {len(fronts):,} shopfronts on the street or a corner, {len(empty):,} empty "
             f"({len(empty) / len(fronts):.1%}), {sum(u.flagship_size for u in empty)} of 300 m² or more"
+        )
+        zones = apur.fetch_tourist_zones()
+        zti = unary_union([z.area for z in zones if z.international])
+        inside = {c: 1.0 for c in cells if zti.contains(Point(*reversed(h3.cell_to_latlng(c))))}
+        # the share of the block and its six neighbours (by their centres) inside a ZTI
+        columns["tourist_zone_r1"] = {
+            c: ring_sum(inside, [c])[c] / len(h3.grid_disk(c, 1)) for c in cells
+        }
+        print(
+            f"apur: {sum(z.international for z in zones)} international tourist zones of "
+            f"{len(zones)} ({', '.join(sorted(z.name for z in zones if z.international))}); "
+            f"{len(inside)} blocks inside"
         )
         sources.append(f"{APUR}, {apur.RELEASE}")
 
