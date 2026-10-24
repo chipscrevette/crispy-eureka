@@ -1,5 +1,5 @@
 import type { CellProps } from './grid'
-import { cellScore, describeValue, placeOf, rankText, shortPlaceOf, type Driver, type Scores } from './scores'
+import { NEIGHBOURS, cellScore, describeValue, rankText, shortPlaceOf, type Driver, type Scores } from './scores'
 import { PROFILES, type ProfileId } from './stores'
 
 const profileLabel = (id: ProfileId) => PROFILES.find((p) => p.id === id)?.label ?? id
@@ -27,6 +27,69 @@ type CellScoreProps = {
   picking: boolean
 }
 
+/** Score as a ring: the share of Paris this block beats. */
+function ScoreRing({ score }: { score: number }) {
+  const r = 30
+  const c = 2 * Math.PI * r
+  return (
+    <svg className="ring" viewBox="0 0 72 72" aria-hidden="true">
+      <circle className="ring-track" cx="36" cy="36" r={r} />
+      <circle
+        className="ring-value"
+        cx="36"
+        cy="36"
+        r={r}
+        strokeDasharray={`${(c * score) / 100} ${c}`}
+        transform="rotate(-90 36 36)"
+      />
+      <text x="36" y="36" dy="0.35em" textAnchor="middle">
+        {Math.round(score)}
+      </text>
+    </svg>
+  )
+}
+
+const compact = (v: number) =>
+  v >= 10000 ? `${Math.round(v / 1000)}k` : v >= 1000 ? `${(v / 1000).toFixed(1)}k` : `${Math.round(v)}`
+
+/** The block's own numbers from the pipeline, as tiles. Missing values are left out. */
+function facts(cell: CellProps, walk?: { minutes: number; blocks: number }) {
+  const num = (k: string) => (typeof cell[k] === 'number' ? (cell[k] as number) : undefined)
+  const rows: { value?: string; label: string; title: string }[] = [
+    {
+      value: num('demand') !== undefined ? compact(num('demand')!) : undefined,
+      label: 'spending demand',
+      title: "Residents' income, workers and hotel guests in the block; Paris average = 100",
+    },
+    {
+      value: walk && walk.blocks > 0 ? String(walk.blocks) : undefined,
+      label: `blocks within ${walk?.minutes ?? ''} min on foot`,
+      title: 'Blocks reachable along the streets, shaded on the map',
+    },
+    {
+      value: num(NEIGHBOURS) !== undefined ? String(num(NEIGHBOURS)) : undefined,
+      label: 'luxury boutiques around',
+      title: 'Luxury boutiques of any profile in the six blocks around it',
+    },
+    {
+      value: num('living_standard_r1') !== undefined ? `€${compact(num('living_standard_r1')!)}` : undefined,
+      label: 'living standard / year',
+      title: 'Mean disposable income per consumption unit of residents within about 350 m (INSEE Filosofi)',
+    },
+    {
+      value: num('transit_entries_r2') !== undefined ? compact(num('transit_entries_r2')!) : undefined,
+      label: 'station entries / day',
+      title: 'Average daily entries at metro, RER and train stations within about 600 m (Île-de-France Mobilités)',
+    },
+    {
+      value: num('apartment_price_m2') !== undefined ? `€${compact(num('apartment_price_m2')!)}` : undefined,
+      label: 'apartment price / m²',
+      title: 'Median sale price of apartments within about 350 m (DVF)',
+    },
+  ]
+  return rows.filter((r) => r.value !== undefined)
+}
+
 export function CellScore({ cell, profile, scores, walk, onCompare, onMemo, picking }: CellScoreProps) {
   const entry = cellScore(scores, profile, cell.cell)
   if (!entry) return null
@@ -34,21 +97,24 @@ export function CellScore({ cell, profile, scores, walk, onCompare, onMemo, pick
   const largest = Math.max(...drivers.map((d) => Math.abs(d[1])), 1e-9)
   return (
     <div className="cell-score">
-      <p className="score">
-        <span className="big">{Math.round(score)}</span>
-        <span className="muted"> / 100 in {placeOf(cell)}</span>
-      </p>
-      <p className="muted small">
-        {profileLabel(profile)} opportunity: this block {rankText(score)}.
-      </p>
-      {walk && walk.blocks > 0 && (
-        <p className="muted small walk-note">
-          <span className="walk-swatch" aria-hidden="true" /> {walk.blocks} blocks are within a {walk.minutes}-minute
-          walk along the streets.
-        </p>
-      )}
-      <h3 className="label">What drives it</h3>
-      <p className="muted small">Teal bars raise the score, grey bars lower it.</p>
+      <div className="score-head">
+        <ScoreRing score={score} />
+        <div>
+          <h2 className="place">{shortPlaceOf(cell)}</h2>
+          <p className="muted small">
+            {profileLabel(profile)} opportunity: this block {rankText(score)}.
+          </p>
+        </div>
+      </div>
+      <ul className="tiles" aria-label="This block in numbers">
+        {facts(cell, walk).map((f) => (
+          <li key={f.label} className="tile" title={f.title}>
+            <span className="tile-value">{f.value}</span>
+            <span className="tile-label">{f.label}</span>
+          </li>
+        ))}
+      </ul>
+      <h3 className="label">What drives the score</h3>
       <ul className="drivers">
         {drivers.map(([key, contribution, value]) => {
           const d = describeValue(scores, key, value)
@@ -61,6 +127,7 @@ export function CellScore({ cell, profile, scores, walk, onCompare, onMemo, pick
           )
         })}
       </ul>
+      <p className="muted small">Green bars raise the score, grey bars lower it.</p>
       <div className="actions">
         <button className="button" onClick={onMemo}>
           Site memo
