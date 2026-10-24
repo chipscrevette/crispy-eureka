@@ -14,21 +14,20 @@ jobs:
         run: |
           set +e
           {
-          U=https://carto2.apur.org/apur/rest/services/BDCOM/bdcom2023/MapServer/0
-          st() { curl -s "$U/query?where=1%3D1&groupByFieldsForStatistics=$1&outStatistics=%5B%7B%22statisticType%22%3A%22count%22%2C%22onStatisticField%22%3A%22OBJECTID%22%2C%22outStatisticFieldName%22%3A%22n%22%7D%5D&f=json" | jq -c '[.features[].attributes] | sort_by(-.n)'; }
-          for f in niv2 niv8 niv18 type sit surf; do echo "== $f"; st $f; done
-          echo "== renderer labels"
-          curl -s "$U?f=json" | jq -c '.drawingInfo.renderer.uniqueValueInfos[]? | [.value, .label]'
-          echo "== domains"
-          curl -s "$U?f=json" | jq -c '.fields[] | select(.domain != null) | {name, domain}'
-          echo "== other layers"
-          curl -s "https://carto2.apur.org/apur/rest/services/BDCOM/bdcom2023/MapServer?f=json" | jq -c '[.layers[] | [.id, .name]]'
-          echo "== codact V*"
-          curl -s "$U/query?where=codact+LIKE+%27V%25%27&groupByFieldsForStatistics=codact&outStatistics=%5B%7B%22statisticType%22%3A%22count%22%2C%22onStatisticField%22%3A%22OBJECTID%22%2C%22outStatisticFieldName%22%3A%22n%22%7D%5D&f=json" | jq -c '[.features[].attributes]'
-          echo "== 2020 layer counts"
-          V=https://carto2.apur.org/apur/rest/services/OPENDATA/BDCOM_OD/MapServer/1
-          curl -s "$V?f=json" | jq -c '{name, fields: [.fields[] | .name]}'
-          curl -s "$V/query?where=1%3D1&groupByFieldsForStatistics=niv2&outStatistics=%5B%7B%22statisticType%22%3A%22count%22%2C%22onStatisticField%22%3A%22OBJECTID%22%2C%22outStatisticFieldName%22%3A%22n%22%7D%5D&f=json" | jq -c '[.features[].attributes]'
+          B=https://carto2.apur.org/apur/rest/services/BDCOM/bdcom2023/MapServer
+          ST='&outStatistics=%5B%7B%22statisticType%22%3A%22count%22%2C%22onStatisticField%22%3A%22OBJECTID%22%2C%22outStatisticFieldName%22%3A%22n%22%7D%5D&f=json'
+          for L in 1 3 4; do
+            echo "== layer $L"
+            curl -s "$B/$L?f=json" | jq -c '{name, geometryType, maxRecordCount, fields: [.fields[] | .name]}'
+            curl -s "$B/$L/query?where=1%3D1&returnCountOnly=true&f=json"; echo
+          done
+          for f in niv2 niv8 niv18 type surf; do echo "== L1 $f"; curl -s "$B/1/query?where=1%3D1&groupByFieldsForStatistics=$f$ST" | jq -c '[.features[]?.attributes] | sort_by(-.n)'; done
+          echo "== L1 vacant sample"
+          curl -s "$B/1/query?where=niv18%3D213&outFields=*&resultRecordCount=3&outSR=4326&f=json" | jq -c '.features[]?'
+          echo "== L1 vacant by arro"
+          curl -s "$B/1/query?where=niv18%3D213&groupByFieldsForStatistics=arro$ST" | jq -c '[.features[]?.attributes] | sort_by(.arro)'
+          echo "== L3 sample"
+          curl -s "$B/3/query?where=1%3D1&outFields=*&resultRecordCount=2&returnGeometry=false&f=json" | jq -c '.features[]?'
           } > probe.txt 2>&1
           git config user.name probe; git config user.email probe@users.noreply.github.com
           git add probe.txt && git commit -m "Probe output [skip ci]" && git push
