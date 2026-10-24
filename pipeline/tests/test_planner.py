@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from adresse_pipeline.backtest import gamma_for
+from adresse_pipeline.backtest import setting_for
 from adresse_pipeline.huff import Market
 from adresse_pipeline.planner import plan
 
@@ -55,10 +55,10 @@ def test_the_same_inputs_give_the_same_plan():
     assert first[0].cell == "c"  # the middle reaches the most demand
 
 
-def test_cluster_strength_is_chosen_on_the_other_folds():
+def test_the_setting_is_chosen_on_the_other_folds():
     table = pd.DataFrame(
         [(0, 0.0, 9), (0, 1.0, 0), (1, 0.0, 0), (1, 1.0, 5), (2, 0.0, 0), (2, 1.0, 5)],
         columns=["fold", "gamma", "hits"],
-    )
-    assert gamma_for(table, fold=0) == 1.0  # fold 0 alone prefers 0, the others prefer 1
-    assert gamma_for(table, fold=1) == 0.0
+    ).assign(outside=10.0)
+    assert setting_for(table, fold=0) == (1.0, 10.0)  # fold 0 alone prefers 0, the others 1
+    assert setting_for(table, fold=1) == (0.0, 10.0)

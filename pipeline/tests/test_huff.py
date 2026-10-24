@@ -72,3 +72,10 @@ def test_a_boutique_in_a_luxury_cluster_pulls_more_shoppers():
     clustered = m.with_cluster(luxury, gamma=1.0).capture(m.sites(["c"]), m.sites(["a"]))
     assert clustered > flat
     assert m.with_cluster(luxury, gamma=0.0).capture(m.sites(["c"]), m.sites(["a"])) == flat
+
+
+def test_a_larger_outside_option_shrinks_every_share():
+    m = street()
+    own, rivals = m.sites(["a"]), m.sites(["d"])
+    wide = m.with_cluster(m.sites([]), gamma=0.0, outside=100.0)
+    assert wide.capture(own, rivals) < m.capture(own, rivals)
