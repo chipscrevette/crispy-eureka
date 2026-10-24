@@ -37,7 +37,7 @@ import {
   withOpenSpaces,
   type AreaBar,
 } from './dashboardData'
-import { HEIGHTS, coloursOf, profileColour, rampFor, stepExpr } from './palette'
+import { HEIGHTS, coloursOf, isDark, profileColour, rampFor, stepExpr } from './palette'
 
 const PARIS: [number, number] = [2.3325, 48.8665]
 const BASEMAP: string | StyleSpecification =
@@ -45,9 +45,10 @@ const BASEMAP: string | StyleSpecification =
     ? {
         version: 8,
         sources: {},
-        layers: [{ id: 'bg', type: 'background', paint: { 'background-color': '#E4E8E6' } }],
+        layers: [{ id: 'bg', type: 'background', paint: { 'background-color': isDark() ? '#0d1218' : '#ecece7' } }],
       }
-    : (import.meta.env.VITE_BASEMAP_STYLE ?? 'https://tiles.openfreemap.org/styles/positron')
+    : (import.meta.env.VITE_BASEMAP_STYLE ??
+      `https://tiles.openfreemap.org/styles/${isDark() ? 'dark' : 'positron'}`)
 const SCORE = 'score'
 const FILL_OPACITY = 0.78
 
@@ -108,6 +109,16 @@ function cssVar(name: string) {
 }
 
 const phone = () => window.matchMedia('(max-width: 760px)').matches
+
+/** The basemap and every layer colour follow the theme, so a switch reloads the page. */
+function switchTheme() {
+  try {
+    localStorage.setItem('adresse-theme', isDark() ? 'light' : 'dark')
+  } catch {
+    return
+  }
+  window.location.reload()
+}
 
 /** Fill colour of each block: the layer's ramp, greyed outside a walk, the selected block in coral. */
 function colourExpr(
@@ -217,6 +228,8 @@ export default function App() {
       },
     })
     map.current = m
+    // the map runs under the floating top bar and panel, so its centre is shifted into the open part
+    if (!phone()) m.setPadding({ top: 58, left: 400, right: 0, bottom: 0 })
     m.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'bottom-right')
 
     m.on('load', () => {
@@ -382,6 +395,11 @@ export default function App() {
     const plans = planner[0].profiles[profile].plans
     return (plans[plan] ?? plans[NEW_BRAND]).picks.slice(0, planCount).map((p) => p.cell)
   }, [plan, planner, profile, planCount])
+
+  // the controls panel is hidden while a drawer is open, so the map centre moves back left
+  useEffect(() => {
+    if (ready && !phone()) map.current!.setPadding({ top: 58, left: plan !== null || ask !== null ? 0 : 400, right: 0, bottom: 0 })
+  }, [ready, plan, ask])
 
   const fitPadding = () =>
     phone() ? { top: 40, bottom: 40, left: 30, right: 30 } : { top: 60, bottom: 60, left: 60, right: plan || ask ? 480 : 60 }
@@ -774,6 +792,14 @@ export default function App() {
           ))}
         </nav>
         <p className="topbar-note">Paris, from open data only</p>
+        <button
+          className="theme-toggle"
+          onClick={switchTheme}
+          aria-label={isDark() ? 'Switch to the light theme' : 'Switch to the dark theme'}
+          title={isDark() ? 'Light theme' : 'Dark theme'}
+        >
+          <span aria-hidden="true">{isDark() ? '☀' : '☾'}</span>
+        </button>
       </header>
 
       <main className="board">
