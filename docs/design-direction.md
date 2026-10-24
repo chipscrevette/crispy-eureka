@@ -2,6 +2,8 @@
 
 **Feeling:** a quiet, editorial luxury house, not a dashboard. Think of a Place Vendôme window: limestone, ink, one precious detail. The map is the hero, and everything else is calm around it.
 
+**v1 (2026-10-24):** the same palette, made lighter and more visual. The map fills the screen, and the interface floats above it on rounded glass cards (blurred, see-through white or dark green). A pill top bar holds the four views: Explore, Plan, Ask and Method. Key numbers sit in tiles with a large serif figure and a short plain label. The score is shown as a ring. The bottom half of Paris is not coloured, so the streets show through.
+
 ## Principles
 
 1. **Map first.** The map fills the screen. Panels are narrow and can be folded away.
@@ -20,6 +22,9 @@
 | `--muted` | `#5A6866` | `#9AA9A6` | Labels, captions |
 | `--seine` | `#1F5C63` | `#7FC2C6` | Accent, score ramp anchor |
 | `--brass` | `#8A6A2E` | `#D3B57A` | Selected location only |
+| `--glass` | `#FFFFFF` at 84% | `#172020` at 86% | Floating cards, with an 18 px blur |
+| `--seine-soft` | `#E3EEEE` | `#1D3234` | Tracks, bar backgrounds, notes |
+| `--radius` | 20 px (cards), 12 px (tiles, inputs), pill (buttons, tabs) | | |
 
 **Score ramp:** five classes of the Seine hue, from very light to deep. Low scores fade into the basemap, so only the opportunities stand out.
 

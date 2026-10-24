@@ -39,7 +39,8 @@ const BASEMAP: string | StyleSpecification =
         ],
       }
     : (import.meta.env.VITE_BASEMAP_STYLE ?? 'https://tiles.openfreemap.org/styles/positron')
-const RAMP_OPACITY = [0.06, 0.2, 0.36, 0.54, 0.74]
+// the bottom half of Paris stays clear, so the streets show and only the opportunities stand out
+const RAMP_OPACITY = [0, 0.16, 0.32, 0.5, 0.68]
 const SCORE = 'score'
 
 type Data = {
@@ -51,6 +52,15 @@ type Data = {
   demand: FeatureInfo[]
 }
 type Hover = { arrondissement?: string; value?: number }
+type Tab = 'explore' | 'plan' | 'ask' | 'method'
+
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'explore', label: 'Explore' },
+  { id: 'plan', label: 'Plan' },
+  { id: 'ask', label: 'Ask' },
+  { id: 'method', label: 'Method' },
+]
+const SHORT: Record<ProfileId, string> = { 'jewellery-watches': 'Jewellery', 'fashion-house': 'Fashion', beauty: 'Beauty' }
 
 function cssVar(name: string) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim()
@@ -122,6 +132,8 @@ export default function App() {
     m.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right')
 
     m.on('load', () => {
+      // the credits start folded behind their (i) button, so they never cover the map on a phone
+      m.getContainer().querySelector('.maplibregl-ctrl-attrib')?.classList.remove('maplibregl-compact-show')
       m.addSource('grid', { type: 'geojson', data: data.grid })
       m.addLayer({
         id: 'grid-fill',
@@ -145,7 +157,7 @@ export default function App() {
         type: 'fill',
         source: 'grid',
         filter: ['in', ['get', 'cell'], ['literal', []]],
-        paint: { 'fill-color': cssVar('--ink'), 'fill-opacity': 0.14 },
+        paint: { 'fill-color': cssVar('--ink'), 'fill-opacity': 0.1 },
       })
       m.addLayer({
         id: 'grid-answer',
@@ -313,7 +325,7 @@ export default function App() {
       const phone = window.matchMedia('(max-width: 600px)').matches
       m.fitBounds(bounds, {
         maxZoom: 14.5,
-        padding: phone ? { top: 60, bottom: 420, left: 40, right: 40 } : { top: 80, bottom: 80, left: 400, right: 470 },
+        padding: phone ? { top: 90, bottom: 420, left: 40, right: 40 } : { top: 110, bottom: 60, left: 420, right: 480 },
       })
     }
   }, [ready, data, picks, plan])
@@ -351,7 +363,7 @@ export default function App() {
       const phone = window.matchMedia('(max-width: 600px)').matches
       map.current.fitBounds(bounds, {
         maxZoom: 15,
-        padding: phone ? { top: 60, bottom: 320, left: 40, right: 40 } : { top: 80, bottom: 80, left: 400, right: 470 },
+        padding: phone ? { top: 90, bottom: 320, left: 40, right: 40 } : { top: 110, bottom: 60, left: 420, right: 480 },
       })
     }
     // on a phone the drawer covers the map, so step aside; a shared link still reopens it
@@ -406,9 +418,42 @@ export default function App() {
         ? `${hover.arrondissement ?? 'Paris'}: no data`
         : 'Hover or tap a block to read its value.'
 
+  const tab = method ? 'method' : plan !== null ? 'plan' : ask !== null ? 'ask' : 'explore'
+  const openTab = (t: Tab) => {
+    setMethod(t === 'method')
+    if (t === 'method') return
+    setAsk(t === 'ask' ? (ask ?? '1') : null)
+    setPlan(t === 'plan' ? (plan ?? NEW_BRAND) : null)
+  }
+  const clearSelection = () => {
+    setSelected(null)
+    setCellA(null)
+    setCellB(null)
+    setPicking(false)
+    setAnswerCells([])
+  }
+  const tested = validation ? ordinal(validation.model.mean_percentile) : '–'
+
   return (
     <div className={`app${ask !== null || plan !== null ? ' asking' : ''}${plan !== null ? ' planning' : ''}`}>
       <div ref={container} className="map" aria-label="Map of luxury boutiques in Paris" role="region" />
+
+      <header className="topbar">
+        <p className="wordmark">Adresse</p>
+        <nav className="tabs" aria-label="Views">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              className="tab"
+              aria-current={tab === t.id ? 'page' : undefined}
+              onClick={() => openTab(t.id)}
+              disabled={!data}
+            >
+              {t.label}
+            </button>
+          ))}
+        </nav>
+      </header>
 
       <aside id="panel" className={`panel${sheetOpen ? '' : ' collapsed'}${a ? ' has-selection' : ''}`}>
         <button
@@ -419,151 +464,136 @@ export default function App() {
         >
           <span className="visually-hidden">{sheetOpen ? 'Hide details' : 'Show details'}</span>
         </button>
-        <header>
-          <h1>Adresse</h1>
-          <p className="tagline">Where should a luxury brand open its next Paris boutique, and why?</p>
-          <div className="header-links">
-            <button
-              className="button ask-open"
-              onClick={() => {
-                setPlan(null)
-                setAsk('1')
-              }}
-              disabled={!data}
-            >
-              Ask Adresse
-            </button>
-            <button
-              className="button secondary"
-              onClick={() => {
-                setAsk(null)
-                setPlan(NEW_BRAND)
-              }}
-              disabled={!data}
-            >
-              Plan a network
-            </button>
-            <button className="link method-link" onClick={() => setMethod(true)} disabled={!data}>
-              How it works
-            </button>
-          </div>
-        </header>
 
-        <section aria-labelledby="profile-label">
-          <h2 id="profile-label" className="label">
-            Brand profile
-          </h2>
-          <div className="chips" role="radiogroup" aria-labelledby="profile-label">
-            {PROFILES.map((p) => (
-              <button
-                key={p.id}
-                id={`profile-${p.id}`}
-                role="radio"
-                aria-checked={profile === p.id}
-                className="chip"
-                onClick={() => {
-                  setProfile(p.id)
-                  setSelected(null)
-                }}
-              >
-                <span>{p.label}</span>
-                <span className="count">{counts ? counts[p.id] : '–'}</span>
-              </button>
-            ))}
-          </div>
-        </section>
+        {!(selected || a) && (
+          <>
+            <section className="intro">
+              <h1>Where should a luxury brand open next in Paris?</h1>
+              <p className="muted small">Every block is scored by how closely it resembles where luxury brands chose to be.</p>
+            </section>
 
-        <section className="stat">
-          {error ? (
-            <p className="error">{error}</p>
-          ) : (
-            <>
-              <span className="big">{counts ? counts[profile] : '–'}</span>
-              <span className="muted">
-                existing boutiques from {brands} brands. Every block of Paris is scored by how closely it resembles
-                where they chose to be.
-              </span>
-            </>
-          )}
-        </section>
-
-        <section className="layers">
-          <label htmlFor="layer" className="label">
-            Map colour
-          </label>
-          <select id="layer" value={layer} onChange={(e) => setLayer(e.target.value)} disabled={!data}>
-            <option value={SCORE}>Opportunity score</option>
-            <option value="">None</option>
-            <optgroup label="Spending demand">
-              {data?.demand.map((f) => (
-                <option key={f.key} value={f.key}>
-                  {f.label}
-                </option>
-              ))}
-            </optgroup>
-            <optgroup label="Neighbourhood data">
-              {data?.meta.features.map((f) => (
-                <option key={f.key} value={f.key}>
-                  {f.label}
-                </option>
-              ))}
-            </optgroup>
-          </select>
-          {(isScore || info) && breaks.length > 0 && (
-            <div className="legend">
-              <div className="ramp" aria-hidden="true">
-                {RAMP_OPACITY.slice(0, breaks.length + 1).map((o) => (
-                  <span key={o} style={{ opacity: o + 0.1 }} />
+            <section aria-labelledby="profile-label">
+              <h2 id="profile-label" className="visually-hidden">
+                Brand profile
+              </h2>
+              <div className="segmented" role="radiogroup" aria-labelledby="profile-label">
+                {PROFILES.map((p) => (
+                  <button
+                    key={p.id}
+                    id={`profile-${p.id}`}
+                    role="radio"
+                    aria-checked={profile === p.id}
+                    onClick={() => {
+                      setProfile(p.id)
+                      setSelected(null)
+                    }}
+                  >
+                    {SHORT[p.id]}
+                  </button>
                 ))}
               </div>
-              <div className="ramp-labels">
-                {isScore ? (
-                  <>
-                    <span>Bottom half</span>
-                    <span>Top 5%</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Lower</span>
-                    <span>Higher</span>
-                  </>
-                )}
-              </div>
-              {isScore && validation ? (
-                <p className="muted small">
-                  Tested on brands the model never saw: their boutiques landed at the{' '}
-                  {ordinal(validation.model.mean_percentile)} percentile on average. Following other luxury boutiques
-                  alone gives the {ordinal(validation['luxury neighbours'].mean_percentile)}.
-                </p>
-              ) : (
-                info && (
-                  <p className="muted small">
-                    {info.description}. Source: {info.source}.
+            </section>
+
+            {error ? (
+              <p className="error">{error}</p>
+            ) : (
+              <ul className="tiles three" aria-label="This profile in numbers">
+                <li className="tile">
+                  <span className="tile-value">{counts ? counts[profile] : '–'}</span>
+                  <span className="tile-label">boutiques</span>
+                </li>
+                <li className="tile">
+                  <span className="tile-value">{brands || '–'}</span>
+                  <span className="tile-label">brands</span>
+                </li>
+                <li className="tile" title="Boutiques of brands the model never saw landed at this percentile on average">
+                  <span className="tile-value">{tested}</span>
+                  <span className="tile-label">rank on unseen brands</span>
+                </li>
+              </ul>
+            )}
+
+            <section className="layers">
+              <label htmlFor="layer" className="label">
+                Map colour
+              </label>
+              <select id="layer" value={layer} onChange={(e) => setLayer(e.target.value)} disabled={!data}>
+                <option value={SCORE}>Opportunity score</option>
+                <option value="">None</option>
+                <optgroup label="Spending demand">
+                  {data?.demand.map((f) => (
+                    <option key={f.key} value={f.key}>
+                      {f.label}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="Neighbourhood data">
+                  {data?.meta.features.map((f) => (
+                    <option key={f.key} value={f.key}>
+                      {f.label}
+                    </option>
+                  ))}
+                </optgroup>
+              </select>
+              {(isScore || info) && breaks.length > 0 && (
+                <div className="legend">
+                  <div className="ramp" aria-hidden="true" />
+                  <div className="ramp-labels">
+                    {isScore ? (
+                      <>
+                        <span>Bottom half</span>
+                        <span>Top 5%</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Lower</span>
+                        <span>Higher</span>
+                      </>
+                    )}
+                  </div>
+                  {isScore && validation ? (
+                    <p className="muted small">
+                      Tested on brands the model never saw: their boutiques landed at the{' '}
+                      {ordinal(validation.model.mean_percentile)} percentile on average. Following other luxury
+                      boutiques alone gives the {ordinal(validation['luxury neighbours'].mean_percentile)}.
+                    </p>
+                  ) : (
+                    info && (
+                      <p className="muted small">
+                        {info.description}. Source: {info.source}.
+                      </p>
+                    )
+                  )}
+                  <p className="hover" aria-live="polite">
+                    {hoverText(info?.unit ?? '')}
                   </p>
-                )
+                </div>
               )}
-              <p className="hover" aria-live="polite">
-                {hoverText(info?.unit ?? '')}
-              </p>
-            </div>
-          )}
-        </section>
+            </section>
+
+            <details className="sources small">
+              <summary>Data sources</summary>
+              <p className="muted">{data?.meta.sources.join(' · ') ?? 'Loading'}.</p>
+            </details>
+          </>
+        )}
 
         {(selected || a) && data && (
           <section className="selected" aria-live="polite">
-            <h2 className="label">{b ? 'Block A' : 'Selected'}</h2>
+            <button className="back" onClick={clearSelection}>
+              <span aria-hidden="true">←</span> All of Paris
+            </button>
             {selected && (
-              <>
+              <div className="store">
                 <p className="brand">{selected.brand}</p>
-                <p className="muted">{selected.segment}</p>
-                {selected.osm_confirmed !== undefined && (
-                  <p className="muted small">
-                    {selected.osm_confirmed
-                      ? 'Also mapped in OpenStreetMap within 75 m.'
-                      : 'Not found in OpenStreetMap. Treat this location with care.'}
-                  </p>
-                )}
-              </>
+                <p className="muted small">
+                  {selected.segment}
+                  {selected.osm_confirmed !== undefined &&
+                    (selected.osm_confirmed
+                      ? '. Also mapped in OpenStreetMap within 75 m.'
+                      : '. Not found in OpenStreetMap, so treat this location with care.')}
+                </p>
+              </div>
             )}
             {a && !b && (
               <CellScore
@@ -586,22 +616,8 @@ export default function App() {
                 onClear={() => setCellB(null)}
               />
             )}
-            <button
-              className="link"
-              onClick={() => {
-                setSelected(null)
-                setCellA(null)
-                setCellB(null)
-                setPicking(false)
-                setAnswerCells([])
-              }}
-            >
-              Clear selection
-            </button>
           </section>
         )}
-
-        <footer className="muted small">Week 6 preview. Data: {data?.meta.sources.join(' · ') ?? 'loading'}.</footer>
       </aside>
 
       {ask !== null && data && answers && (
