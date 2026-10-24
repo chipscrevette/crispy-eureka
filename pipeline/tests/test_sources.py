@@ -5,15 +5,18 @@ import h3
 import pytest
 
 from adresse_pipeline import dvf, insee
-from adresse_pipeline.grid import cell_of, ring_sum, ring_weighted_mean
+from adresse_pipeline.grid import DISK_RINGS, RESOLUTION, cell_of, ring_sum, ring_weighted_mean
 
 # --- grid ---
 
 
-def test_ring_sum_counts_the_cell_and_its_six_neighbours():
+R1, R2 = DISK_RINGS[RESOLUTION][1], DISK_RINGS[RESOLUTION][2]
+
+
+def test_ring_sum_counts_the_cell_and_its_neighbourhood():
     centre = cell_of(2.3308, 48.8686)
-    neighbour = next(c for c in h3.grid_disk(centre, 1) if c != centre)
-    far = next(iter(h3.grid_ring(centre, 3)))
+    neighbour = next(iter(h3.grid_ring(centre, R1)))  # the edge of r1 is in
+    far = next(iter(h3.grid_ring(centre, R1 + 1)))
     values = {centre: 2, neighbour: 3, far: 100}
 
     assert ring_sum(values, [centre])[centre] == 5
@@ -131,7 +134,7 @@ def test_keeps_commercial_premises(tmp_path):
 
 def test_median_widens_to_two_rings_when_sales_are_sparse():
     centre = cell_of(2.3308, 48.8686)
-    two_away = next(iter(h3.grid_ring(centre, 2)))
+    two_away = next(iter(h3.grid_ring(centre, R2)))
     lat, lon = h3.cell_to_latlng(two_away)
     sales = [dvf.Sale(dvf.Kind.APARTMENT, 2024, lon, lat, p) for p in (10_000, 12_000, 14_000)]
 

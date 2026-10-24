@@ -4,6 +4,7 @@ import pandas as pd
 
 from adresse_pipeline.alphaearth import add_to_cells, dequantize, unit
 from adresse_pipeline.benchmark import pca
+from adresse_pipeline.grid import RESOLUTION
 
 VENDOME = (2.3290, 48.8675)
 BASTILLE = (2.3690, 48.8530)
@@ -22,7 +23,7 @@ def test_cell_mean_is_the_renormalised_sum_and_ignores_cells_outside_paris():
     a, b = np.array([1.0, 0.0]), np.array([0.0, 1.0])
     lon = np.array([VENDOME[0], VENDOME[0], BASTILLE[0]])
     lat = np.array([VENDOME[1], VENDOME[1], BASTILLE[1]])
-    vendome = h3.latlng_to_cell(VENDOME[1], VENDOME[0], 9)
+    vendome = h3.latlng_to_cell(VENDOME[1], VENDOME[0], RESOLUTION)
     sums: dict = {}
     add_to_cells(sums, iter([(lon, lat, np.stack([a, b, a]))]), {vendome})
     assert list(sums) == [vendome]

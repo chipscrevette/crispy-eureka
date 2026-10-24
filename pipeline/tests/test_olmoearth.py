@@ -1,6 +1,7 @@
 import h3
 import numpy as np
 
+from adresse_pipeline.grid import RESOLUTION
 from adresse_pipeline.olmoearth import add_raster, embedding_rasters
 
 
@@ -32,7 +33,7 @@ def test_cells_get_the_plain_mean_of_their_valid_pixels(tmp_path):
     assert embedding_rasters(tmp_path) == [raster]
 
     sums, counts = {}, {}
-    cells = {h3.latlng_to_cell(48.857, 2.31, 9)}  # far away: ignored
+    cells = {h3.latlng_to_cell(48.857, 2.31, RESOLUTION)}  # far away: ignored
     add_raster(sums, counts, raster, cells)
     assert sums == {}
 
@@ -42,7 +43,7 @@ def test_cells_get_the_plain_mean_of_their_valid_pixels(tmp_path):
         from pyproj import Transformer
 
         lon, lat = Transformer.from_crs(src.crs, 4326, always_xy=True).transform(*src.xy(1, 1))
-    cell = h3.latlng_to_cell(lat, lon, 9)
+    cell = h3.latlng_to_cell(lat, lon, RESOLUTION)
     add_raster(sums, counts, raster, {cell})
     mean = sums[cell] / counts[cell]
     assert counts[cell] >= 1 and np.all(mean >= 1)

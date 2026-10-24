@@ -20,14 +20,13 @@ from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 
-import h3
 import lightgbm as lgb
 import numpy as np
 import pandas as pd
 
 from adresse_pipeline.brands import Catalogue, Profile
 from adresse_pipeline.features import FEATURES
-from adresse_pipeline.grid import cell_of
+from adresse_pipeline.grid import cell_of, disk
 from adresse_pipeline.luxury_stores import CATALOGUE
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -40,7 +39,7 @@ NEIGHBOURS_INFO = {
     "label": "Luxury neighbours",
     "unit": "boutiques",
     "source": "Overture Maps Places, OpenStreetMap",
-    "description": "Catalogue luxury boutiques of any profile in the six neighbouring cells",
+    "description": "Catalogue luxury boutiques of any profile in the blocks within about 450 m, not the block itself",
 }
 # Raw per-profile counts include the cell's own boutiques, which are the labels.
 LEAKY = {f"luxury_{p.value}_r1" for p in Profile}
@@ -109,7 +108,7 @@ def in_set(b: Boutique, positives: PositiveSet) -> bool:
 def design_matrix(grid: pd.DataFrame, boutiques: list[Boutique]) -> pd.DataFrame:
     """Grid features plus luxury neighbours from `boutiques`, never counting the cell itself."""
     own = Counter(b.cell for b in boutiques)
-    neighbours = [sum(own[n] for n in h3.grid_disk(c, 1)) - own[c] for c in grid.index]
+    neighbours = [sum(own[n] for n in disk(c)) - own[c] for c in grid.index]
     return grid.drop(columns=[c for c in grid.columns if c in LEAKY]).assign(
         **{NEIGHBOURS: neighbours}
     )

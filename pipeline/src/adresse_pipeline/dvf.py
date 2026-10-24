@@ -11,9 +11,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 
-import h3
-
-from adresse_pipeline.grid import cell_of
+from adresse_pipeline.grid import cell_of, disk
 
 
 def dvf_url(year: int, department: str = "75") -> str:
@@ -80,9 +78,9 @@ def single_premise_sales(rows: Iterable[dict[str, str]]) -> Iterator[Sale]:
 def median_price_m2(
     sales: Iterable[Sale], kind: Kind, cells: Iterable[str], min_sales: int
 ) -> tuple[dict[str, float | None], dict[str, int]]:
-    """Median €/m² per cell over the nearest disk (k = 1, else 2) holding `min_sales` sales.
+    """Median €/m² per cell over the nearest neighbourhood (r1, else r2) holding `min_sales` sales.
 
-    Also returns the number of sales in each cell's 1-ring, a proxy for market activity.
+    Also returns the number of sales in each cell's r1 neighbourhood, a proxy for market activity.
     """
     by_cell: dict[str, list[float]] = defaultdict(list)
     for s in sales:
@@ -92,10 +90,10 @@ def median_price_m2(
     medians: dict[str, float | None] = {}
     counts: dict[str, int] = {}
     for c in cells:
-        counts[c] = sum(len(by_cell.get(n, [])) for n in h3.grid_disk(c, 1))
+        counts[c] = sum(len(by_cell.get(n, [])) for n in disk(c, 1))
         medians[c] = None
         for k in (1, 2):
-            prices = [p for n in h3.grid_disk(c, k) for p in by_cell.get(n, [])]
+            prices = [p for n in disk(c, k) for p in by_cell.get(n, [])]
             if len(prices) >= min_sales:
                 medians[c] = statistics.median(prices)
                 break

@@ -13,11 +13,13 @@ from __future__ import annotations
 
 import json
 
+import h3
 import numpy as np
 import pandas as pd
 
 from adresse_pipeline import alphaearth, olmoearth
 from adresse_pipeline.brands import Catalogue, Profile
+from adresse_pipeline.grid import RESOLUTION
 from adresse_pipeline.luxury_stores import CATALOGUE
 from adresse_pipeline.model import OUTPUT, WEB_DATA, PositiveSet, load_boutiques, validate
 
@@ -73,7 +75,10 @@ def main() -> None:
     )
     embeddings = {"AlphaEarth": pd.read_csv(alphaearth.OUTPUT, index_col="cell")}
     if olmoearth.OUTPUT.exists():
-        embeddings["OlmoEarth"] = pd.read_csv(olmoearth.OUTPUT, index_col="cell")
+        olmo = pd.read_csv(olmoearth.OUTPUT, index_col="cell")
+        # computed once on a GPU, so it can lag behind a change of grid resolution
+        if h3.get_resolution(olmo.index[0]) == RESOLUTION:
+            embeddings["OlmoEarth"] = olmo
     overlays = pd.read_csv(OVERLAYS, index_col="cell") if OVERLAYS.exists() else None
     boutiques = load_boutiques(catalogue)
 

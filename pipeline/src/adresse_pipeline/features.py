@@ -37,7 +37,7 @@ CONTEXT_CATEGORIES: dict[str, frozenset[str]] = {
     "offices_r1": frozenset({"corporate_or_business_office", "financial_service"}),
 }
 
-RING = "in the cell and its six neighbours (about 350 m around)"
+RING = "in the block and the blocks within about 450 m"
 
 FEATURES: list[Feature] = [
     Feature("hotels_r1", "Hotels", "places", OVERTURE, f"Hotels and lodgings {RING}"),
@@ -166,7 +166,7 @@ OVERLAYS: list[Feature] = [
         "International tourist zone",
         "share",
         APUR,
-        "Share of the block and its six neighbours inside an international tourist zone (ZTI), "
+        "Share of the blocks within about 450 m inside an international tourist zone (ZTI), "
         "where shops may open on Sundays and late in the evening",
     ),
     Feature(

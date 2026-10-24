@@ -46,7 +46,7 @@ class Block:
     drivers: dict[Profile, list[list]]
 
     def competitors(self, profile: Profile) -> int:
-        """Boutiques of the profile in the block and its six neighbours."""
+        """Boutiques of the profile in the block and the blocks within about 450 m."""
         return int(self.values.get(f"luxury_{profile.value}_r1", 0))
 
 
@@ -75,6 +75,11 @@ class Paris:
     validation: dict[str, dict]
     importance: dict[str, list]
     benchmark: dict | None
+
+    @property
+    def resolution(self) -> int:
+        """The H3 resolution of the built grid, which may predate a change of `grid.RESOLUTION`."""
+        return h3.get_resolution(next(iter(self.blocks)))
 
     @classmethod
     def load(cls, data: Path = WEB_DATA) -> Paris:
@@ -185,7 +190,7 @@ class Tools:
         by_place = Counter(
             short_place(self.paris.blocks[c].arrondissement)
             for b in self.paris.boutiques
-            if (c := h3.latlng_to_cell(b.lat, b.lon, 9)) in self.paris.blocks
+            if (c := h3.latlng_to_cell(b.lat, b.lon, self.paris.resolution)) in self.paris.blocks
         )
         result = {
             "total": len(self.paris.boutiques),
@@ -242,7 +247,7 @@ class Tools:
         return self.trace.record("room_by_arrondissement", args, result)
 
     def locate(self, name: str, lat: float, lon: float) -> dict:
-        cell = h3.latlng_to_cell(lat, lon, 9)
+        cell = h3.latlng_to_cell(lat, lon, self.paris.resolution)
         block = self.paris.blocks[cell]
         result = {"cell": cell, "place": short_place(block.arrondissement)}
         return self.trace.record("locate", {"name": name, "lat": lat, "lon": lon}, result)

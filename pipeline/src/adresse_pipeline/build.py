@@ -42,10 +42,12 @@ from adresse_pipeline.features import (
     as_json,
 )
 from adresse_pipeline.grid import (
+    RESOLUTION,
     cell_of,
     cell_polygon,
     cells_covering,
     count_by_cell,
+    disk,
     ring_sum,
     ring_weighted_mean,
 )
@@ -79,7 +81,7 @@ def main() -> None:
     commune = next(a for a in areas if a.subtype == "locality")
     arrondissements = [a for a in areas if a is not commune]
     cells = cells_covering(commune.geometry)
-    print(f"grid: {len(cells)} H3 cells at resolution 9 cover Paris")
+    print(f"grid: {len(cells)} H3 cells at resolution {RESOLUTION} cover Paris")
 
     columns: dict[str, dict[str, float | None]] = {}
     # each block's own values, for the demand index
@@ -206,10 +208,8 @@ def main() -> None:
         zones = apur.fetch_tourist_zones()
         zti = unary_union([z.area for z in zones if z.international])
         inside = {c: 1.0 for c in cells if zti.contains(Point(*reversed(h3.cell_to_latlng(c))))}
-        # the share of the block and its six neighbours (by their centres) inside a ZTI
-        columns["tourist_zone_r1"] = {
-            c: ring_sum(inside, [c])[c] / len(h3.grid_disk(c, 1)) for c in cells
-        }
+        # the share of the block's neighbourhood (by cell centres) inside a ZTI
+        columns["tourist_zone_r1"] = {c: ring_sum(inside, [c])[c] / len(disk(c)) for c in cells}
         print(
             f"apur: {sum(z.international for z in zones)} international tourist zones of "
             f"{len(zones)} ({', '.join(sorted(z.name for z in zones if z.international))}); "
