@@ -1,0 +1,29 @@
+name: Probe tourism
+on:
+  push:
+    branches: [claude/probe-tourism]
+    paths: [.github/workflows/probe.yml]
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - shell: bash
+        run: |
+          set +e
+          {
+          echo "== data.gouv hebergements classes"
+          for q in "hebergements touristiques classes" "classement hotels atout france" "hotels classes etoiles"; do
+            curl -s "https://www.data.gouv.fr/api/1/datasets/?q=$(jq -rn --arg q "$q" '$q|@uri')&page_size=6" | jq -r '.data[]? | [.id, .title, (.organization.name // ""), .last_update, (.license // "")] | @tsv'
+          done
+          echo "== zti dataset meta"
+          curl -s "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/zones-touristiques-internationales" | jq -c '{license: .metas.default.license, publisher: .metas.default.publisher, fields: [.fields[].name]}'
+          echo "== apur zones layer 4"
+          curl -s "https://carto2.apur.org/apur/rest/services/BDCOM/bdcom2023/MapServer/4/query?where=1%3D1&outFields=nom,c_type,id_secteur&returnGeometry=false&f=json" | jq -c '[.features[]?.attributes]'
+          echo "== paris hotels datasets"
+          curl -s "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets?where=search(%22hotel%22)&limit=15" | jq -r '.results[] | [.dataset_id, .metas.default.title, (.metas.default.records_count|tostring), (.metas.default.license // "")] | @tsv'
+          } > probe.txt 2>&1
+          git config user.name probe; git config user.email probe@users.noreply.github.com
+          git add probe.txt && git commit -m "Probe output [skip ci]" && git push
