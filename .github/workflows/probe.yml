@@ -14,17 +14,18 @@ jobs:
         run: |
           set +e
           {
-          echo "== resources"
-          curl -s "https://www.data.gouv.fr/api/1/datasets/59c36c6a88ee3826d5998a35/" | jq -r '.resources[] | [.id, .title, .format, .last_modified, .url] | @tsv'
-          U=$(curl -s "https://www.data.gouv.fr/api/1/datasets/59c36c6a88ee3826d5998a35/" | jq -r '[.resources[] | select(.format=="csv")][0].url')
-          echo "== csv $U"
-          curl -sL "$U" -o h.csv; file h.csv; wc -l h.csv
-          head -c 1500 h.csv | iconv -f latin1 -t utf-8 2>/dev/null || head -c 1500 h.csv
-          echo; echo "== paris rows"
-          grep -ai ";PARIS;\|;75[0-9][0-9][0-9];" h.csv | wc -l
-          grep -ai "75[0-9][0-9][0-9]" h.csv | grep -ai "hôtel\|hotel" | head -5
-          echo "== apur zones all"
-          curl -s "https://carto2.apur.org/apur/rest/services/BDCOM/bdcom2023/MapServer/4/query?where=1%3D1&outFields=nom,c_type&returnGeometry=false&f=json" | jq -c '[.features[]?.attributes | [.c_type, .nom]]'
+          curl -sL "https://data.classement.atout-france.fr/static/exportHebergementsClasses/hebergements_classes.csv" -o h.csv
+          echo "== paris hotels by stars"
+          awk -F';' '$8 ~ /^75/ && $2 ~ /HÔTEL DE TOURISME/ {print $3" | cat="$4}' h.csv | sort | uniq -c
+          echo "== paris 5 stars sample"
+          awk -F';' '$8 ~ /^75/ && $3 ~ /5/ {print $4" | "$6" | "$7" | "$8" | "$13}' h.csv | head -15
+          echo "== category values all"
+          awk -F';' 'NR>1 {print $4}' h.csv | sort | uniq -c | sort -rn | head
+          echo "== BAN csv geocode"
+          printf 'id,adresse,postcode\n1,12 boulevard de Denain,75010\n2,6 Avenue Victor Hugo,75116\n3,7/9 Rue Pierre Chausson,75010\n' > t.csv
+          curl -s -X POST -F data=@t.csv -F columns=adresse -F postcode=postcode "https://data.geopf.fr/geocodage/search/csv" | head -5
+          echo "== old BAN"
+          curl -s -X POST -F data=@t.csv -F columns=adresse -F postcode=postcode "https://api-adresse.data.gouv.fr/search/csv/" | head -5
           } > probe.txt 2>&1
           git config user.name probe; git config user.email probe@users.noreply.github.com
           git add probe.txt && git commit -m "Probe output [skip ci]" && git push
