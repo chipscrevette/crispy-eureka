@@ -2,16 +2,12 @@ name: OlmoEarth
 
 # Computes OlmoEarth embeddings for Paris and reruns the satellite benchmark. OlmoEarth has
 # no precomputed archive, so this fetches Sentinel-2 from Microsoft Planetary Computer and
-# runs the model on CPU (about half an hour). It only runs when its inputs change.
+# runs the model on CPU (about ten minutes). The mosaics and CPU inference are not bit-for-bit
+# repeatable, so the benchmark shifts by a few tenths on each run: it only runs on request
+# (Actions > OlmoEarth > Run workflow), not on every push.
 
 on:
   workflow_dispatch:
-  push:
-    branches-ignore: [main]
-    paths:
-      - pipeline/olmoearth/**
-      - pipeline/src/adresse_pipeline/olmoearth.py
-      - .github/workflows/olmoearth.yml
 
 permissions:
   contents: write
@@ -54,6 +50,7 @@ jobs:
             rslearn model predict --config pipeline/olmoearth/model.yaml
             python -m adresse_pipeline.olmoearth "$DATASET_PATH"
             python -m adresse_pipeline.benchmark
+            python -m adresse_pipeline.ask
           } 2>&1 | tee olmoearth.log
       - name: Keep the log where a reviewer can read it
         if: failure()
@@ -70,7 +67,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add pipeline/output/olmoearth_2025.csv pipeline/output/benchmark.json web/public/data/benchmark.json
+          git add pipeline/output/olmoearth_2025.csv pipeline/output/benchmark.json web/public/data/benchmark.json web/public/data/ask.json
           git commit -m "Add OlmoEarth embeddings and rerun the satellite benchmark" -m "$(tail -n 20 olmoearth.log)"
           git pull --rebase origin "${{ github.ref_name }}"
           git push

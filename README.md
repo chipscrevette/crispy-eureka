@@ -4,7 +4,7 @@
 
 Adresse is an open-source location-intelligence studio for luxury retail. It scores every street block in Paris for a brand profile (jewellery & watches, fashion house, beauty), explains each score, compares two addresses side by side, and writes a one-page site memo. It is built only from open data.
 
-> Status: **Week 6 of 8.** Every one of Paris's 1,118 H3 blocks has a 0–100 opportunity score for each brand profile, with the drivers behind it. You can compare two blocks driver by driver, open a one-page site memo that prints to PDF, share any view as a link, and read a "How it works" page that explains the data, the model and its validation with the live numbers. Tested on brands the model never saw, their boutiques land around the 90th percentile. See the [roadmap](#roadmap).
+> Status: **Week 6 of 8.** Every one of Paris's 1,118 H3 blocks has a 0–100 opportunity score for each brand profile, with the drivers behind it. You can compare two blocks driver by driver, open a one-page site memo that prints to PDF, share any view as a link, ask Adresse ten questions whose answers show the queries behind them, and read a "How it works" page that explains the data, the model and its validation with the live numbers. Tested on brands the model never saw, their boutiques land around the 90th percentile. See the [roadmap](#roadmap).
 
 ## What it will do
 
@@ -12,7 +12,7 @@ Adresse is an open-source location-intelligence studio for luxury retail. It sco
 - **Explain any block:** the top drivers behind each score, for example tourist flow, prestige neighbours, affluent residents and rent level.
 - **Compare two addresses**, with walking-time catchments.
 - **Site memo:** a clean one-page summary, ready for a real-estate committee.
-- **Ask Adresse:** a copilot that answers questions by running the project's own queries, and cites every number it uses.
+- **Ask Adresse:** ten curated questions, answered at build time by running the project's own queries (`pipeline/src/adresse_pipeline/ask.py`). Each answer lists the queries it ran and their results, and a test checks that every number in an answer comes from one of them. No API key or hosting is needed.
 
 ## Method
 
@@ -68,7 +68,7 @@ The [Build data](.github/workflows/data.yml) workflow rebuilds every layer from 
 | 1–2 | All data sources on the Paris H3 grid |
 | 3 | Lookalike scoring model, SHAP drivers, hold-out validation |
 | 4–5 | Opportunity map, compare view, site memo |
-| 6 | Copilot, AlphaEarth vs OlmoEarth benchmark |
+| 6 | Ask Adresse (pre-recorded answers), AlphaEarth vs OlmoEarth benchmark |
 | 7 | Mobile, accessibility, performance, demo video |
 | 8 | Public v1 and case study |
 

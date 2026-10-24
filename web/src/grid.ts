@@ -14,7 +14,7 @@ export type CellProps = { cell: string; arrondissement?: string } & Record<strin
 
 export type Grid = FeatureCollection<Polygon, CellProps>
 
-async function getJson<T>(path: string): Promise<T> {
+export async function getJson<T>(path: string): Promise<T> {
   const res = await fetch(`${import.meta.env.BASE_URL}data/${path}`)
   if (!res.ok) throw new Error(`Could not load ${path} (HTTP ${res.status})`)
   return res.json()
