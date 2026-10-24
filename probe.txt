@@ -1,0 +1,34 @@
+== data.gouv commerces
+== data.gouv vacants
+== opendata.paris commerce
+femmes-illustres-a-paris-parcours	Femmes illustres à Paris - Parcours	2019-06-14T14:48:59+00:00	10
+parissetransforme	Paris se transforme	2026-10-23T06:00:30+00:00	3262
+plub_protcom	PLU bioclimatique - Protections du commerce et de l'artisanat	2025-06-05T13:18:51+00:00	5107
+paris-autrement-balades-dans-les-arrondissements-peripheriques-poi	Paris autrement - Balades dans les arrondissements périphériques - POI	2024-03-04T09:20:55+00:00	157
+commerces-semaest	Les commerces de la SEMAEST	2016-03-09T15:51:15+00:00	311
+marches-decouverts	Marchés découverts	2024-04-17T14:42:04+00:00	80
+accessibilite-des-hebergements-en-ile-de-france-paris-je-t-aime	Accessibilité des Hébergements en Ile de France - Paris je t'aime	2024-06-24T12:45:22+00:00	536
+conseils-quartiers	Les conseils de quartier	2026-10-01T04:40:11+00:00	117
+commerces-eau-de-paris	Commerces - Eau de Paris	2026-10-19T04:00:16+00:00	1500
+zones-touristiques-internationales	Zones Touristiques Internationales	2016-07-27T13:58:33+00:00	12
+plub_comgros	PLU bioclimatique - Secteur d'encadrement du commerce de gros	2025-06-05T14:17:04+00:00	1
+participation-citoyenne-consultations-embellir-votre-quartier-phases-1-et-2	Participation citoyenne - Consultations Embellir votre Quartier - phases 1 et 2	2024-04-17T13:51:37+00:00	0
+statistiques-des-documents-numerises-des-bibliotheques-patrimoniales	Statistiques des documents numérisés des bibliothèques patrimoniales	2023-10-05T14:07:34+00:00	10
+votation-mars-2025-donnees-questions-locales	Votation – Votation mars 2025 - Résultats - Questions locales	2025-04-02T11:21:21+00:00	0
+registre-des-autorisations-de-changement-dusage-pour-les-meubles	Registre des autorisations de changement d'usage pour les meublés touristiques	2026-06-05T09:00:01+00:00	265
+zones-de-rencontre	Zones de rencontre	2026-10-18T07:15:07+00:00	228
+femmes-illustres-a-paris-portraits	Femmes illustres à Paris - Portraits	2019-06-14T09:20:41+00:00	154
+terrasses-autorisations	Terrasses et étalages : Autorisations	2026-10-23T05:01:35+00:00	23069
+belib-points-de-recharge-pour-vehicules-electriques-disponibilite-temps-reel	Belib' - Points de recharge pour véhicules électriques - Disponibilité temps réel	2026-10-24T03:59:48+00:00	2002
+zonagesreglementaires_l	Zonages réglementaires du changement d'usage (linéaire)	2025-06-11T13:07:19+00:00	1
+paris-autrement-balades-dans-les-arrondissements-peripheriques-parcours	Paris autrement - Balades dans les arrondissements périphériques - Parcours	2024-03-04T09:22:48+00:00	12
+zonagesreglementaires_p	Zonages réglementaires du changement d'usage (surfacique)	2025-06-11T12:35:01+00:00	4
+== apur
+{
+	"@context": {
+		"dcat": "http://www.w3.org/ns/dcat#",
+		"dct": "http://purl.org/dc/terms/",
+		"foaf": "http://xmlns.com/foaf/0.1/",
+		"vcard": "http://www.w3.org/2006/vcard/ns#",
+		"ftype": "http://publications.europa.eu/resource/authority/file-type/",
+		"lang": "http://publications.europa.eu/res
