@@ -8,6 +8,7 @@ from adresse_pipeline.model import (
     NEIGHBOURS,
     Boutique,
     PositiveSet,
+    choose_positives,
     design_matrix,
     drivers,
     in_set,
@@ -87,3 +88,14 @@ def test_drivers_rank_by_size_and_keep_the_raw_value():
         top=3,
     )
     assert out == [["b", -0.7, None], ["d", 0.3, 2.0], ["a", 0.1, 5.0]]
+
+
+def test_the_default_positives_stay_unless_another_set_is_clearly_better():
+    # the 2026-10-24 builds: one OSM boutique moved "overture+osm" 0.2 points ahead
+    close = {
+        PositiveSet.CONFIRMED: 89.8,
+        PositiveSet.OVERTURE: 89.9,
+        PositiveSet.UNION: 90.1,
+    }
+    assert choose_positives(close) is PositiveSet.OVERTURE
+    assert choose_positives(close | {PositiveSet.CONFIRMED: 93.0}) is PositiveSet.CONFIRMED
