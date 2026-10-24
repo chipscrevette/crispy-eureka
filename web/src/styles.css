@@ -754,50 +754,65 @@ optgroup { font-style: normal; }
 .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 3px; }
 
 /* Guided flow: one question at a time, details on demand */
-.guide { gap: 22px; align-content: start; }
-.guide h1 { font-size: 1.45rem; line-height: 1.15; letter-spacing: -0.01em; }
-.step { display: grid; gap: 10px; }
-.step-title { display: flex; align-items: center; gap: 10px; margin: 0; font: var(--weight) 1rem var(--display); }
-.step-n { display: grid; place-items: center; flex: none; width: 24px; height: 24px; border-radius: 50%; font-size: 0.8rem; color: var(--surface); background: var(--ink); }
-.choices { display: grid; gap: 6px; }
+.guide { gap: 24px; align-content: start; }
+.guide h1 { font-size: 1.6rem; line-height: 1.12; letter-spacing: -0.025em; }
+.step { display: grid; gap: 12px; }
+.step-title { display: flex; align-items: center; gap: 10px; margin: 0; font: var(--weight) 0.95rem var(--display); color: var(--muted); }
+.step-note { margin-left: auto; font: var(--weight) 0.75rem var(--ui); }
+.step-n { display: grid; place-items: center; flex: none; width: 22px; height: 22px; border-radius: 50%; font-size: 0.75rem; color: var(--ink); background: var(--seine-soft); }
+/* the three brand types as tiles: the boutique count large, the name under it */
+.choices { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .choice {
   display: grid;
-  grid-template-columns: 12px 1fr auto;
+  grid-template-areas: 'dot count' 'label label';
+  grid-template-columns: 10px 1fr;
   align-items: center;
-  gap: 10px;
+  gap: 6px 8px;
   width: 100%;
-  padding: 12px 14px;
-  font-size: 0.95rem;
+  padding: 12px;
   color: var(--ink);
   text-align: left;
   background: var(--surface);
   border: 1px solid var(--rule);
   border-radius: var(--radius-s);
   cursor: pointer;
+  transition: border-color 0.15s, transform 0.15s;
 }
-.choice:hover { border-color: var(--muted); }
+.choice:hover { border-color: var(--muted); transform: translateY(-1px); }
 .choice[aria-checked='true'] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
 .choice:focus-visible { outline: 2px solid var(--seine); outline-offset: 2px; }
-.choice .dot { width: 12px; height: 12px; border-radius: 50%; }
-.choice-count { font-size: 0.8rem; color: var(--muted); }
+.choice .dot { grid-area: dot; width: 10px; height: 10px; border-radius: 50%; }
+.choice-count { grid-area: count; justify-self: end; font: var(--weight) 1.35rem/1 var(--display); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.choice-label { grid-area: label; font-size: 0.8rem; line-height: 1.25; color: var(--muted); }
+.choice[aria-checked='true'] .choice-label { color: var(--ink); }
 .answer { margin: 0; color: var(--muted); font-size: 0.9rem; }
+.stat { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 4px 14px; }
+.stat-value { font: var(--weight) 3rem/1 var(--display); letter-spacing: -0.04em; color: var(--seine); font-variant-numeric: tabular-nums; }
+.stat-why { grid-column: 1 / -1; }
+.stat-why summary { font-size: 0.82rem; color: var(--muted); cursor: pointer; }
+.stat-why p { margin-top: 6px; }
 .places { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .places button {
   display: grid;
   grid-template-columns: 24px 1fr auto;
   align-items: center;
-  gap: 10px;
+  gap: 8px 10px;
   width: 100%;
-  padding: 10px 12px;
+  padding: 12px 14px;
   font: inherit;
   color: var(--ink);
   text-align: left;
-  background: var(--seine-soft);
-  border: 0;
+  background: var(--surface);
+  border: 1px solid var(--rule);
   border-radius: var(--radius-s);
   cursor: pointer;
+  transition: border-color 0.15s, transform 0.15s;
 }
-.places button:hover { box-shadow: inset 0 0 0 1px var(--seine); }
+.places button:hover { border-color: var(--seine); transform: translateY(-1px); }
+.places .top-value { font: var(--weight) 1.15rem/1 var(--display); color: var(--ink); font-variant-numeric: tabular-nums; }
+.places .top-max { font-size: 0.75rem; color: var(--muted); }
+.top-bar { grid-column: 2 / -1; height: 4px; border-radius: 999px; background: var(--seine-soft); overflow: hidden; }
+.top-bar span { display: block; height: 100%; border-radius: 999px; background: var(--seine); }
 .places button:focus-visible { outline: 2px solid var(--seine); outline-offset: 2px; }
 
 .more { border-top: 1px solid var(--rule); padding-top: 12px; }
