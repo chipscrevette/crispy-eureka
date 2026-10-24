@@ -4,9 +4,12 @@
 
 Writes the boutique layer and the H3 grid to web/public/data/, and the grid's
 feature table and the boutique cross-check to pipeline/output/. `--skip dvf insee
-idfm osm` builds without those sources (for machines that can't reach data.gouv.fr,
+idfm osm sirene` builds without those sources (for machines that can't reach data.gouv.fr,
 insee.fr, data.iledefrance-mobilites.fr or the Overpass API); their features are then
 left empty.
+
+It also writes each block's own counts (not ring sums) to pipeline/output/paris_h3_blocks.csv,
+the inputs of the demand index in `adresse_pipeline.demand`.
 """
 
 from __future__ import annotations
@@ -20,7 +23,7 @@ from pathlib import Path
 import h3
 from shapely.geometry import Point
 
-from adresse_pipeline import dvf, idfm, insee, osm
+from adresse_pipeline import dvf, idfm, insee, osm, sirene
 from adresse_pipeline.brands import Catalogue, Profile
 from adresse_pipeline.download import fetch
 from adresse_pipeline.features import (
@@ -30,6 +33,7 @@ from adresse_pipeline.features import (
     IDFM,
     INSEE,
     OVERTURE,
+    SIRENE,
     as_json,
 )
 from adresse_pipeline.grid import (
@@ -43,7 +47,7 @@ from adresse_pipeline.grid import (
 from adresse_pipeline.luxury_stores import CATALOGUE, find_stores, to_geojson
 from adresse_pipeline.overture import PARIS_PADDED, read_paris_areas, read_places
 
-SKIPPABLE = ["dvf", "insee", "idfm", "osm"]
+SKIPPABLE = ["dvf", "insee", "idfm", "osm", "sirene"]
 
 ROOT = Path(__file__).resolve().parents[3]
 WEB_DATA = ROOT / "web" / "public" / "data"
@@ -73,6 +77,8 @@ def main() -> None:
     print(f"grid: {len(cells)} H3 cells at resolution 9 cover Paris")
 
     columns: dict[str, dict[str, float | None]] = {}
+    # each block's own values, for the demand index
+    own: dict[str, dict[str, float]] = {}
 
     places = [
         p
@@ -82,6 +88,8 @@ def main() -> None:
     for key, categories in CONTEXT_CATEGORIES.items():
         counts = count_by_cell((p.lon, p.lat) for p in places if p.category in categories)
         columns[key] = ring_sum(counts, cells)
+        if key == "hotels_r1":
+            own["hotels"] = counts
 
     catalogue = Catalogue.from_csv(CATALOGUE)
     stores, concessions = find_stores(places, catalogue)
@@ -105,6 +113,8 @@ def main() -> None:
         mean_ls = {
             c: v.living_standard_sum / v.individuals for c, v in income.items() if v.individuals
         }
+        own["residents"] = people
+        own["resident_income"] = {c: v.living_standard_sum for c, v in income.items()}
         columns["population_r1"] = ring_sum(people, cells)
         columns["living_standard_r1"] = ring_weighted_mean(mean_ls, people, cells)
         columns["owners_share_r1"] = share(
@@ -144,6 +154,7 @@ def main() -> None:
         by_cell: dict[str, float] = Counter()
         for st in stations:
             by_cell[cell_of(st.lon, st.lat)] += st.daily_entries
+        own["station_entries"] = by_cell
         columns["transit_entries_r2"] = ring_sum(by_cell, cells, k=2)
         busiest = sorted(stations, key=lambda s: -s.daily_entries)[:5]
         print(
@@ -151,6 +162,13 @@ def main() -> None:
             + ", ".join(f"{s.name} {s.daily_entries:,.0f}/day" for s in busiest)
         )
         sources.append(f"{IDFM}, {idfm.VALIDATIONS_PERIOD}")
+
+    if "sirene" not in args.skip:
+        firms = list(sirene.establishments(sirene.read_rows(fetch(sirene.URL))))
+        own["workers"] = sirene.workers_by_cell(firms)
+        inside = sum(v for c, v in own["workers"].items() if c in cells)
+        print(f"sirene: {len(firms):,} open establishments with staff, ~{inside:,.0f} workers")
+        sources.append(f"{SIRENE}, {sirene.URL.rsplit('/', 1)[-1]}")
 
     confirmed: set[str] | None = None
     if "osm" not in args.skip:
@@ -202,6 +220,13 @@ def main() -> None:
         writer = csv.DictWriter(f, fieldnames=["cell", "arrondissement", *keys])
         writer.writeheader()
         writer.writerows(rows)
+
+    with (OUTPUT / "paris_h3_blocks.csv").open("w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=["cell", *own])
+        writer.writeheader()
+        writer.writerows(
+            {"cell": c, **{k: round(v.get(c, 0), 2) for k, v in own.items()}} for c in sorted(cells)
+        )
 
     grid = {
         "type": "FeatureCollection",
