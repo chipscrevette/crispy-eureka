@@ -28,15 +28,36 @@ export default function Method({ scores, stores, meta, cells, onClose }: Props) 
 
       <article>
         <header>
+          <p className="kicker">How it works</p>
           <h1 id="method-title">How Adresse scores a street</h1>
           <p className="lede">
             No one publishes boutique sales. So Adresse learns from where luxury brands have already chosen to be, and
             scores every block of Paris by how closely it resembles those choices.
           </p>
+          <ul className="method-glance" aria-label="Adresse at a glance">
+            <li>
+              <span className="big">{cells.toLocaleString('en-GB')}</span>
+              <span className="muted">blocks of Paris scored</span>
+            </li>
+            <li>
+              <span className="big">{stores.features.length}</span>
+              <span className="muted">luxury street boutiques</span>
+            </li>
+            <li>
+              <span className="big">{brands}</span>
+              <span className="muted">brands</span>
+            </li>
+            <li>
+              <span className="big">{meta.sources.length}</span>
+              <span className="muted">open datasets</span>
+            </li>
+          </ul>
         </header>
 
         <section>
-          <h2>1. Paris as {cells.toLocaleString('en-GB')} blocks</h2>
+          <h2>
+            <span className="h2-n">1</span>
+            Paris as {cells.toLocaleString('en-GB')} blocks</h2>
           <p>
             The city is cut into hexagons of the H3 grid at resolution 9, each about 0.1 km², roughly a street block.
             Every number in the app belongs to one of these blocks, so data from very different sources can be compared
@@ -45,7 +66,9 @@ export default function Method({ scores, stores, meta, cells, onClose }: Props) 
         </section>
 
         <section>
-          <h2>2. Where luxury already is</h2>
+          <h2>
+            <span className="h2-n">2</span>
+            Where luxury already is</h2>
           <p>
             A catalogue of luxury brands is matched against Overture Maps places, then cross-checked with OpenStreetMap.
             Concessions inside department stores are left out, because they are not a street location choice. That
@@ -62,7 +85,9 @@ export default function Method({ scores, stores, meta, cells, onClose }: Props) 
         </section>
 
         <section>
-          <h2>3. What the model can see</h2>
+          <h2>
+            <span className="h2-n">3</span>
+            What the model can see</h2>
           <p>Each block is described by the same facts, most of them summed over the block and its six neighbours.</p>
           <table className="method-table">
             <thead>
@@ -86,7 +111,9 @@ export default function Method({ scores, stores, meta, cells, onClose }: Props) 
         </section>
 
         <section>
-          <h2>4. The model</h2>
+          <h2>
+            <span className="h2-n">4</span>
+            The model</h2>
           <p>
             For each brand profile, a gradient-boosted model (LightGBM) learns to tell the blocks that hold a boutique
             from all the others. The blocks without one are not “bad”, just unlabelled: some are simply places no brand
@@ -100,7 +127,9 @@ export default function Method({ scores, stores, meta, cells, onClose }: Props) 
         </section>
 
         <section>
-          <h2>5. Does it work?</h2>
+          <h2>
+            <span className="h2-n">5</span>
+            Does it work?</h2>
           <p>
             The test hides whole brands. The model is trained {scores.validation_setup.folds} times, each time without a
             fifth of the brands, and then asked to rank Paris. If it has learned something real, the hidden brands'
@@ -116,7 +145,9 @@ export default function Method({ scores, stores, meta, cells, onClose }: Props) 
         </section>
 
         <section>
-          <h2>6. Do satellite images help?</h2>
+          <h2>
+            <span className="h2-n">6</span>
+            Do satellite images help?</h2>
           <p>
             Google DeepMind's AlphaEarth Foundations summarises a year of satellite and aerial observations into a
             64-number fingerprint for every 10 m of the planet. Averaged over each block, it describes the city's
@@ -138,7 +169,9 @@ export default function Method({ scores, stores, meta, cells, onClose }: Props) 
         </section>
 
         <section>
-          <h2>7. What drives the score</h2>
+          <h2>
+            <span className="h2-n">7</span>
+            What drives the score</h2>
           <p>
             Each block's score is broken down with SHAP values, which split a prediction into the push from each fact.
             Across Paris, these facts matter most:
@@ -158,11 +191,13 @@ export default function Method({ scores, stores, meta, cells, onClose }: Props) 
         </section>
 
         <section>
-          <h2>8. What it does not know</h2>
+          <h2>
+            <span className="h2-n">8</span>
+            What it does not know</h2>
           <ul className="method-limits">
             <li>Rents, vacant units and lease terms. The score says where to look, not what to sign.</li>
             <li>A brand's own strategy, clientele or flagship plans.</li>
-            <li>Footfall on the pavement. Station entries stand in for it.</li>
+            <li>Footfall on the pavement. It is estimated from the street network and station entries, not counted.</li>
             <li>
               Anything after the data dates below. Store lists come from open data and can miss or misplace a boutique.
             </li>
