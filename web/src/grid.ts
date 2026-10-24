@@ -30,7 +30,16 @@ export function quantileBreaks(grid: Grid, key: string, classes = 5): number[] {
     .filter((v): v is number => typeof v === 'number')
     .sort((a, b) => a - b)
   if (values.length === 0) return []
-  const breaks = Array.from({ length: classes - 1 }, (_, i) => values[Math.floor(((i + 1) * values.length) / classes)])
+  const breaks = equalCount(values, classes)
+  // when the lowest value fills the first class (most blocks have no tourist zone, no hotel),
+  // give it a class of its own and split the rest, otherwise it would share a colour with them
+  if (breaks[0] !== values[0]) return breaks
+  const above = values.filter((v) => v > values[0])
+  return above.length ? [...new Set([above[0], ...equalCount(above, classes - 1)])] : []
+}
+
+function equalCount(sorted: number[], classes: number): number[] {
+  const breaks = Array.from({ length: classes - 1 }, (_, i) => sorted[Math.floor(((i + 1) * sorted.length) / classes)])
   return [...new Set(breaks)]
 }
 

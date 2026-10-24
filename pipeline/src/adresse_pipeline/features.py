@@ -150,8 +150,9 @@ FEATURES: list[Feature] = [
 
 
 # Shown on the map, but never given to the model. Whether a unit stands empty says whether a
-# brand can move in, not whether the place suits luxury. Upscale hotel rooms did not improve
-# the hidden-brand test (pipeline/output/benchmark.json, "open data + upscale hotel rooms").
+# brand can move in, not whether the place suits luxury. Upscale hotel rooms and the
+# international tourist zones did not improve the hidden-brand test
+# (pipeline/output/benchmark.json, "open data + upscale hotel rooms" and "+ international tourist zones").
 OVERLAYS: list[Feature] = [
     Feature(
         "upscale_rooms_r1",
