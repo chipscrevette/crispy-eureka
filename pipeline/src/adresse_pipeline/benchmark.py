@@ -17,7 +17,7 @@ import h3
 import numpy as np
 import pandas as pd
 
-from adresse_pipeline import alphaearth, olmoearth
+from adresse_pipeline import alphaearth, footfall, olmoearth
 from adresse_pipeline.brands import Catalogue, Profile
 from adresse_pipeline.grid import RESOLUTION
 from adresse_pipeline.luxury_stores import CATALOGUE
@@ -37,6 +37,7 @@ CANDIDATES = {
         "dining_r0",
         "mass_market_r0",
     ],
+    "street footfall": ["street_footfall"],
 }
 OVERLAYS = OUTPUT / "paris_h3_overlays.csv"
 
@@ -86,6 +87,8 @@ def main() -> None:
         if h3.get_resolution(olmo.index[0]) == RESOLUTION:
             embeddings["OlmoEarth"] = olmo
     overlays = pd.read_csv(OVERLAYS, index_col="cell") if OVERLAYS.exists() else None
+    if overlays is not None and footfall.OUTPUT.exists():
+        overlays = overlays.join(pd.read_csv(footfall.OUTPUT, index_col="cell"))
     boutiques = load_boutiques(catalogue)
 
     results: dict = {
