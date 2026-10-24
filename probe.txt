@@ -1,34 +1,36 @@
-== data.gouv commerces
-== data.gouv vacants
-== opendata.paris commerce
-femmes-illustres-a-paris-parcours	Femmes illustres à Paris - Parcours	2019-06-14T14:48:59+00:00	10
-parissetransforme	Paris se transforme	2026-10-23T06:00:30+00:00	3262
-plub_protcom	PLU bioclimatique - Protections du commerce et de l'artisanat	2025-06-05T13:18:51+00:00	5107
-paris-autrement-balades-dans-les-arrondissements-peripheriques-poi	Paris autrement - Balades dans les arrondissements périphériques - POI	2024-03-04T09:20:55+00:00	157
-commerces-semaest	Les commerces de la SEMAEST	2016-03-09T15:51:15+00:00	311
-marches-decouverts	Marchés découverts	2024-04-17T14:42:04+00:00	80
-accessibilite-des-hebergements-en-ile-de-france-paris-je-t-aime	Accessibilité des Hébergements en Ile de France - Paris je t'aime	2024-06-24T12:45:22+00:00	536
-conseils-quartiers	Les conseils de quartier	2026-10-01T04:40:11+00:00	117
-commerces-eau-de-paris	Commerces - Eau de Paris	2026-10-19T04:00:16+00:00	1500
-zones-touristiques-internationales	Zones Touristiques Internationales	2016-07-27T13:58:33+00:00	12
-plub_comgros	PLU bioclimatique - Secteur d'encadrement du commerce de gros	2025-06-05T14:17:04+00:00	1
-participation-citoyenne-consultations-embellir-votre-quartier-phases-1-et-2	Participation citoyenne - Consultations Embellir votre Quartier - phases 1 et 2	2024-04-17T13:51:37+00:00	0
-statistiques-des-documents-numerises-des-bibliotheques-patrimoniales	Statistiques des documents numérisés des bibliothèques patrimoniales	2023-10-05T14:07:34+00:00	10
-votation-mars-2025-donnees-questions-locales	Votation – Votation mars 2025 - Résultats - Questions locales	2025-04-02T11:21:21+00:00	0
-registre-des-autorisations-de-changement-dusage-pour-les-meubles	Registre des autorisations de changement d'usage pour les meublés touristiques	2026-06-05T09:00:01+00:00	265
-zones-de-rencontre	Zones de rencontre	2026-10-18T07:15:07+00:00	228
-femmes-illustres-a-paris-portraits	Femmes illustres à Paris - Portraits	2019-06-14T09:20:41+00:00	154
-terrasses-autorisations	Terrasses et étalages : Autorisations	2026-10-23T05:01:35+00:00	23069
-belib-points-de-recharge-pour-vehicules-electriques-disponibilite-temps-reel	Belib' - Points de recharge pour véhicules électriques - Disponibilité temps réel	2026-10-24T03:59:48+00:00	2002
-zonagesreglementaires_l	Zonages réglementaires du changement d'usage (linéaire)	2025-06-11T13:07:19+00:00	1
-paris-autrement-balades-dans-les-arrondissements-peripheriques-parcours	Paris autrement - Balades dans les arrondissements périphériques - Parcours	2024-03-04T09:22:48+00:00	12
-zonagesreglementaires_p	Zonages réglementaires du changement d'usage (surfacique)	2025-06-11T12:35:01+00:00	4
-== apur
-{
-	"@context": {
-		"dcat": "http://www.w3.org/ns/dcat#",
-		"dct": "http://purl.org/dc/terms/",
-		"foaf": "http://xmlns.com/foaf/0.1/",
-		"vcard": "http://www.w3.org/2006/vcard/ns#",
-		"ftype": "http://publications.europa.eu/resource/authority/file-type/",
-		"lang": "http://publications.europa.eu/res
+== apur hub search
+-- commerce
+b7a9badc42a0466d9a5968a0c55d2cfd	COMMERCE CULTUREL	1752057588000	https://carto2.apur.org/apur/rest/services/OPENDATA/LIEUX_CULTURELS/MapServer/7
+d317ef2669a649ebb7812132edbac8ca	EQUIPEMENT_PONCTUEL_ADMINISTRATION_ETAT_INTERNATIONAL	1752057315000	https://carto2.apur.org/apur/rest/services/OPENDATA/EQUIPEMENT_PONCTUEL/MapServer/10
+af9c952d85ba4555ba0b8c8984dc7545	PROJET SECTEUR OPERATIONNEL	1752057458000	https://carto2.apur.org/apur/rest/services/BD_PROJETS/SECTEURS/MapServer/1
+0984a17f57b148db95491085f2cc1533	BDCOM 2023	1753446977000	https://carto2.apur.org/apur/rest/services/BDCOM/bdcom2023/MapServer/0
+bd4301f240d94e7ea9bb091590e03ac1	BDCOM 2017	1752057608000	https://carto2.apur.org/apur/rest/services/OPENDATA/BDCOM_OD/MapServer/0
+6315a92e5c39483587f299593d195d6d	BDCOM 2020	1752057251000	https://carto2.apur.org/apur/rest/services/OPENDATA/BDCOM_OD/MapServer/1
+dfebc1d04a834ff1bce363959894aaa3	LINEAIRE_COMMERCIAL	1752057385000	https://carto2.apur.org/apur/rest/services/OPENDATA/LINEAIRE_COMMERCIAL/MapServer/0
+-- bdcom
+0984a17f57b148db95491085f2cc1533	BDCOM 2023	1753446977000	https://carto2.apur.org/apur/rest/services/BDCOM/bdcom2023/MapServer/0
+6315a92e5c39483587f299593d195d6d	BDCOM 2020	1752057251000	https://carto2.apur.org/apur/rest/services/OPENDATA/BDCOM_OD/MapServer/1
+bd4301f240d94e7ea9bb091590e03ac1	BDCOM 2017	1752057608000	https://carto2.apur.org/apur/rest/services/OPENDATA/BDCOM_OD/MapServer/0
+-- vacant
+-- locaux vacants
+== data.gouv bdcom
+== plub_protcom sample
+{"objectid":115,"n_sq_pca":164,"arrdt_min":11,"arrdt_max":11,"pca":"O","ppa":"N","pcc":"N","st_length_shape":104.93283047633297,"geo_point_2d":{"lon":2.378966160968985,"lat":48.85617679036065}}
+{"objectid":286,"n_sq_pca":274,"arrdt_min":11,"arrdt_max":11,"pca":"O","ppa":"N","pcc":"N","st_length_shape":42.51640529579156,"geo_point_2d":{"lon":2.3679000696816077,"lat":48.859506034868055}}
+{"objectid":334,"n_sq_pca":648,"arrdt_min":15,"arrdt_max":15,"pca":"O","ppa":"N","pcc":"N","st_length_shape":81.91226745341761,"geo_point_2d":{"lon":2.3001148626058243,"lat":48.84186140616218}}
+null
+== zti sample
+{"name":"Montmartre","type":"boundary","_timestamp":"2016-07-26T16:15:57Z","_uid":"158826","source":"JORFTEXT000031223591","_user":"cquest","_version":"1","boundary":"tourist_zone","_changeset":"41041604","_id":"relation/6438767","geo_point_2d":{"lon":2.33866741674,"lat":48.8857149271}}
+{"name":"Saint-Honoré - Vendôme","type":"boundary","_timestamp":"2016-07-26T17:22:16Z","_uid":"158826","source":"JORFTEXT000031223603","_user":"cquest","_version":"1","boundary":"tourist_zone","_changeset":"41043008","_id":"relation/6439132","geo_point_2d":{"lon":2.33178719914,"lat":48.8661054363}}
+{"name":"Olympiades","type":"boundary","_timestamp":"2016-07-26T16:39:02Z","_uid":"158826","source":"JORFTEXT000031223594","_user":"cquest","_version":"1","boundary":"tourist_zone","_changeset":"41042071","_id":"relation/6439048","geo_point_2d":{"lon":2.36253162644,"lat":48.8254377721}}
+{"name":"Le Marais","type":"multipolygon","_timestamp":"2016-07-26T15:30:19Z","_uid":"158826","source":"JORFTEXT000031223582","_user":"cquest","_version":"2","boundary":"tourist_zone","_changeset":"41040695","_id":"relation/6438571","geo_point_2d":{"lon":2.36211737642,"lat":48.8579758816}}
+{"name":"Rennes - Saint-Sulpice","type":"boundary","_timestamp":"2016-07-26T17:30:29Z","_uid":"158826","source":"JORFTEXT000031223597","_user":"cquest","_version":"2","boundary":"tourist_zone","_changeset":"41043224","_id":"relation/6439069","geo_point_2d":{"lon":2.32819085921,"lat":48.8509428476}}
+{"name":"Maillot-Ternes","type":"boundary","_timestamp":"2016-07-26T15:53:40Z","_uid":"158826","source":"JORFTEXT000031223588","_user":"cquest","_version":"2","boundary":"tourist_zone","_changeset":"41041163","_id":"relation/6438646","geo_point_2d":{"lon":2.28853802877,"lat":48.8775914895}}
+{"name":"Saint-Germain","type":"boundary","_timestamp":"2016-07-26T17:30:29Z","_uid":"158826","source":"JORFTEXT000031223606","_user":"cquest","_version":"1","boundary":"tourist_zone","_changeset":"41043224","_id":"relation/6439138","geo_point_2d":{"lon":2.33321475591,"lat":48.8561610492}}
+{"name":"Haussmann","type":"multipolygon","_timestamp":"2016-07-26T17:22:16Z","_uid":"158826","source":"JORFTEXT000031223579","_user":"cquest","_version":"2","boundary":"tourist_zone","_changeset":"41043008","_id":"relation/6438520","geo_point_2d":{"lon":2.33251169833,"lat":48.8726758395}}
+{"name":"Les Halles","type":"boundary","_timestamp":"2016-07-26T17:22:16Z","_uid":"158826","source":"JORFTEXT000031223585","_user":"cquest","_version":"2","boundary":"tourist_zone","_changeset":"41043008","_id":"relation/6438629","geo_point_2d":{"lon":2.34864471812,"lat":48.8610069139}}
+{"name":"Champs-Elysées Montaigne","type":"boundary","_timestamp":"2016-07-26T14:10:50Z","_uid":"158826","source":"JORFTEXT000031223576","_user":"cquest","_version":"1","boundary":"tourist_zone","_changeset":"41039106","_id":"relation/6438476","geo_point_2d":{"lon":2.30581408617,"lat":48.8696453644}}
+{"name":"Saint-Emilion Bibliothèque","type":"boundary","_timestamp":"2016-07-26T17:06:41Z","_uid":"158826","source":"JORFTEXT000031223600","_user":"cquest","_version":"1","boundary":"tourist_zone","_changeset":"41042641","_id":"relation/6439100","geo_point_2d":{"lon":2.38236619356,"lat":48.8322590037}}
+{"name":"Beaugrenelle","type":"boundary","_timestamp":"2016-07-26T17:40:58Z","_uid":"158826","source":"JORFTEXT000031223609","_user":"cquest","_version":"1","boundary":"tourist_zone","_changeset":"41043482","_id":"relation/6439151","geo_point_2d":{"lon":2.28281160767,"lat":48.8481462642}}
+== datasets fields
+["objectid","n_sq_pca","arrdt_min","arrdt_max","pca","ppa","pcc","st_length_shape","geo_shape","geo_point_2d"]
