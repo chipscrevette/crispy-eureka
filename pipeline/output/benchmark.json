@@ -81,6 +81,29 @@
     "luxury_neighbours_baseline": 63.5
    }
   },
+  "open data + street footfall": {
+   "jewellery-watches": {
+    "mean_percentile": 91.4,
+    "min": 88.8,
+    "max": 93.8,
+    "top10_hit_rate": 0.67,
+    "luxury_neighbours_baseline": 95.0
+   },
+   "fashion-house": {
+    "mean_percentile": 88.5,
+    "min": 87.4,
+    "max": 90.0,
+    "top10_hit_rate": 0.724,
+    "luxury_neighbours_baseline": 70.6
+   },
+   "beauty": {
+    "mean_percentile": 89.8,
+    "min": 88.8,
+    "max": 90.6,
+    "top10_hit_rate": 0.679,
+    "luxury_neighbours_baseline": 63.5
+   }
+  },
   "open data + AlphaEarth (8 components)": {
    "jewellery-watches": {
     "mean_percentile": 87.2,

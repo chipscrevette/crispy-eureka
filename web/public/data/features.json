@@ -4,6 +4,7 @@
   "INSEE Filosofi, 200 m grid, Filosofi 2021",
   "DVF (DGFiP, Etalab geolocated), 2021-2025",
   "Île-de-France Mobilités rail validations, Q4 2025",
+  "Overture Maps transportation (street network), release 2026-10-21.0",
   "Atout France classified hotels, register of 2026-10-24",
   "APUR BDCOM (census of Paris ground-floor units), BDCOM 2023",
   "INSEE Sirene establishments, stock of 2026-10-01"
@@ -141,6 +142,13 @@
    "unit": "sales",
    "source": "DVF (DGFiP, Etalab geolocated)",
    "description": "Commercial-premises sales in the cell and its six neighbours (about 350 m around)"
+  },
+  {
+   "key": "street_footfall",
+   "label": "Street footfall",
+   "unit": "× median street",
+   "source": "Overture Maps transportation (street network)",
+   "description": "Footfall estimate of the busiest street in the block: how many shortest walks of up to 800 m pass along it, as a multiple of the median Paris street"
   },
   {
    "key": "upscale_rooms_r1",
