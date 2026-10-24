@@ -57,6 +57,8 @@ We have no sales data, so we learn from where luxury brands already chose to be.
 | 10 | Train on Overture boutiques (not OSM-confirmed only) | Same held-out accuracy, more examples | 2026-10-23 |
 | 11 | Publish the baseline comparison in the app, including where it wins | "Honest by design"; a recruiter trusts a model that shows its limits | 2026-10-23 |
 | 12 | Build the site memo in the browser and print it with the system dialog | No server, no PDF library; one A4 page, and every view is a shareable link (`#profile=…&a=…&memo=1`) | 2026-10-23 |
+| 13 | Keep AlphaEarth out of the production score | Over 5 brand splits it did not raise the held-out percentile for any profile (8 PCA components or all 64 dims); published as a benchmark instead | 2026-10-23 |
+| 14 | Ask Adresse ships as curated, pre-computed answers | Kevin's choice: no API key or hosting; every number filled from a real query run at build time | 2026-10-23 |
 
 ## Open questions for Kevin
 

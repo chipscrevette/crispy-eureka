@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { GridMeta } from './grid'
 import { describeValue, ordinal, type Scores } from './scores'
 import { PROFILES, countByProfile, type Stores } from './stores'
@@ -18,6 +18,8 @@ export default function Method({ scores, stores, meta, cells, onClose }: Props) 
 
   const counts = countByProfile(stores)
   const brands = new Set(stores.features.map((f) => f.properties.brand)).size
+  const sizes = PROFILES.map((p) => scores.validation[p.id].model.held_out_cells)
+  const heldOut = { min: Math.min(...sizes), max: Math.max(...sizes) }
 
   return (
     <div className="method" role="dialog" aria-modal="true" aria-labelledby="method-title" tabIndex={-1} ref={page}>
@@ -112,12 +114,30 @@ export default function Method({ scores, stores, meta, cells, onClose }: Props) 
           <p>
             For fashion and beauty, the model clearly beats both rules. For jewellery and watches it does not: those
             houses cluster so tightly around Place Vendôme and rue de la Paix that “open next to the others” is very
-            hard to beat. The test sets are small (12 to 20 blocks per profile), so a gap of a few points is noise.
+            hard to beat. The test sets are small ({heldOut.min} to {heldOut.max} blocks per profile), so a gap of a few
+            points is noise.
           </p>
         </section>
 
         <section>
-          <h2>6. What drives the score</h2>
+          <h2>6. Do satellite images help?</h2>
+          <p>
+            Google DeepMind's AlphaEarth Foundations summarises a year of satellite and aerial observations into a
+            64-number fingerprint for every 10 m of the planet. Averaged over each block, it describes the city's
+            physical fabric: density, greenery, roofs, water. The same hold-out test was run with these fingerprints
+            added, and with them in place of the open data, over several different splits of the brands.
+          </p>
+          <SatelliteBenchmark />
+          <p>
+            The fingerprints do not improve the score. On their own, with only the nearby luxury boutiques beside them,
+            they come within a few points for fashion and beauty, so they do capture what a luxury street looks like.
+            But the open data already holds that signal, and 64 extra numbers mostly add noise for a model trained on a
+            few hundred boutiques. Ai2's OlmoEarth will be tested the same way.
+          </p>
+        </section>
+
+        <section>
+          <h2>7. What drives the score</h2>
           <p>
             Each block's score is broken down with SHAP values, which split a prediction into the push from each fact.
             Across Paris, these facts matter most:
@@ -137,7 +157,7 @@ export default function Method({ scores, stores, meta, cells, onClose }: Props) 
         </section>
 
         <section>
-          <h2>7. What it does not know</h2>
+          <h2>8. What it does not know</h2>
           <ul className="method-limits">
             <li>Rents, vacant units and lease terms. The score says where to look, not what to sign.</li>
             <li>A brand's own strategy, clientele or flagship plans.</li>
@@ -250,6 +270,74 @@ function ValidationChart({ scores }: { scores: Scores }) {
           ))}
         </tbody>
       </table>
+    </figure>
+  )
+}
+
+type Benchmark = {
+  embeddings: string
+  seeds: number[]
+  sets: Record<string, Record<string, { mean_percentile: number; min: number; max: number }>>
+}
+
+/** The satellite benchmark table, read from the file the pipeline writes. */
+function SatelliteBenchmark() {
+  const [data, setData] = useState<Benchmark | null>(null)
+  const [failed, setFailed] = useState(false)
+  useEffect(() => {
+    fetch(`${import.meta.env.BASE_URL}data/benchmark.json`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then(setData, () => setFailed(true))
+  }, [])
+  if (failed) return <p className="muted small">The benchmark results could not be loaded.</p>
+  if (!data) return <p className="muted small">Loading the benchmark…</p>
+  const sets = Object.entries(data.sets)
+  return (
+    <figure className="vchart">
+      <figcaption>
+        <strong>Held-out percentile with and without satellite fingerprints</strong>
+        <span className="muted small">
+          {' '}
+          · mean over {data.seeds.length} brand splits, range in brackets; every set also sees nearby luxury boutiques
+        </span>
+      </figcaption>
+      <div className="bench-wrap">
+        <table className="method-table bench">
+          <thead>
+            <tr>
+              <th scope="col">Features</th>
+              {PROFILES.map((p) => (
+                <th scope="col" key={p.id}>
+                  {p.label}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {sets.map(([name, v]) => (
+              <tr key={name}>
+                <th scope="row">{name[0].toUpperCase() + name.slice(1)}</th>
+                {PROFILES.map((p) => {
+                  const r = v[p.id]
+                  return (
+                    <td key={p.id}>
+                      {Math.round(r.mean_percentile)}
+                      <span className="muted small">
+                        {' '}
+                        ({Math.round(r.min)}–{Math.round(r.max)})
+                      </span>
+                    </td>
+                  )
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="muted small">
+        {data.embeddings} annual embeddings. The AlphaEarth Foundations Satellite Embedding dataset is produced by
+        Google and Google DeepMind (CC-BY 4.0).
+      </p>
     </figure>
   )
 }

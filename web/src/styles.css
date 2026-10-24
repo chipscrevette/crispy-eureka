@@ -260,9 +260,14 @@ optgroup { font-style: normal; }
 .method-importance { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .method-importance ol { margin: 0; padding-left: 20px; line-height: 1.7; }
 .method-limits { margin: 0; padding-left: 20px; line-height: 1.7; }
+
+.method article > *, .vchart { min-width: 0; }
+.bench-wrap { overflow-x: auto; }
+.bench td { font: 0.9rem var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bench th[scope='row'] { font-weight: 400; font-size: 0.9rem; }
 .method footer { border-top: 1px solid var(--rule); padding-top: 16px; }
 
-.vchart { margin: 20px 0; padding: 20px; background: var(--surface); border: 1px solid var(--rule); display: grid; gap: 14px; }
+.vchart { position: relative; overflow: hidden; margin: 20px 0; padding: 20px; background: var(--surface); border: 1px solid var(--rule); display: grid; gap: 14px; }
 .vchart-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 0.8rem; color: var(--muted); }
 .vchart-legend li { display: flex; align-items: center; gap: 6px; }
 .vchart-rows { display: grid; gap: 4px; }
@@ -283,6 +288,7 @@ optgroup { font-style: normal; }
 
 @media (max-width: 600px) {
   .method-importance { grid-template-columns: 1fr; }
+  .bench td .small { display: block; }
   .method-counts { gap: 6px; }
   .method-counts li { padding: 10px 8px; font-size: 0.8rem; }
   .method-counts .big { font-size: 1.9rem; }

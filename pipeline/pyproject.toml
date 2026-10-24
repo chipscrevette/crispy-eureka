@@ -12,6 +12,7 @@ dependencies = [
     "numpy>=1.26",
     "pandas>=2.2",
     "lightgbm>=4.5",
+    "rasterio>=1.4",
 ]
 
 [project.optional-dependencies]
