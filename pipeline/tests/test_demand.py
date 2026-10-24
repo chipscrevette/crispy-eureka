@@ -1,5 +1,3 @@
-import gzip
-
 import pandas as pd
 import pytest
 
@@ -8,46 +6,41 @@ from adresse_pipeline.demand import EQUAL, Blocks, Group, group_shares, index, s
 
 # --- Sirene ---
 
-SIRENE_CSV = (
-    "siret,etatAdministratifEtablissement,trancheEffectifsEtablissement,longitude,latitude\n"
-    "1,A,12,2.3294,48.8675\n"  # 20 to 49 people, open
-    "2,F,53,2.3294,48.8675\n"  # closed: a headquarters that moved out
-    "3,A,NN,2.3294,48.8675\n"  # no staff that year
-    "4,A,03,,\n"  # open but not geolocated
-    "5,A,01,2.3500,48.8600\n"
-)
+COLUMNS = sirene.COLUMNS
+VENDOME = ("650900", "6862700")  # Lambert 93 metres
 
 
-def sirene_file(tmp_path, text=SIRENE_CSV):
-    path = tmp_path / "geo_siret_75.csv.gz"
-    with gzip.open(path, "wt", encoding="utf-8") as f:
-        f.write(text)
+def stock(tmp_path, rows):
+    path = tmp_path / "StockEtablissement_utf8.parquet"
+    pd.DataFrame(rows, columns=COLUMNS).to_parquet(path, index=False)
     return path
 
 
-def test_counts_only_open_geolocated_establishments_with_staff(tmp_path):
-    found = list(sirene.establishments(sirene.read_rows(sirene_file(tmp_path))))
-
-    assert [e.siret for e in found] == ["1", "5"]
-    assert sum(e.workers for e in found) == 34.5 + 1.5
-
-
-def test_reads_lambert_93_positions_from_the_insee_stock(tmp_path):
-    text = (
-        "siret;etatAdministratifEtablissement;trancheEffectifsEtablissement;"
-        "coordonneeLambertAbscisseEtablissement;coordonneeLambertOrdonneeEtablissement\n"
-        "1;A;11;650900;6862700\n"
+def test_counts_only_open_paris_establishments_with_staff_and_a_position(tmp_path):
+    path = stock(
+        tmp_path,
+        [
+            ("1", "75101", "A", "12", *VENDOME),  # 20 to 49 people, open
+            ("2", "75108", "F", "53", *VENDOME),  # closed: a headquarters that moved out
+            ("3", "75101", "A", "NN", *VENDOME),  # no staff that year
+            ("4", "75101", "A", "03", "[ND]", "[ND]"),  # position not published
+            ("5", "92012", "A", "53", *VENDOME),  # Boulogne, outside Paris
+            ("6", "75116", "A", "01", "648000", "6862000"),
+        ],
     )
-    (place,) = sirene.establishments(sirene.read_rows(sirene_file(tmp_path, text)))
+    found = list(sirene.establishments(sirene.read_rows(path)))
 
-    assert place.lon == pytest.approx(2.33, abs=0.01)
-    assert place.lat == pytest.approx(48.86, abs=0.01)
+    assert [e.siret for e in found] == ["1", "6"]
+    assert sum(e.workers for e in found) == 34.5 + 1.5
+    assert found[0].lon == pytest.approx(2.33, abs=0.01)
+    assert found[0].lat == pytest.approx(48.86, abs=0.01)
 
 
-def test_refuses_a_file_without_positions(tmp_path):
-    text = "siret,etatAdministratifEtablissement,trancheEffectifsEtablissement\n1,A,12\n"
-    with pytest.raises(ValueError, match="unexpected Sirene file"):
-        list(sirene.establishments(sirene.read_rows(sirene_file(tmp_path, text))))
+def test_refuses_a_stock_without_positions(tmp_path):
+    path = tmp_path / "old.parquet"
+    pd.DataFrame([("1", "75101", "A", "12")], columns=COLUMNS[:4]).to_parquet(path)
+    with pytest.raises(ValueError, match="coordonneeLambert"):
+        list(sirene.read_rows(path))
 
 
 # --- demand index ---

@@ -164,11 +164,12 @@ def main() -> None:
         sources.append(f"{IDFM}, {idfm.VALIDATIONS_PERIOD}")
 
     if "sirene" not in args.skip:
-        firms = list(sirene.establishments(sirene.read_rows(fetch(sirene.URL))))
+        release = sirene.stock_release()
+        firms = list(sirene.establishments(sirene.read_rows(fetch(release.url))))
         own["workers"] = sirene.workers_by_cell(firms)
         inside = sum(v for c, v in own["workers"].items() if c in cells)
         print(f"sirene: {len(firms):,} open establishments with staff, ~{inside:,.0f} workers")
-        sources.append(f"{SIRENE}, {sirene.URL.rsplit('/', 1)[-1]}")
+        sources.append(f"{SIRENE}, stock of {release.updated}")
 
     confirmed: set[str] | None = None
     if "osm" not in args.skip:

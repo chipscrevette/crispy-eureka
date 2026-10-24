@@ -20,7 +20,7 @@ OVERTURE = "Overture Maps Places"
 INSEE = "INSEE Filosofi, 200 m grid"
 DVF = "DVF (DGFiP, Etalab geolocated)"
 IDFM = "Île-de-France Mobilités rail validations"
-SIRENE = "Sirene establishments (INSEE, geolocated by Etalab)"
+SIRENE = "INSEE Sirene establishments"
 
 # Overture `basic_category` values counted for each context feature.
 CONTEXT_CATEGORIES: dict[str, frozenset[str]] = {

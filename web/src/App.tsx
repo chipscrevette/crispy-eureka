@@ -109,7 +109,7 @@ export default function App() {
       attributionControl: {
         compact: true,
         customAttribution:
-          'Places and streets © Overture Maps Foundation, OpenStreetMap contributors · INSEE · Etalab · DGFiP · Île-de-France Mobilités',
+          'Places and streets © Overture Maps Foundation, OpenStreetMap contributors · INSEE · DGFiP · Île-de-France Mobilités',
       },
     })
     map.current = m

@@ -1,24 +1,37 @@
-"""Where people work: the Sirene register of establishments, geolocated by Etalab.
+"""Where people work: INSEE's Sirene register of establishments.
 
 Each open establishment declares a headcount band. The middle of the band is our
 estimate of the people working there, which places Paris's office workers on the grid.
+The monthly stock carries each establishment's position in Lambert 93.
 """
 
 from __future__ import annotations
 
-import csv
-import gzip
-import itertools
+import json
+import urllib.request
 from collections import defaultdict
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
+import pyarrow.compute as pc
+import pyarrow.dataset as ds
 from pyproj import Transformer
 
 from adresse_pipeline.grid import cell_of
 
-URL = "https://files.data.gouv.fr/geo-sirene/last/dep/geo_siret_75.csv.gz"
+# "Base Sirene des entreprises et de leurs établissements" on data.gouv.fr; its files are
+# replaced every month, so the current StockEtablissement file is looked up at build time.
+DATASET_API = "https://www.data.gouv.fr/api/1/datasets/5b7ffc618b4c4169d30727e0/"
+PARIS_COMMUNES = "751"  # 75101 to 75120, the arrondissements
+COLUMNS = [
+    "siret",
+    "codeCommuneEtablissement",
+    "etatAdministratifEtablissement",
+    "trancheEffectifsEtablissement",
+    "coordonneeLambertAbscisseEtablissement",
+    "coordonneeLambertOrdonneeEtablissement",
+]
 
 # INSEE headcount bands (trancheEffectifsEtablissement) and the middle of each band.
 # "NN" (no employee that year) and blank count as zero.
@@ -51,51 +64,56 @@ class Establishment:
     workers: float
 
 
+@dataclass(frozen=True)
+class Release:
+    url: str
+    updated: str  # ISO date of the file
+
+
+def stock_release(api: str = DATASET_API) -> Release:
+    """The current establishment stock in Parquet, from the dataset's resource list."""
+    with urllib.request.urlopen(api, timeout=60) as res:
+        resources = json.load(res)["resources"]
+    for r in resources:
+        name = f"{r.get('title', '')} {r['url']}"
+        if (
+            "StockEtablissement_" in name
+            and "Historique" not in name
+            and r["url"].endswith(".parquet")
+        ):
+            return Release(r["url"], (r.get("last_modified") or "")[:10])
+    raise ValueError(f"no StockEtablissement parquet in {[r.get('title') for r in resources]}")
+
+
 def read_rows(path: Path) -> Iterator[dict[str, str]]:
-    with gzip.open(path, "rt", encoding="utf-8", newline="") as f:
-        first = f.readline()
-        delimiter = ";" if first.count(";") > first.count(",") else ","
-        yield from csv.DictReader(itertools.chain([first], f), delimiter=delimiter)
+    """Paris rows of the stock, reading only the columns we use."""
+    data = ds.dataset(path, format="parquet")
+    missing = [c for c in COLUMNS if c not in data.schema.names]
+    if missing:
+        raise ValueError(f"unexpected Sirene file, no {missing}; columns {data.schema.names}")
+    paris = pc.starts_with(pc.field("codeCommuneEtablissement"), PARIS_COMMUNES)
+    for batch in data.to_batches(columns=COLUMNS, filter=paris):
+        for row in batch.to_pylist():
+            yield {k: "" if v is None else str(v) for k, v in row.items()}
 
 
 def establishments(rows: Iterable[dict[str, str]]) -> Iterator[Establishment]:
     """Open establishments with a known position and at least one worker.
 
-    Positions come as WGS84 `longitude`/`latitude` (Etalab file) or as Lambert 93
-    `coordonneeLambert…` (INSEE's own geolocated stock); either is accepted.
+    Positions are masked ("[ND]") for people who opted out of publication; those are left out.
     """
-    checked = False
     for row in rows:
-        if not checked:
-            missing = {"siret", "etatAdministratifEtablissement", "trancheEffectifsEtablissement"}
-            missing -= row.keys()
-            if missing or not ({"longitude", "latitude"} <= row.keys() or _LAMBERT <= row.keys()):
-                raise ValueError(f"unexpected Sirene file, columns {sorted(row)[:40]}")
-            checked = True
         if row["etatAdministratifEtablissement"] != "A":
             continue
-        workers = BAND_MIDDLE.get(row["trancheEffectifsEtablissement"] or "", 0)
+        workers = BAND_MIDDLE.get(row["trancheEffectifsEtablissement"], 0)
         if not workers:
             continue
-        position = _position(row)
-        if position:
-            yield Establishment(row["siret"], *position, workers)
-
-
-_LAMBERT = {"coordonneeLambertAbscisseEtablissement", "coordonneeLambertOrdonneeEtablissement"}
-
-
-def _position(row: dict[str, str]) -> tuple[float, float] | None:
-    try:
-        if row.get("longitude") and row.get("latitude"):
-            return float(row["longitude"]), float(row["latitude"])
-        x = row.get("coordonneeLambertAbscisseEtablissement")
-        y = row.get("coordonneeLambertOrdonneeEtablissement")
-        if x and y and x != "[ND]" and y != "[ND]":
-            return _LAMBERT93_TO_WGS84.transform(float(x), float(y))
-    except ValueError:
-        pass
-    return None
+        try:
+            x = float(row["coordonneeLambertAbscisseEtablissement"])
+            y = float(row["coordonneeLambertOrdonneeEtablissement"])
+        except ValueError:
+            continue
+        yield Establishment(row["siret"], *_LAMBERT93_TO_WGS84.transform(x, y), workers)
 
 
 def workers_by_cell(places: Iterable[Establishment]) -> dict[str, float]:
