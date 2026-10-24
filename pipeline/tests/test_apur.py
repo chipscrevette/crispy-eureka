@@ -5,7 +5,7 @@ import pytest
 from adresse_pipeline import apur
 
 
-def unit(sit, surf=1, num=3, street="DAUNOU", x=2.3322, y=48.8692):
+def unit(sit, surf=1, num=3, street="DAUNOU", x=2.3322, y=48.8692, type="V"):
     """A row shaped like the BDCOM 2023 'Local' layer answers."""
     return {
         "attributes": {
@@ -15,13 +15,14 @@ def unit(sit, surf=1, num=3, street="DAUNOU", x=2.3322, y=48.8692):
             "lib_voie": street,
             "sit": sit,
             "surf": surf,
+            "type": type,
         },
         "geometry": {"x": x, "y": y},
     }
 
 
 def test_only_street_and_corner_units_count_as_shopfronts():
-    shops = list(apur.vacant_shops([unit("R"), unit("A"), unit("CC"), unit("CI")]))
+    shops = list(apur.units([unit("R"), unit("A"), unit("CC"), unit("CI")]))
 
     assert [s.on_street for s in shops] == [True, True, False, False]
     assert shops[0].address == "3 RUE DAUNOU"
@@ -29,17 +30,24 @@ def test_only_street_and_corner_units_count_as_shopfronts():
 
 
 def test_situation_codes_in_any_case_and_missing_ones_are_read():
-    shops = list(apur.vacant_shops([unit("r"), unit(" a"), unit(None, surf=None), unit("??")]))
+    shops = list(apur.units([unit("r"), unit(" a"), unit(None, surf=None), unit("??")]))
 
     assert [s.on_street for s in shops] == [True, True, False, False]
     assert shops[2].situation is apur.Situation.UNKNOWN
     assert shops[2].size is None
 
 
+def test_empty_and_flagship_sized_units_are_told_apart():
+    shop, empty, big = apur.units([unit("R", type="C"), unit("R", type="v"), unit("A", surf=2)])
+
+    assert (shop.empty, empty.empty, big.empty) == (False, True, True)
+    assert (empty.flagship_size, big.flagship_size) == (False, True)
+
+
 def test_units_without_a_position_are_left_out():
     row = unit("R")
     row["geometry"] = None
-    assert list(apur.vacant_shops([row])) == []
+    assert list(apur.units([row])) == []
 
 
 def test_an_error_answer_fails_loudly_and_leaves_the_cache(tmp_path):
@@ -63,8 +71,8 @@ def test_every_page_is_read_and_checked_against_the_count(tmp_path, monkeypatch)
         return path
 
     monkeypatch.setattr(apur, "fetch", fake_fetch)
-    assert len(apur.fetch_vacant()) == 3
+    assert len(apur.fetch_units()) == 3
 
     pages[apur.query_url(2)] = {"features": []}
-    with pytest.raises(ValueError, match="listed 3 empty units but returned 2"):
-        apur.fetch_vacant()
+    with pytest.raises(ValueError, match="listed 3 units but returned 2"):
+        apur.fetch_units()

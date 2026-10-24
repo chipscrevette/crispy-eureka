@@ -158,6 +158,20 @@ OVERLAYS: list[Feature] = [
         APUR,
         f"Empty ground-floor shop units on the street or on a corner {RING}",
     ),
+    Feature(
+        "vacancy_r1",
+        "Empty shopfront share",
+        "share",
+        APUR,
+        f"Share of the shopfronts on the street or on a corner that stand empty, {RING}",
+    ),
+    Feature(
+        "large_vacant_r1",
+        "Empty flagship-size shops",
+        "units",
+        APUR,
+        f"Empty shopfronts of 300 m² or more on the street or on a corner {RING}",
+    ),
 ]
 
 

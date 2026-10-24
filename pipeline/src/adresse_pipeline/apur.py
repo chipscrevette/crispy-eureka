@@ -1,8 +1,10 @@
-"""Empty shop units from APUR's census of Paris ground floors (BDCOM), our availability check.
+"""Ground-floor units from APUR's census of Paris (BDCOM), our availability check.
 
 The Atelier Parisien d'Urbanisme surveys every ground-floor unit in Paris. Its "Local" layer
-lists shops and also the units standing empty, with where they sit (on the street, on a corner,
-in a mall, in a courtyard) and a size band. We read only the empty ones.
+lists shops, offices, surgeries and the units standing empty, with where they sit (on the
+street, on a corner, in a mall, in a courtyard) and a size band. From it we know, around each
+block, how many shopfronts stand empty, what share of all shopfronts that is (a street where
+many stand empty is a weak street), and how many empty ones are big enough for a flagship.
 """
 
 from __future__ import annotations
@@ -38,26 +40,31 @@ class Size(Enum):
 
 
 @dataclass(frozen=True)
-class VacantShop:
+class Unit:
     address: str
     lon: float
     lat: float
     situation: Situation
     size: Size | None
+    empty: bool
 
     @property
     def on_street(self) -> bool:
         """A shopfront a passer-by sees: on the street or on a corner, not in a mall or a yard."""
         return self.situation in (Situation.STREET, Situation.CORNER)
 
+    @property
+    def flagship_size(self) -> bool:
+        return self.size in (Size.FROM_300_TO_1000, Size.OVER_1000)
+
 
 def query_url(offset: int | None = None) -> str:
-    params = {"where": f"type='{VACANT}'", "f": "json"}
+    params = {"where": "1=1", "f": "json"}
     if offset is None:
         params["returnCountOnly"] = "true"
     else:
         params |= {
-            "outFields": "num,let,typ_voie,lib_voie,sit,surf",
+            "outFields": "num,let,typ_voie,lib_voie,sit,surf,type",
             "outSR": "4326",
             "orderByFields": "OBJECTID",
             "resultOffset": str(offset),
@@ -75,14 +82,14 @@ def read_page(path: Path) -> dict:
     return body
 
 
-def fetch_vacant() -> list[dict]:
-    """Every empty unit, page by page, checked against the server's own count."""
+def fetch_units() -> list[dict]:
+    """Every ground-floor unit, page by page, checked against the server's own count."""
     total = read_page(fetch(query_url()))["count"]
     features: list[dict] = []
     for offset in range(0, total, PAGE):
         features += read_page(fetch(query_url(offset)))["features"]
     if len(features) != total:
-        raise ValueError(f"APUR listed {total} empty units but returned {len(features)}")
+        raise ValueError(f"APUR listed {total} units but returned {len(features)}")
     return features
 
 
@@ -92,17 +99,18 @@ def situation_of(code: str | None) -> Situation:
     return Situation(code) if code in {s.value for s in Situation} else Situation.UNKNOWN
 
 
-def vacant_shops(features: Iterable[dict]) -> Iterator[VacantShop]:
+def units(features: Iterable[dict]) -> Iterator[Unit]:
     for f in features:
         a, g = f["attributes"], f.get("geometry")
         if not g:
             continue
         street = " ".join(str(x) for x in (a["typ_voie"], a["lib_voie"]) if x)
         number = f"{a['num'] or ''}{a['let'] or ''}".strip()
-        yield VacantShop(
+        yield Unit(
             f"{number} {street}".strip(),
             float(g["x"]),
             float(g["y"]),
             situation_of(a["sit"]),
             Size(a["surf"]) if a["surf"] in {s.value for s in Size} else None,
+            (a["type"] or "").strip().upper() == VACANT,
         )

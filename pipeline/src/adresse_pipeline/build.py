@@ -171,10 +171,21 @@ def main() -> None:
         )
 
     if "apur" not in args.skip:
-        empty = list(apur.vacant_shops(apur.fetch_vacant()))
-        street = [s for s in empty if s.on_street]
-        columns["vacant_shops_r1"] = ring_sum(count_by_cell((s.lon, s.lat) for s in street), cells)
-        print(f"apur: {len(empty):,} empty units, {len(street):,} on the street or a corner")
+        fronts = [u for u in apur.units(apur.fetch_units()) if u.on_street]
+        empty = [u for u in fronts if u.empty]
+        all_fronts = ring_sum(count_by_cell((u.lon, u.lat) for u in fronts), cells)
+        columns["vacant_shops_r1"] = ring_sum(count_by_cell((u.lon, u.lat) for u in empty), cells)
+        columns["vacancy_r1"] = {
+            c: columns["vacant_shops_r1"][c] / all_fronts[c] if all_fronts[c] else None
+            for c in cells
+        }
+        columns["large_vacant_r1"] = ring_sum(
+            count_by_cell((u.lon, u.lat) for u in empty if u.flagship_size), cells
+        )
+        print(
+            f"apur: {len(fronts):,} shopfronts on the street or a corner, {len(empty):,} empty "
+            f"({len(empty) / len(fronts):.1%}), {sum(u.flagship_size for u in empty)} of 300 m² or more"
+        )
         sources.append(f"{APUR}, {apur.RELEASE}")
 
     if "sirene" not in args.skip:
