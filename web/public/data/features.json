@@ -4,6 +4,7 @@
   "INSEE Filosofi, 200 m grid, Filosofi 2021",
   "DVF (DGFiP, Etalab geolocated), 2021-2025",
   "Île-de-France Mobilités rail validations, Q4 2025",
+  "Atout France classified hotels, register of 2026-10-24",
   "APUR BDCOM (census of Paris ground-floor units), BDCOM 2023",
   "INSEE Sirene establishments, stock of 2026-10-01"
  ],
@@ -14,6 +15,13 @@
    "unit": "places",
    "source": "Overture Maps Places",
    "description": "Hotels and lodgings in the cell and its six neighbours (about 350 m around)"
+  },
+  {
+   "key": "upscale_rooms_r1",
+   "label": "Upscale hotel rooms",
+   "unit": "rooms",
+   "source": "Atout France classified hotels",
+   "description": "Rooms in 4- and 5-star hotels in the cell and its six neighbours (about 350 m around)"
   },
   {
    "key": "dining_r1",

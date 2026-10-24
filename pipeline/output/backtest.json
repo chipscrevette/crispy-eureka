@@ -2,7 +2,7 @@
  "within_minutes": 5.0,
  "suitable": 80.0,
  "folds": 5,
- "positives": "overture",
+ "positives": "osm-confirmed",
  "gammas": [
   0.0,
   0.5,
@@ -24,9 +24,9 @@
    "found_percent": {
     "planner": 52.4,
     "huff alone": 52.4,
+    "lookalike": 31.0,
     "demand": 23.8,
-    "lookalike": 20.2,
-    "luxury neighbours": 10.7,
+    "luxury neighbours": 9.5,
     "random": 0.9
    },
    "gamma": 0.5,
@@ -57,27 +57,27 @@
     {
      "gamma": 0.0,
      "outside": 1.0,
-     "found_percent": 0.0
+     "found_percent": 1.2
     },
     {
      "gamma": 0.0,
      "outside": 10.0,
-     "found_percent": 0.0
+     "found_percent": 1.2
     },
     {
      "gamma": 0.0,
      "outside": 100.0,
-     "found_percent": 10.7
+     "found_percent": 11.9
     },
     {
      "gamma": 0.0,
      "outside": 1000.0,
-     "found_percent": 17.9
+     "found_percent": 16.7
     },
     {
      "gamma": 0.0,
      "outside": 10000.0,
-     "found_percent": 17.9
+     "found_percent": 16.7
     },
     {
      "gamma": 0.5,
@@ -107,7 +107,7 @@
     {
      "gamma": 1.0,
      "outside": 1.0,
-     "found_percent": 10.7
+     "found_percent": 11.9
     },
     {
      "gamma": 1.0,
@@ -132,7 +132,7 @@
     {
      "gamma": 1.5,
      "outside": 1.0,
-     "found_percent": 17.9
+     "found_percent": 15.5
     },
     {
      "gamma": 1.5,
@@ -162,7 +162,7 @@
     {
      "gamma": 2.0,
      "outside": 10.0,
-     "found_percent": 23.8
+     "found_percent": 25.0
     },
     {
      "gamma": 2.0,
@@ -220,7 +220,7 @@
     {
      "gamma": 0.0,
      "outside": 1.0,
-     "found_percent": 0.6
+     "found_percent": 1.2
     },
     {
      "gamma": 0.0,
@@ -230,32 +230,32 @@
     {
      "gamma": 0.0,
      "outside": 100.0,
-     "found_percent": 4.7
+     "found_percent": 5.3
     },
     {
      "gamma": 0.0,
      "outside": 1000.0,
-     "found_percent": 8.8
+     "found_percent": 9.4
     },
     {
      "gamma": 0.0,
      "outside": 10000.0,
-     "found_percent": 8.8
+     "found_percent": 9.4
     },
     {
      "gamma": 0.5,
      "outside": 1.0,
-     "found_percent": 2.9
+     "found_percent": 2.3
     },
     {
      "gamma": 0.5,
      "outside": 10.0,
-     "found_percent": 24.0
+     "found_percent": 24.6
     },
     {
      "gamma": 0.5,
      "outside": 100.0,
-     "found_percent": 24.6
+     "found_percent": 25.1
     },
     {
      "gamma": 0.5,
@@ -270,7 +270,7 @@
     {
      "gamma": 1.0,
      "outside": 1.0,
-     "found_percent": 15.8
+     "found_percent": 12.3
     },
     {
      "gamma": 1.0,
@@ -295,7 +295,7 @@
     {
      "gamma": 1.5,
      "outside": 1.0,
-     "found_percent": 16.4
+     "found_percent": 14.0
     },
     {
      "gamma": 1.5,
@@ -320,7 +320,7 @@
     {
      "gamma": 2.0,
      "outside": 1.0,
-     "found_percent": 16.4
+     "found_percent": 14.0
     },
     {
      "gamma": 2.0,
@@ -348,7 +348,7 @@
    "brands": 12,
    "boutique_blocks": 54,
    "found_percent": {
-    "lookalike": 14.8,
+    "lookalike": 24.1,
     "demand": 14.8,
     "luxury neighbours": 9.3,
     "planner": 7.4,
@@ -356,7 +356,7 @@
     "random": 1.0
    },
    "gamma": 0.5,
-   "outside": 10.0,
+   "outside": 1.0,
    "setting_by_fold": {
     "0": [
      0.5,
@@ -364,10 +364,10 @@
     ],
     "1": [
      0.5,
-     10.0
+     1.0
     ],
     "2": [
-     1.5,
+     0.5,
      1.0
     ],
     "3": [
@@ -383,12 +383,12 @@
     {
      "gamma": 0.0,
      "outside": 1.0,
-     "found_percent": 1.9
+     "found_percent": 3.7
     },
     {
      "gamma": 0.0,
      "outside": 10.0,
-     "found_percent": 9.3
+     "found_percent": 11.1
     },
     {
      "gamma": 0.0,
@@ -408,7 +408,7 @@
     {
      "gamma": 0.5,
      "outside": 1.0,
-     "found_percent": 13.0
+     "found_percent": 14.8
     },
     {
      "gamma": 0.5,
@@ -433,7 +433,7 @@
     {
      "gamma": 1.0,
      "outside": 1.0,
-     "found_percent": 13.0
+     "found_percent": 14.8
     },
     {
      "gamma": 1.0,

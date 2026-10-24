@@ -14,70 +14,70 @@
  "sets": {
   "open data": {
    "jewellery-watches": {
-    "mean_percentile": 89.1,
-    "min": 86.2,
-    "max": 92.3,
-    "top10_hit_rate": 0.797,
+    "mean_percentile": 87.9,
+    "min": 86.1,
+    "max": 89.5,
+    "top10_hit_rate": 0.778,
     "luxury_neighbours_baseline": 95.0
    },
    "fashion-house": {
     "mean_percentile": 88.9,
     "min": 88.4,
-    "max": 89.5,
-    "top10_hit_rate": 0.734,
+    "max": 89.3,
+    "top10_hit_rate": 0.725,
     "luxury_neighbours_baseline": 70.6
    },
    "beauty": {
-    "mean_percentile": 91.0,
-    "min": 88.5,
+    "mean_percentile": 91.3,
+    "min": 89.8,
     "max": 92.3,
-    "top10_hit_rate": 0.728,
+    "top10_hit_rate": 0.695,
     "luxury_neighbours_baseline": 63.5
    }
   },
   "open data + AlphaEarth (8 components)": {
    "jewellery-watches": {
-    "mean_percentile": 87.2,
-    "min": 84.2,
-    "max": 89.7,
-    "top10_hit_rate": 0.673,
+    "mean_percentile": 87.1,
+    "min": 84.1,
+    "max": 88.7,
+    "top10_hit_rate": 0.604,
     "luxury_neighbours_baseline": 95.0
    },
    "fashion-house": {
-    "mean_percentile": 86.3,
+    "mean_percentile": 86.6,
     "min": 85.7,
-    "max": 86.8,
-    "top10_hit_rate": 0.661,
+    "max": 87.6,
+    "top10_hit_rate": 0.689,
     "luxury_neighbours_baseline": 70.6
    },
    "beauty": {
-    "mean_percentile": 91.1,
-    "min": 90.3,
-    "max": 92.1,
-    "top10_hit_rate": 0.679,
+    "mean_percentile": 90.9,
+    "min": 88.5,
+    "max": 92.0,
+    "top10_hit_rate": 0.661,
     "luxury_neighbours_baseline": 63.5
    }
   },
   "open data + AlphaEarth (64 dims)": {
    "jewellery-watches": {
-    "mean_percentile": 82.9,
-    "min": 78.9,
-    "max": 88.9,
-    "top10_hit_rate": 0.477,
+    "mean_percentile": 85.1,
+    "min": 83.2,
+    "max": 89.4,
+    "top10_hit_rate": 0.43,
     "luxury_neighbours_baseline": 95.0
    },
    "fashion-house": {
-    "mean_percentile": 87.8,
-    "min": 87.2,
+    "mean_percentile": 87.3,
+    "min": 86.8,
     "max": 88.1,
-    "top10_hit_rate": 0.607,
+    "top10_hit_rate": 0.617,
     "luxury_neighbours_baseline": 70.6
    },
    "beauty": {
-    "mean_percentile": 89.8,
-    "min": 89.0,
-    "max": 91.1,
-    "top10_hit_rate": 0.517,
+    "mean_percentile": 90.8,
+    "min": 89.1,
+    "max": 91.7,
+    "top10_hit_rate": 0.646,
     "luxury_neighbours_baseline": 63.5
    }
   },
@@ -106,47 +106,47 @@
   },
   "open data + OlmoEarth (8 components)": {
    "jewellery-watches": {
-    "mean_percentile": 86.6,
-    "min": 83.0,
-    "max": 89.2,
-    "top10_hit_rate": 0.638,
+    "mean_percentile": 84.6,
+    "min": 82.8,
+    "max": 86.5,
+    "top10_hit_rate": 0.672,
     "luxury_neighbours_baseline": 95.0
    },
    "fashion-house": {
-    "mean_percentile": 87.6,
-    "min": 86.9,
-    "max": 88.2,
-    "top10_hit_rate": 0.707,
+    "mean_percentile": 88.3,
+    "min": 87.3,
+    "max": 89.7,
+    "top10_hit_rate": 0.716,
     "luxury_neighbours_baseline": 70.6
    },
    "beauty": {
-    "mean_percentile": 91.6,
-    "min": 91.1,
-    "max": 92.5,
-    "top10_hit_rate": 0.531,
+    "mean_percentile": 91.8,
+    "min": 90.5,
+    "max": 93.2,
+    "top10_hit_rate": 0.515,
     "luxury_neighbours_baseline": 63.5
    }
   },
   "open data + OlmoEarth (192 dims)": {
    "jewellery-watches": {
-    "mean_percentile": 84.8,
-    "min": 82.6,
-    "max": 86.8,
-    "top10_hit_rate": 0.573,
+    "mean_percentile": 87.5,
+    "min": 86.2,
+    "max": 90.7,
+    "top10_hit_rate": 0.561,
     "luxury_neighbours_baseline": 95.0
    },
    "fashion-house": {
-    "mean_percentile": 88.1,
-    "min": 86.6,
-    "max": 89.1,
-    "top10_hit_rate": 0.633,
+    "mean_percentile": 88.3,
+    "min": 87.2,
+    "max": 89.4,
+    "top10_hit_rate": 0.608,
     "luxury_neighbours_baseline": 70.6
    },
    "beauty": {
-    "mean_percentile": 90.2,
-    "min": 89.1,
+    "mean_percentile": 89.9,
+    "min": 88.6,
     "max": 91.0,
-    "top10_hit_rate": 0.596,
+    "top10_hit_rate": 0.579,
     "luxury_neighbours_baseline": 63.5
    }
   },
