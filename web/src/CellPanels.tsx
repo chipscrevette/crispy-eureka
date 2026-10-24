@@ -1,5 +1,6 @@
 import type { CellProps } from './grid'
 import { NEIGHBOURS, cellScore, describeValue, rankText, shortPlaceOf, type Driver, type Scores } from './scores'
+import { LUXURY } from './dashboardData'
 import { PROFILES, type ProfileId } from './stores'
 
 const profileLabel = (id: ProfileId) => PROFILES.find((p) => p.id === id)?.label ?? id
@@ -150,8 +151,9 @@ const NOUN: Record<ProfileId, string> = {
 function keyFacts(cell: CellProps) {
   const num = (k: string) => (typeof cell[k] === 'number' ? (cell[k] as number) : undefined)
   const out: string[] = []
-  const lux = num(NEIGHBOURS)
-  if (lux !== undefined) out.push(`${lux} luxury boutique${lux === 1 ? '' : 's'} in the blocks around it`)
+  // the catalogue boutiques in the block and around it: the dots on the map
+  const lux = LUXURY.reduce((t, k) => t + (num(k) ?? 0), 0)
+  out.push(lux ? `${lux} luxury boutique${lux === 1 ? '' : 's'} in and around this block` : 'No luxury boutique in or around this block yet')
   const demand = num('demand')
   if (demand !== undefined)
     out.push(

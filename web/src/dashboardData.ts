@@ -63,3 +63,35 @@ export function bestPlaces(grid: Grid, key: string, n = 3): TopBlock[] {
   }
   return out
 }
+
+/**
+ * An open space: a block that looks like where the brand type already is, but has no luxury
+ * boutique around it yet, people with money to spend, and shops on the street already.
+ */
+export const OPEN_RULE = { score: 85, spending: 100, shops: 20 }
+// catalogue boutiques of each profile in the block and its six neighbours, the same as the map's dots
+export const LUXURY = ['luxury_jewellery-watches_r1', 'luxury_fashion-house_r1', 'luxury_beauty_r1']
+export const openKey = (key: string) => `open_${key}`
+
+/** Marks every block with open_<score key> = 1 or 0, for each profile's score key. */
+export function withOpenSpaces(grid: Grid, keys: string[]): Grid {
+  for (const f of grid.features) {
+    const p = f.properties
+    const num = (k: string) => (typeof p[k] === 'number' ? (p[k] as number) : 0)
+    const base =
+      LUXURY.every((k) => num(k) === 0) &&
+      num('demand') >= OPEN_RULE.spending &&
+      num('fashion_stores_r1') + num('beauty_stores_r1') >= OPEN_RULE.shops
+    for (const k of keys) p[openKey(k)] = base && num(k) >= OPEN_RULE.score ? 1 : 0
+  }
+  return grid
+}
+
+/** The best open space of each arrondissement, best first. */
+export function openPlaces(grid: Grid, key: string, n = 3): TopBlock[] {
+  const open = { ...grid, features: grid.features.filter((f) => f.properties[openKey(key)] === 1) }
+  return bestPlaces(open, key, n)
+}
+
+export const countOpen = (grid: Grid, key: string) =>
+  grid.features.filter((f) => f.properties[openKey(key)] === 1).length

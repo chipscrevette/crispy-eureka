@@ -25,7 +25,16 @@ import { demandLayers, loadDemand, withDemand, type Demand } from './demand'
 import Plan from './Plan'
 import { NEW_BRAND, loadPlanner, type Backtest, type Planner } from './planner'
 import Dashboard from './Dashboard'
-import { areaBars, bestPlaces, topBlocks, type AreaBar } from './dashboardData'
+import {
+  areaBars,
+  bestPlaces,
+  countOpen,
+  openKey,
+  openPlaces,
+  topBlocks,
+  withOpenSpaces,
+  type AreaBar,
+} from './dashboardData'
 import { HEIGHTS, coloursOf, profileColour, rampFor, stepExpr } from './palette'
 
 const PARIS: [number, number] = [2.3325, 48.8665]
@@ -133,6 +142,8 @@ export default function App() {
   const [planCount, setPlanCount] = useState(initial.k)
   const [planner, setPlanner] = useState<[Planner, Backtest] | null>(null)
   const [threeD, setThreeD] = useState(true)
+  // the first answer is where nobody is yet; where the brands already are is one click away
+  const [fresh, setFresh] = useState(true)
   const markers = useRef<maplibregl.Marker[]>([])
   const pickingRef = useRef(picking)
   pickingRef.current = picking
@@ -163,7 +174,10 @@ export default function App() {
       ([stores, grid, meta, scores, catchments, demand]) =>
         setData({
           stores,
-          grid: withDemand(withScores(grid, scores), demand),
+          grid: withOpenSpaces(
+            withDemand(withScores(grid, scores), demand),
+            PROFILES.map((p) => scoreKey(p.id)),
+          ),
           meta,
           scores,
           catchments,
@@ -527,7 +541,11 @@ export default function App() {
     // in 3D the selected block is raised in coral; its outline on the ground would only confuse
     m.setLayoutProperty('grid-selected', 'visibility', shown && raised ? 'none' : 'visible')
     if (!shown) return
-    const color = colourExpr(key, breaks, colours, { cell: raised ? cellA : null, reach })
+    let color = colourExpr(key, breaks, colours, { cell: raised ? cellA : null, reach })
+    // in the open-space view, blocks where luxury already is (or shops or spending are missing) go grey and flat
+    const openOnly = isScore && fresh && !reach.length
+    const isOpen: ExpressionSpecification = ['==', ['get', openKey(key)], 1]
+    if (openOnly) color = ['case', isOpen, color, cssVar('--quiet')]
     // the bottom half of Paris on the potential layer stays clear, so only the opportunities stand out
     const visible: ExpressionSpecification = isScore
       ? ['all', ['has', key], ['>=', ['get', key], SCORE_BREAKS[0]]]
@@ -536,18 +554,35 @@ export default function App() {
     m.setPaintProperty('grid-fill', 'fill-opacity', ['case', visible, FILL_OPACITY, 0])
     m.setFilter('grid-3d', visible)
     m.setPaintProperty('grid-3d', 'fill-extrusion-color', color)
-    const height = stepExpr(key, breaks, HEIGHTS)
+    let height: ExpressionSpecification = stepExpr(key, breaks, HEIGHTS)
+    if (openOnly) height = ['case', isOpen, height, 0]
     // outside the walk the blocks lie flat, so the walk stands out
     m.setPaintProperty(
       'grid-3d',
       'fill-extrusion-height',
       reach.length ? ['case', ['in', ['get', 'cell'], ['literal', reach]], height, 0] : height,
     )
-  }, [ready, key, breaks, colours, isScore, raised, cellA, reach])
+  }, [ready, key, breaks, colours, isScore, raised, cellA, reach, fresh])
 
   useEffect(() => {
     if (ready) map.current!.easeTo({ pitch: raised ? (phone() ? 40 : 50) : 0, bearing: raised ? -12 : 0, duration: 600 })
   }, [ready, raised])
+
+  // the free spots are spread across Paris, so the map steps back to show them all
+  useEffect(() => {
+    if (!ready || !data || !fresh || cellA || plan !== null || ask !== null) return
+    const k = openKey(scoreKey(profile))
+    const points = data.grid.features
+      .filter((f) => f.properties[k] === 1)
+      .map((f) => centroid(f.geometry.coordinates[0]))
+    if (!points.length) return
+    const bounds = points.reduce((bb, p) => bb.extend(p), new maplibregl.LngLatBounds(points[0], points[0]))
+    // one move with the tilt, so the 3D tilt that runs at the same time does not cancel it
+    const m = map.current!
+    const camera = m.cameraForBounds(bounds, { padding: fitPadding(), maxZoom: 14 })
+    if (camera) m.easeTo({ ...camera, pitch: raised ? (phone() ? 40 : 50) : 0, bearing: raised ? -12 : 0, duration: 800 })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, data, profile, fresh])
 
   // a tooltip in plain words follows the pointer
   const keyRef = useRef({ key, isScore, name: layerName, format })
@@ -608,7 +643,11 @@ export default function App() {
   // the dashboard follows the layer, the profile and the selected block
   const bars = useMemo(() => (data && key ? areaBars(data.grid, key, isScore, format) : []), [data, key, isScore, format])
   const top = useMemo(() => (data && key ? topBlocks(data.grid, key, format) : []), [data, key, format])
-  const places = useMemo(() => (data ? bestPlaces(data.grid, scoreKey(profile)) : []), [data, profile])
+  const places = useMemo(
+    () => (data ? (fresh ? openPlaces : bestPlaces)(data.grid, scoreKey(profile)) : []),
+    [data, profile, fresh],
+  )
+  const openCount = useMemo(() => (data ? countOpen(data.grid, scoreKey(profile)) : 0), [data, profile])
   // with no block selected, the donut shows the boutiques of each profile in Paris
   const cityMix = useMemo(() => {
     if (!counts) return []
@@ -683,14 +722,30 @@ export default function App() {
                   </span>
                   Look at the best places
                 </h2>
+                <div className="seg" role="group" aria-label="Which places">
+                  <button aria-pressed={fresh} onClick={() => setFresh(true)}>
+                    Free spots
+                  </button>
+                  <button aria-pressed={!fresh} onClick={() => setFresh(false)}>
+                    Where they already are
+                  </button>
+                </div>
                 {error ? (
                   <p className="error">{error}</p>
                 ) : (
                   <>
-                    <p className="answer">
-                      The darker the block, the more it looks like where {NOUN[profile]} already are.{' '}
-                      {places.length > 0 && <>Start with these:</>}
-                    </p>
+                    {fresh ? (
+                      <p className="answer">
+                        {openCount} blocks look like the streets {NOUN[profile]} choose, but have{' '}
+                        <strong>no luxury boutique yet</strong>. Shoppers and spending are already there.{' '}
+                        {places.length > 0 && <>Start with these:</>}
+                      </p>
+                    ) : (
+                      <p className="answer">
+                        The darker the block, the more it looks like where {NOUN[profile]} already are. These
+                        streets are proven, but crowded. {places.length > 0 && <>The strongest:</>}
+                      </p>
+                    )}
                     <ol className="places">
                       {places.map((t, i) => (
                         <li key={t.cell}>
@@ -858,6 +913,14 @@ export default function App() {
                       {legendWords[i] && <span className="legend-word">{legendWords[i]}</span>}
                     </span>
                   ))}
+                </span>
+              )}
+              {isScore && fresh && !reach.length && (
+                <span className="legend-row">
+                  <span className="legend-step">
+                    <span className="legend-swatch" style={{ background: 'var(--quiet)' }} aria-hidden="true" />
+                    <span className="legend-word">Luxury already there, or not a shopping street</span>
+                  </span>
                 </span>
               )}
               <span className="legend-row">
