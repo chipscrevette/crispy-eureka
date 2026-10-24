@@ -598,9 +598,9 @@ export default function App() {
           source: 'stations',
           layout: { visibility: 'none' },
           paint: {
-            'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, size(2, 7), 15, size(5, 16)],
+            'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, size(1.5, 7), 15, size(4, 16)],
             'circle-color': cssVar('--ink'),
-            'circle-opacity': 0.75,
+            'circle-opacity': 0.6,
             'circle-stroke-color': cssVar('--surface'),
             'circle-stroke-width': 1.5,
           },
