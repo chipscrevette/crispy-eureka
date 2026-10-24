@@ -14,98 +14,98 @@
    "label": "Hotels",
    "unit": "places",
    "source": "Overture Maps Places",
-   "description": "Hotels and lodgings in the cell and its six neighbours (about 350 m around)"
+   "description": "Hotels and lodgings in the block and the blocks within about 450 m"
   },
   {
    "key": "dining_r1",
    "label": "Restaurants & cafés",
    "unit": "places",
    "source": "Overture Maps Places",
-   "description": "Restaurants, cafés and bars in the cell and its six neighbours (about 350 m around)"
+   "description": "Restaurants, cafés and bars in the block and the blocks within about 450 m"
   },
   {
    "key": "culture_r1",
    "label": "Culture",
    "unit": "places",
    "source": "Overture Maps Places",
-   "description": "Galleries, museums, historic sites and venues in the cell and its six neighbours (about 350 m around)"
+   "description": "Galleries, museums, historic sites and venues in the block and the blocks within about 450 m"
   },
   {
    "key": "fashion_stores_r1",
    "label": "Fashion stores",
    "unit": "places",
    "source": "Overture Maps Places",
-   "description": "All fashion and apparel stores in the cell and its six neighbours (about 350 m around)"
+   "description": "All fashion and apparel stores in the block and the blocks within about 450 m"
   },
   {
    "key": "beauty_stores_r1",
    "label": "Beauty stores",
    "unit": "places",
    "source": "Overture Maps Places",
-   "description": "All beauty and personal-care stores in the cell and its six neighbours (about 350 m around)"
+   "description": "All beauty and personal-care stores in the block and the blocks within about 450 m"
   },
   {
    "key": "mass_market_r1",
    "label": "Mass-market outlets",
    "unit": "places",
    "source": "Overture Maps Places",
-   "description": "Fast food and convenience stores in the cell and its six neighbours (about 350 m around)"
+   "description": "Fast food and convenience stores in the block and the blocks within about 450 m"
   },
   {
    "key": "offices_r1",
    "label": "Offices",
    "unit": "places",
    "source": "Overture Maps Places",
-   "description": "Corporate offices and financial services in the cell and its six neighbours (about 350 m around)"
+   "description": "Corporate offices and financial services in the block and the blocks within about 450 m"
   },
   {
    "key": "luxury_jewellery-watches_r1",
    "label": "Luxury boutiques (jewellery-watches)",
    "unit": "boutiques",
    "source": "Overture Maps Places",
-   "description": "Catalogue boutiques of the jewellery-watches profile in the cell and its six neighbours (about 350 m around)"
+   "description": "Catalogue boutiques of the jewellery-watches profile in the block and the blocks within about 450 m"
   },
   {
    "key": "luxury_fashion-house_r1",
    "label": "Luxury boutiques (fashion-house)",
    "unit": "boutiques",
    "source": "Overture Maps Places",
-   "description": "Catalogue boutiques of the fashion-house profile in the cell and its six neighbours (about 350 m around)"
+   "description": "Catalogue boutiques of the fashion-house profile in the block and the blocks within about 450 m"
   },
   {
    "key": "luxury_beauty_r1",
    "label": "Luxury boutiques (beauty)",
    "unit": "boutiques",
    "source": "Overture Maps Places",
-   "description": "Catalogue boutiques of the beauty profile in the cell and its six neighbours (about 350 m around)"
+   "description": "Catalogue boutiques of the beauty profile in the block and the blocks within about 450 m"
   },
   {
    "key": "population_r1",
    "label": "Residents",
    "unit": "people",
    "source": "INSEE Filosofi, 200 m grid",
-   "description": "Residents in the cell and its six neighbours (about 350 m around)"
+   "description": "Residents in the block and the blocks within about 450 m"
   },
   {
    "key": "living_standard_r1",
    "label": "Living standard",
    "unit": "€ / person / year",
    "source": "INSEE Filosofi, 200 m grid",
-   "description": "Mean disposable income per consumption unit of residents in the cell and its six neighbours (about 350 m around)"
+   "description": "Mean disposable income per consumption unit of residents in the block and the blocks within about 450 m"
   },
   {
    "key": "owners_share_r1",
    "label": "Home owners",
    "unit": "share",
    "source": "INSEE Filosofi, 200 m grid",
-   "description": "Share of households owning their home in the cell and its six neighbours (about 350 m around)"
+   "description": "Share of households owning their home in the block and the blocks within about 450 m"
   },
   {
    "key": "poverty_share_r1",
    "label": "Households in poverty",
    "unit": "share",
    "source": "INSEE Filosofi, 200 m grid",
-   "description": "Share of households below the poverty line in the cell and its six neighbours (about 350 m around)"
+   "description": "Share of households below the poverty line in the block and the blocks within about 450 m"
   },
   {
    "key": "apartment_price_m2",
@@ -119,7 +119,7 @@
    "label": "Apartment sales",
    "unit": "sales",
    "source": "DVF (DGFiP, Etalab geolocated)",
-   "description": "Single-apartment sales in the cell and its six neighbours (about 350 m around)"
+   "description": "Single-apartment sales in the block and the blocks within about 450 m"
   },
   {
    "key": "commercial_price_m2",
@@ -140,42 +140,42 @@
    "label": "Retail premises sales",
    "unit": "sales",
    "source": "DVF (DGFiP, Etalab geolocated)",
-   "description": "Commercial-premises sales in the cell and its six neighbours (about 350 m around)"
+   "description": "Commercial-premises sales in the block and the blocks within about 450 m"
   },
   {
    "key": "upscale_rooms_r1",
    "label": "Upscale hotel rooms",
    "unit": "rooms",
    "source": "Atout France classified hotels",
-   "description": "Rooms in 4- and 5-star hotels in the cell and its six neighbours (about 350 m around)"
+   "description": "Rooms in 4- and 5-star hotels in the block and the blocks within about 450 m"
   },
   {
    "key": "tourist_zone_r1",
    "label": "International tourist zone",
    "unit": "share",
    "source": "APUR BDCOM (census of Paris ground-floor units)",
-   "description": "Share of the block and its six neighbours inside an international tourist zone (ZTI), where shops may open on Sundays and late in the evening"
+   "description": "Share of the blocks within about 450 m inside an international tourist zone (ZTI), where shops may open on Sundays and late in the evening"
   },
   {
    "key": "vacant_shops_r1",
    "label": "Empty shops",
    "unit": "units",
    "source": "APUR BDCOM (census of Paris ground-floor units)",
-   "description": "Empty ground-floor shop units on the street or on a corner in the cell and its six neighbours (about 350 m around)"
+   "description": "Empty ground-floor shop units on the street or on a corner in the block and the blocks within about 450 m"
   },
   {
    "key": "vacancy_r1",
    "label": "Empty shopfront share",
    "unit": "share",
    "source": "APUR BDCOM (census of Paris ground-floor units)",
-   "description": "Share of the shopfronts on the street or on a corner that stand empty, in the cell and its six neighbours (about 350 m around)"
+   "description": "Share of the shopfronts on the street or on a corner that stand empty, in the block and the blocks within about 450 m"
   },
   {
    "key": "large_vacant_r1",
    "label": "Empty flagship-size shops",
    "unit": "units",
    "source": "APUR BDCOM (census of Paris ground-floor units)",
-   "description": "Empty shopfronts of 300 m² or more on the street or on a corner in the cell and its six neighbours (about 350 m around)"
+   "description": "Empty shopfronts of 300 m² or more on the street or on a corner in the block and the blocks within about 450 m"
   }
  ]
 }

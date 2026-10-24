@@ -3,340 +3,340 @@
  "limit_minutes": 20.0,
  "profiles": {
   "jewellery-watches": {
-   "beta": 0.2,
-   "half_life_minutes": 3.5,
+   "beta": 0.45,
+   "half_life_minutes": 1.5,
    "calibration": [
     {
      "beta": 0.05,
-     "mean_percentile": 87.79
+     "mean_percentile": 90.2
     },
     {
      "beta": 0.1,
-     "mean_percentile": 88.13
+     "mean_percentile": 90.84
     },
     {
      "beta": 0.15,
-     "mean_percentile": 88.34
+     "mean_percentile": 91.39
     },
     {
      "beta": 0.2,
-     "mean_percentile": 88.36
+     "mean_percentile": 91.78
     },
     {
      "beta": 0.25,
-     "mean_percentile": 88.32
+     "mean_percentile": 92.04
     },
     {
      "beta": 0.3,
-     "mean_percentile": 88.1
+     "mean_percentile": 92.17
     },
     {
      "beta": 0.35,
-     "mean_percentile": 87.8
+     "mean_percentile": 92.24
     },
     {
      "beta": 0.4,
-     "mean_percentile": 87.56
+     "mean_percentile": 92.25
     },
     {
      "beta": 0.45,
-     "mean_percentile": 87.47
+     "mean_percentile": 92.26
     },
     {
      "beta": 0.5,
-     "mean_percentile": 87.24
+     "mean_percentile": 92.25
     },
     {
      "beta": 0.55,
-     "mean_percentile": 86.99
+     "mean_percentile": 92.19
     },
     {
      "beta": 0.6,
-     "mean_percentile": 86.74
+     "mean_percentile": 92.11
     },
     {
      "beta": 0.65,
-     "mean_percentile": 86.55
+     "mean_percentile": 92.05
     },
     {
      "beta": 0.7,
-     "mean_percentile": 86.33
+     "mean_percentile": 91.98
     },
     {
      "beta": 0.75,
-     "mean_percentile": 86.2
+     "mean_percentile": 91.92
     },
     {
      "beta": 0.8,
-     "mean_percentile": 86.11
+     "mean_percentile": 91.83
     },
     {
      "beta": 0.85,
-     "mean_percentile": 86.0
+     "mean_percentile": 91.71
     },
     {
      "beta": 0.9,
-     "mean_percentile": 85.89
+     "mean_percentile": 91.57
     },
     {
      "beta": 0.95,
-     "mean_percentile": 85.88
+     "mean_percentile": 91.42
     },
     {
      "beta": 1.0,
-     "mean_percentile": 85.84
+     "mean_percentile": 91.25
     }
    ],
    "capture": {
-    "Mauboussin": 4965.7,
-    "Cartier": 3113.3,
-    "Omega": 2218.3,
-    "Rolex": 2059.0,
-    "Dinh Van": 1935.9,
-    "Tiffany & Co.": 1742.0,
-    "Bulgari": 1143.2,
-    "Van Cleef & Arpels": 1128.4,
-    "Messika": 1081.2,
-    "Hublot": 1026.4,
-    "Chopard": 982.0,
-    "Breitling": 953.3,
-    "Vacheron Constantin": 855.1,
-    "Chaumet": 835.6,
-    "Graff": 573.6,
-    "Pomellato": 534.2,
-    "Piaget": 506.7,
-    "Audemars Piguet": 506.2,
-    "Boucheron": 415.5,
-    "Fred": 315.4,
-    "IWC Schaffhausen": 303.4,
-    "TAG Heuer": 303.4,
-    "Harry Winston": 231.0,
-    "Patek Philippe": 191.2,
-    "Repossi": 191.2,
-    "Jaeger-LeCoultre": 191.2
+    "Mauboussin": 11207.7,
+    "Cartier": 7595.0,
+    "Tiffany & Co.": 4752.8,
+    "Omega": 4651.0,
+    "Rolex": 4498.6,
+    "Dinh Van": 4417.6,
+    "Chopard": 4243.9,
+    "Van Cleef & Arpels": 3733.9,
+    "Bulgari": 3283.0,
+    "Hublot": 2899.8,
+    "Messika": 2821.6,
+    "Breitling": 2498.3,
+    "Vacheron Constantin": 2225.0,
+    "Chaumet": 2043.6,
+    "Pomellato": 1954.8,
+    "Graff": 1556.7,
+    "Piaget": 1339.7,
+    "Audemars Piguet": 1272.3,
+    "Boucheron": 1210.2,
+    "TAG Heuer": 942.9,
+    "Fred": 866.6,
+    "IWC Schaffhausen": 852.5,
+    "Harry Winston": 611.3,
+    "Patek Philippe": 542.2,
+    "Repossi": 542.2,
+    "Jaeger-LeCoultre": 440.2
    }
   },
   "fashion-house": {
-   "beta": 0.2,
-   "half_life_minutes": 3.5,
-   "calibration": [
-    {
-     "beta": 0.05,
-     "mean_percentile": 84.27
-    },
-    {
-     "beta": 0.1,
-     "mean_percentile": 84.74
-    },
-    {
-     "beta": 0.15,
-     "mean_percentile": 85.1
-    },
-    {
-     "beta": 0.2,
-     "mean_percentile": 85.22
-    },
-    {
-     "beta": 0.25,
-     "mean_percentile": 85.05
-    },
-    {
-     "beta": 0.3,
-     "mean_percentile": 84.63
-    },
-    {
-     "beta": 0.35,
-     "mean_percentile": 84.01
-    },
-    {
-     "beta": 0.4,
-     "mean_percentile": 83.32
-    },
-    {
-     "beta": 0.45,
-     "mean_percentile": 82.68
-    },
-    {
-     "beta": 0.5,
-     "mean_percentile": 82.08
-    },
-    {
-     "beta": 0.55,
-     "mean_percentile": 81.52
-    },
-    {
-     "beta": 0.6,
-     "mean_percentile": 81.05
-    },
-    {
-     "beta": 0.65,
-     "mean_percentile": 80.68
-    },
-    {
-     "beta": 0.7,
-     "mean_percentile": 80.35
-    },
-    {
-     "beta": 0.75,
-     "mean_percentile": 80.09
-    },
-    {
-     "beta": 0.8,
-     "mean_percentile": 79.94
-    },
-    {
-     "beta": 0.85,
-     "mean_percentile": 79.78
-    },
-    {
-     "beta": 0.9,
-     "mean_percentile": 79.64
-    },
-    {
-     "beta": 0.95,
-     "mean_percentile": 79.57
-    },
-    {
-     "beta": 1.0,
-     "mean_percentile": 79.52
-    }
-   ],
-   "capture": {
-    "Celine": 3873.2,
-    "Chanel": 3697.0,
-    "Chloé": 2403.4,
-    "Louis Vuitton": 2258.1,
-    "Dior": 2002.0,
-    "Hermès": 1857.9,
-    "Max Mara": 1670.3,
-    "Ralph Lauren": 1463.6,
-    "Saint Laurent": 1324.2,
-    "Bottega Veneta": 1203.4,
-    "Berluti": 1179.8,
-    "Gucci": 952.6,
-    "Prada": 951.8,
-    "Moncler": 917.2,
-    "Burberry": 888.8,
-    "Christian Louboutin": 887.0,
-    "Alexander McQueen": 785.8,
-    "Zegna": 763.3,
-    "Balenciaga": 724.2,
-    "Balmain": 719.5,
-    "Loewe": 642.0,
-    "Givenchy": 628.0,
-    "Dolce & Gabbana": 539.0,
-    "Brunello Cucinelli": 509.4,
-    "Roger Vivier": 506.2,
-    "Fendi": 423.0,
-    "Delvaux": 402.2,
-    "Goyard": 369.2,
-    "Valentino": 364.5,
-    "Miu Miu": 318.3,
-    "Versace": 272.8,
-    "Moynat": 265.9,
-    "Loro Piana": 246.0,
-    "Lanvin": 229.6,
-    "Jimmy Choo": 215.3
-   }
-  },
-  "beauty": {
    "beta": 0.3,
    "half_life_minutes": 2.3,
    "calibration": [
     {
      "beta": 0.05,
-     "mean_percentile": 85.02
+     "mean_percentile": 86.76
     },
     {
      "beta": 0.1,
-     "mean_percentile": 85.53
+     "mean_percentile": 87.39
     },
     {
      "beta": 0.15,
-     "mean_percentile": 86.16
+     "mean_percentile": 87.91
     },
     {
      "beta": 0.2,
-     "mean_percentile": 86.68
+     "mean_percentile": 88.27
     },
     {
      "beta": 0.25,
-     "mean_percentile": 86.96
+     "mean_percentile": 88.49
     },
     {
      "beta": 0.3,
-     "mean_percentile": 87.1
+     "mean_percentile": 88.56
     },
     {
      "beta": 0.35,
-     "mean_percentile": 86.98
+     "mean_percentile": 88.51
     },
     {
      "beta": 0.4,
-     "mean_percentile": 86.67
+     "mean_percentile": 88.36
     },
     {
      "beta": 0.45,
-     "mean_percentile": 86.38
+     "mean_percentile": 88.16
     },
     {
      "beta": 0.5,
-     "mean_percentile": 86.12
+     "mean_percentile": 87.94
     },
     {
      "beta": 0.55,
-     "mean_percentile": 85.91
+     "mean_percentile": 87.7
     },
     {
      "beta": 0.6,
-     "mean_percentile": 85.7
+     "mean_percentile": 87.43
     },
     {
      "beta": 0.65,
-     "mean_percentile": 85.54
+     "mean_percentile": 87.17
     },
     {
      "beta": 0.7,
-     "mean_percentile": 85.36
+     "mean_percentile": 86.9
     },
     {
      "beta": 0.75,
-     "mean_percentile": 85.26
+     "mean_percentile": 86.62
     },
     {
      "beta": 0.8,
-     "mean_percentile": 85.24
+     "mean_percentile": 86.35
     },
     {
      "beta": 0.85,
-     "mean_percentile": 85.17
+     "mean_percentile": 86.06
     },
     {
      "beta": 0.9,
-     "mean_percentile": 85.12
+     "mean_percentile": 85.75
     },
     {
      "beta": 0.95,
-     "mean_percentile": 85.11
+     "mean_percentile": 85.46
     },
     {
      "beta": 1.0,
-     "mean_percentile": 85.07
+     "mean_percentile": 85.19
     }
    ],
    "capture": {
-    "Aesop": 3970.3,
-    "Guerlain": 2264.1,
-    "Diptyque": 2017.3,
-    "Le Labo": 1426.0,
-    "La Prairie": 1265.4,
-    "Byredo": 992.5,
-    "Frédéric Malle": 974.5,
-    "Creed": 757.7,
-    "Jo Malone London": 723.0,
-    "Maison Francis Kurkdjian": 607.2,
-    "Serge Lutens": 472.9,
-    "Sisley": 400.4
+    "Chanel": 17367.5,
+    "Celine": 16905.6,
+    "Louis Vuitton": 11245.9,
+    "Chloé": 10449.9,
+    "Dior": 9736.0,
+    "Max Mara": 7853.8,
+    "Hermès": 7116.2,
+    "Saint Laurent": 6839.0,
+    "Bottega Veneta": 5791.3,
+    "Berluti": 5144.2,
+    "Ralph Lauren": 5133.4,
+    "Burberry": 5133.2,
+    "Christian Louboutin": 5012.1,
+    "Prada": 4810.2,
+    "Moncler": 4636.7,
+    "Gucci": 4553.5,
+    "Balmain": 3571.0,
+    "Balenciaga": 3525.2,
+    "Zegna": 3368.9,
+    "Alexander McQueen": 3122.6,
+    "Dolce & Gabbana": 2787.1,
+    "Loewe": 2721.5,
+    "Brunello Cucinelli": 2618.6,
+    "Roger Vivier": 2543.9,
+    "Givenchy": 2531.0,
+    "Delvaux": 2062.3,
+    "Fendi": 2052.0,
+    "Valentino": 1796.9,
+    "Goyard": 1743.6,
+    "Miu Miu": 1441.9,
+    "Jimmy Choo": 1297.1,
+    "Moynat": 1232.8,
+    "Loro Piana": 1207.4,
+    "Lanvin": 1173.1,
+    "Versace": 1117.3
+   }
+  },
+  "beauty": {
+   "beta": 0.4,
+   "half_life_minutes": 1.7,
+   "calibration": [
+    {
+     "beta": 0.05,
+     "mean_percentile": 86.23
+    },
+    {
+     "beta": 0.1,
+     "mean_percentile": 86.97
+    },
+    {
+     "beta": 0.15,
+     "mean_percentile": 87.66
+    },
+    {
+     "beta": 0.2,
+     "mean_percentile": 88.27
+    },
+    {
+     "beta": 0.25,
+     "mean_percentile": 88.76
+    },
+    {
+     "beta": 0.3,
+     "mean_percentile": 89.14
+    },
+    {
+     "beta": 0.35,
+     "mean_percentile": 89.35
+    },
+    {
+     "beta": 0.4,
+     "mean_percentile": 89.41
+    },
+    {
+     "beta": 0.45,
+     "mean_percentile": 89.33
+    },
+    {
+     "beta": 0.5,
+     "mean_percentile": 89.18
+    },
+    {
+     "beta": 0.55,
+     "mean_percentile": 88.92
+    },
+    {
+     "beta": 0.6,
+     "mean_percentile": 88.58
+    },
+    {
+     "beta": 0.65,
+     "mean_percentile": 88.19
+    },
+    {
+     "beta": 0.7,
+     "mean_percentile": 87.71
+    },
+    {
+     "beta": 0.75,
+     "mean_percentile": 87.25
+    },
+    {
+     "beta": 0.8,
+     "mean_percentile": 86.75
+    },
+    {
+     "beta": 0.85,
+     "mean_percentile": 86.25
+    },
+    {
+     "beta": 0.9,
+     "mean_percentile": 85.77
+    },
+    {
+     "beta": 0.95,
+     "mean_percentile": 85.28
+    },
+    {
+     "beta": 1.0,
+     "mean_percentile": 84.81
+    }
+   ],
+   "capture": {
+    "Aesop": 16645.2,
+    "Guerlain": 9261.0,
+    "Diptyque": 8794.8,
+    "Le Labo": 5909.2,
+    "Frédéric Malle": 5260.5,
+    "La Prairie": 4970.5,
+    "Byredo": 4392.0,
+    "Jo Malone London": 3473.7,
+    "Creed": 3348.7,
+    "Maison Francis Kurkdjian": 2307.4,
+    "Serge Lutens": 2184.8,
+    "Sisley": 1925.7
    }
   }
  }

@@ -5,159 +5,159 @@
   "osm-confirmed": {
    "jewellery-watches": {
     "model": {
-     "mean_percentile": 96.9,
-     "top10_hit_rate": 1.0,
-     "held_out_cells": 17
+     "mean_percentile": 88.6,
+     "top10_hit_rate": 0.786,
+     "held_out_cells": 28
     },
     "luxury neighbours": {
-     "mean_percentile": 96.9,
-     "top10_hit_rate": 0.882,
-     "held_out_cells": 17
+     "mean_percentile": 97.3,
+     "top10_hit_rate": 0.929,
+     "held_out_cells": 28
     },
     "apartment price": {
-     "mean_percentile": 90.7,
-     "top10_hit_rate": 0.706,
-     "held_out_cells": 17
+     "mean_percentile": 91.5,
+     "top10_hit_rate": 0.714,
+     "held_out_cells": 28
     }
    },
    "fashion-house": {
     "model": {
-     "mean_percentile": 83.3,
-     "top10_hit_rate": 0.72,
-     "held_out_cells": 25
+     "mean_percentile": 75.4,
+     "top10_hit_rate": 0.643,
+     "held_out_cells": 42
     },
     "luxury neighbours": {
-     "mean_percentile": 74.2,
-     "top10_hit_rate": 0.76,
-     "held_out_cells": 25
+     "mean_percentile": 83.8,
+     "top10_hit_rate": 0.833,
+     "held_out_cells": 42
     },
     "apartment price": {
-     "mean_percentile": 84.4,
-     "top10_hit_rate": 0.64,
-     "held_out_cells": 25
+     "mean_percentile": 89.1,
+     "top10_hit_rate": 0.69,
+     "held_out_cells": 42
     }
    },
    "beauty": {
     "model": {
-     "mean_percentile": 89.3,
-     "top10_hit_rate": 0.562,
-     "held_out_cells": 16
+     "mean_percentile": 62.4,
+     "top10_hit_rate": 0.579,
+     "held_out_cells": 19
     },
     "luxury neighbours": {
-     "mean_percentile": 60.1,
-     "top10_hit_rate": 0.562,
-     "held_out_cells": 16
+     "mean_percentile": 76.0,
+     "top10_hit_rate": 0.737,
+     "held_out_cells": 19
     },
     "apartment price": {
-     "mean_percentile": 89.4,
-     "top10_hit_rate": 0.562,
-     "held_out_cells": 16
+     "mean_percentile": 90.5,
+     "top10_hit_rate": 0.632,
+     "held_out_cells": 19
     }
    }
   },
   "overture": {
    "jewellery-watches": {
     "model": {
-     "mean_percentile": 88.5,
-     "top10_hit_rate": 0.8,
-     "held_out_cells": 15
+     "mean_percentile": 87.8,
+     "top10_hit_rate": 0.875,
+     "held_out_cells": 24
     },
     "luxury neighbours": {
-     "mean_percentile": 95.7,
-     "top10_hit_rate": 0.933,
-     "held_out_cells": 15
+     "mean_percentile": 96.7,
+     "top10_hit_rate": 0.917,
+     "held_out_cells": 24
     },
     "apartment price": {
-     "mean_percentile": 90.3,
-     "top10_hit_rate": 0.667,
-     "held_out_cells": 15
+     "mean_percentile": 91.2,
+     "top10_hit_rate": 0.708,
+     "held_out_cells": 24
     }
    },
    "fashion-house": {
     "model": {
-     "mean_percentile": 89.0,
-     "top10_hit_rate": 0.75,
-     "held_out_cells": 20
+     "mean_percentile": 86.2,
+     "top10_hit_rate": 0.629,
+     "held_out_cells": 35
     },
     "luxury neighbours": {
-     "mean_percentile": 68.3,
-     "top10_hit_rate": 0.7,
-     "held_out_cells": 20
+     "mean_percentile": 83.2,
+     "top10_hit_rate": 0.8,
+     "held_out_cells": 35
     },
     "apartment price": {
-     "mean_percentile": 82.7,
-     "top10_hit_rate": 0.55,
-     "held_out_cells": 20
+     "mean_percentile": 88.0,
+     "top10_hit_rate": 0.686,
+     "held_out_cells": 35
     }
    },
    "beauty": {
     "model": {
-     "mean_percentile": 92.3,
-     "top10_hit_rate": 0.833,
-     "held_out_cells": 12
+     "mean_percentile": 77.0,
+     "top10_hit_rate": 0.75,
+     "held_out_cells": 16
     },
     "luxury neighbours": {
-     "mean_percentile": 62.4,
-     "top10_hit_rate": 0.583,
-     "held_out_cells": 12
+     "mean_percentile": 82.8,
+     "top10_hit_rate": 0.75,
+     "held_out_cells": 16
     },
     "apartment price": {
-     "mean_percentile": 87.9,
-     "top10_hit_rate": 0.417,
-     "held_out_cells": 12
+     "mean_percentile": 90.9,
+     "top10_hit_rate": 0.688,
+     "held_out_cells": 16
     }
    }
   },
   "overture+osm": {
    "jewellery-watches": {
     "model": {
-     "mean_percentile": 93.7,
-     "top10_hit_rate": 0.833,
-     "held_out_cells": 12
+     "mean_percentile": 87.0,
+     "top10_hit_rate": 0.87,
+     "held_out_cells": 23
     },
     "luxury neighbours": {
-     "mean_percentile": 95.1,
-     "top10_hit_rate": 0.917,
-     "held_out_cells": 12
+     "mean_percentile": 96.6,
+     "top10_hit_rate": 0.957,
+     "held_out_cells": 23
     },
     "apartment price": {
-     "mean_percentile": 89.3,
-     "top10_hit_rate": 0.667,
-     "held_out_cells": 12
+     "mean_percentile": 91.1,
+     "top10_hit_rate": 0.696,
+     "held_out_cells": 23
     }
    },
    "fashion-house": {
     "model": {
-     "mean_percentile": 85.1,
-     "top10_hit_rate": 0.625,
-     "held_out_cells": 16
+     "mean_percentile": 91.9,
+     "top10_hit_rate": 0.733,
+     "held_out_cells": 30
     },
     "luxury neighbours": {
-     "mean_percentile": 66.3,
-     "top10_hit_rate": 0.625,
-     "held_out_cells": 16
+     "mean_percentile": 83.3,
+     "top10_hit_rate": 0.8,
+     "held_out_cells": 30
     },
     "apartment price": {
-     "mean_percentile": 81.1,
-     "top10_hit_rate": 0.562,
-     "held_out_cells": 16
+     "mean_percentile": 86.4,
+     "top10_hit_rate": 0.667,
+     "held_out_cells": 30
     }
    },
    "beauty": {
     "model": {
-     "mean_percentile": 91.5,
-     "top10_hit_rate": 0.833,
-     "held_out_cells": 12
+     "mean_percentile": 75.8,
+     "top10_hit_rate": 0.688,
+     "held_out_cells": 16
     },
     "luxury neighbours": {
-     "mean_percentile": 62.0,
-     "top10_hit_rate": 0.583,
-     "held_out_cells": 12
+     "mean_percentile": 82.9,
+     "top10_hit_rate": 0.75,
+     "held_out_cells": 16
     },
     "apartment price": {
-     "mean_percentile": 87.9,
-     "top10_hit_rate": 0.417,
-     "held_out_cells": 12
+     "mean_percentile": 90.9,
+     "top10_hit_rate": 0.688,
+     "held_out_cells": 16
     }
    }
   }
@@ -165,61 +165,61 @@
  "positives": "overture",
  "importance": {
   "jewellery-watches": {
-   "fashion_stores_r1": 0.734,
-   "culture_r1": 0.588,
-   "beauty_stores_r1": 0.372,
-   "living_standard_r1": 0.3,
-   "poverty_share_r1": 0.287,
-   "apartment_sales_r1": 0.283,
-   "mass_market_r1": 0.246,
-   "hotels_r1": 0.236,
-   "commercial_sales_r1": 0.233,
-   "dining_r1": 0.227,
-   "commercial_price_m2": 0.213,
-   "apartment_price_m2": 0.191,
-   "transit_entries_r2": 0.16,
-   "owners_share_r1": 0.144,
-   "offices_r1": 0.112,
-   "population_r1": 0.1,
-   "luxury_neighbours_r1": 0.024
+   "living_standard_r1": 0.523,
+   "owners_share_r1": 0.506,
+   "commercial_price_m2": 0.501,
+   "luxury_neighbours_r1": 0.484,
+   "poverty_share_r1": 0.394,
+   "culture_r1": 0.376,
+   "fashion_stores_r1": 0.36,
+   "apartment_sales_r1": 0.359,
+   "apartment_price_m2": 0.337,
+   "transit_entries_r2": 0.291,
+   "offices_r1": 0.261,
+   "mass_market_r1": 0.247,
+   "commercial_sales_r1": 0.219,
+   "hotels_r1": 0.177,
+   "population_r1": 0.169,
+   "beauty_stores_r1": 0.138,
+   "dining_r1": 0.13
   },
   "fashion-house": {
-   "offices_r1": 0.628,
-   "fashion_stores_r1": 0.608,
-   "dining_r1": 0.529,
-   "beauty_stores_r1": 0.35,
-   "poverty_share_r1": 0.264,
-   "commercial_price_m2": 0.252,
-   "mass_market_r1": 0.242,
-   "commercial_sales_r1": 0.221,
-   "apartment_sales_r1": 0.213,
-   "apartment_price_m2": 0.201,
-   "population_r1": 0.183,
-   "owners_share_r1": 0.144,
-   "transit_entries_r2": 0.139,
-   "hotels_r1": 0.127,
-   "living_standard_r1": 0.126,
-   "culture_r1": 0.118,
-   "luxury_neighbours_r1": 0.044
+   "offices_r1": 0.758,
+   "fashion_stores_r1": 0.616,
+   "commercial_price_m2": 0.364,
+   "apartment_price_m2": 0.315,
+   "poverty_share_r1": 0.305,
+   "transit_entries_r2": 0.281,
+   "commercial_sales_r1": 0.248,
+   "mass_market_r1": 0.246,
+   "owners_share_r1": 0.238,
+   "hotels_r1": 0.214,
+   "dining_r1": 0.207,
+   "population_r1": 0.197,
+   "culture_r1": 0.188,
+   "apartment_sales_r1": 0.173,
+   "living_standard_r1": 0.149,
+   "luxury_neighbours_r1": 0.122,
+   "beauty_stores_r1": 0.074
   },
   "beauty": {
-   "fashion_stores_r1": 0.674,
-   "living_standard_r1": 0.524,
-   "beauty_stores_r1": 0.518,
-   "apartment_price_m2": 0.45,
-   "commercial_sales_r1": 0.438,
-   "poverty_share_r1": 0.34,
-   "population_r1": 0.315,
-   "commercial_price_m2": 0.297,
-   "transit_entries_r2": 0.215,
-   "hotels_r1": 0.172,
-   "luxury_neighbours_r1": 0.14,
-   "owners_share_r1": 0.127,
-   "apartment_sales_r1": 0.114,
-   "offices_r1": 0.105,
-   "dining_r1": 0.094,
-   "culture_r1": 0.082,
-   "mass_market_r1": 0.073
+   "fashion_stores_r1": 0.723,
+   "living_standard_r1": 0.63,
+   "commercial_price_m2": 0.539,
+   "luxury_neighbours_r1": 0.514,
+   "culture_r1": 0.413,
+   "poverty_share_r1": 0.413,
+   "apartment_price_m2": 0.361,
+   "beauty_stores_r1": 0.326,
+   "apartment_sales_r1": 0.284,
+   "offices_r1": 0.28,
+   "commercial_sales_r1": 0.273,
+   "transit_entries_r2": 0.231,
+   "population_r1": 0.135,
+   "mass_market_r1": 0.129,
+   "owners_share_r1": 0.118,
+   "dining_r1": 0.117,
+   "hotels_r1": 0.112
   }
  }
 }
