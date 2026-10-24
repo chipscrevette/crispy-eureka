@@ -17,13 +17,6 @@
    "description": "Hotels and lodgings in the cell and its six neighbours (about 350 m around)"
   },
   {
-   "key": "upscale_rooms_r1",
-   "label": "Upscale hotel rooms",
-   "unit": "rooms",
-   "source": "Atout France classified hotels",
-   "description": "Rooms in 4- and 5-star hotels in the cell and its six neighbours (about 350 m around)"
-  },
-  {
    "key": "dining_r1",
    "label": "Restaurants & cafés",
    "unit": "places",
@@ -148,6 +141,13 @@
    "unit": "sales",
    "source": "DVF (DGFiP, Etalab geolocated)",
    "description": "Commercial-premises sales in the cell and its six neighbours (about 350 m around)"
+  },
+  {
+   "key": "upscale_rooms_r1",
+   "label": "Upscale hotel rooms",
+   "unit": "rooms",
+   "source": "Atout France classified hotels",
+   "description": "Rooms in 4- and 5-star hotels in the cell and its six neighbours (about 350 m around)"
   },
   {
    "key": "vacant_shops_r1",
