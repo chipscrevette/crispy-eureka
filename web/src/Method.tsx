@@ -296,7 +296,7 @@ function SatelliteBenchmark() {
   return (
     <figure className="vchart">
       <figcaption>
-        <strong>Held-out percentile with and without satellite fingerprints</strong>
+        <strong>Held-out percentile for each set of features</strong>
         <span className="muted small">
           {' '}
           · mean over {data.seeds.length} brand splits, range in brackets; every set also sees nearby luxury boutiques

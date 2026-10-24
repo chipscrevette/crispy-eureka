@@ -1,10 +1,11 @@
-"""Do satellite embeddings improve the lookalike score?
+"""Do satellite embeddings, or a newly added source, improve the lookalike score?
 
     python -m adresse_pipeline.benchmark
 
 Runs the same brand hold-out validation as `model` for several feature sets and writes
 pipeline/output/benchmark.json. Every set keeps the luxury-neighbours feature, so the
-comparison isolates what the extra features add. The PCA is fitted on all cells without
+comparison isolates what the extra features add. Each ablation drops one recent source from
+the open data, to show what that source adds on the same boutiques and splits. The PCA is fitted on all cells without
 labels, so it leaks nothing from the held-out brands.
 """
 
@@ -24,6 +25,8 @@ POSITIVES = PositiveSet.OVERTURE
 PCA_DIMS = 8
 # Different splits of brands into folds; the spread across them shows how much is noise.
 SEEDS = (7, 11, 23, 42, 101)
+# Recently added sources, each run once without, to show what it adds.
+ABLATIONS = {"upscale hotel rooms": ["upscale_rooms_r1"]}
 
 
 def pca(x: pd.DataFrame, dims: int, name: str = "aef") -> pd.DataFrame:
@@ -51,6 +54,9 @@ def feature_sets(
     grid: pd.DataFrame, embeddings: dict[str, pd.DataFrame]
 ) -> dict[str, pd.DataFrame]:
     sets = {"open data": grid}
+    for name, columns in ABLATIONS.items():
+        if set(columns) <= set(grid.columns):
+            sets[f"open data without {name}"] = grid.drop(columns=columns)
     for name, emb in embeddings.items():
         sets |= embedding_sets(name, grid, emb)
     return sets
