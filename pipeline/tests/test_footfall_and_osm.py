@@ -49,6 +49,17 @@ def test_stations_merge_lines_into_one_point_and_drop_stations_without_ridership
     assert by_zdc["71320"].daily_entries == 2000
 
 
+def test_station_points_carry_name_and_entries_busiest_last(tmp_path):
+    entries = {"71320": 2000.0, "71920": 200.0}
+    stations = idfm.stations(idfm.read_csv(write(tmp_path, "s.csv", STATIONS)), entries)
+
+    layer = idfm.to_geojson(stations)
+
+    assert [f["properties"]["entries"] for f in layer["features"]] == [200, 2000]
+    assert layer["features"][-1]["geometry"]["coordinates"][0] == pytest.approx(2.3487)
+    assert layer["period"] == idfm.VALIDATIONS_PERIOD
+
+
 # --- OpenStreetMap cross-check ---
 
 

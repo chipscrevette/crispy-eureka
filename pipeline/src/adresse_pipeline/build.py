@@ -162,6 +162,11 @@ def main() -> None:
             + ", ".join(f"{s.name} {s.daily_entries:,.0f}/day" for s in busiest)
         )
         sources.append(f"{IDFM}, {idfm.VALIDATIONS_PERIOD}")
+        # the station points for the map's on/off layer; written now, as only this step has them
+        WEB_DATA.mkdir(parents=True, exist_ok=True)
+        (WEB_DATA / "stations.geojson").write_text(
+            json.dumps(idfm.to_geojson(stations), ensure_ascii=False, separators=(",", ":"))
+        )
 
     if "sirene" not in args.skip:
         release = sirene.stock_release()
