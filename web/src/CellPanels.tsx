@@ -1,6 +1,6 @@
 import type { CellProps } from './grid'
 import { NEIGHBOURS, cellScore, describeValue, rankText, shortPlaceOf, type Driver, type Scores } from './scores'
-import { LUXURY } from './dashboardData'
+import { BIG_EMPTY, EMPTY, LUXURY, VACANCY, WEAK_KEY } from './dashboardData'
 import { PROFILES, type ProfileId } from './stores'
 
 const profileLabel = (id: ProfileId) => PROFILES.find((p) => p.id === id)?.label ?? id
@@ -147,13 +147,25 @@ const NOUN: Record<ProfileId, string> = {
   beauty: 'a beauty brand',
 }
 
-/** Three facts anyone can read; each comes straight from the block's pipeline values. */
+/** A few facts anyone can read; each comes straight from the block's pipeline values. */
 function keyFacts(cell: CellProps) {
   const num = (k: string) => (typeof cell[k] === 'number' ? (cell[k] as number) : undefined)
   const out: string[] = []
   // the catalogue boutiques in the block and around it: the dots on the map
   const lux = LUXURY.reduce((t, k) => t + (num(k) ?? 0), 0)
   out.push(lux ? `${lux} luxury boutique${lux === 1 ? '' : 's'} in and around this block` : 'No luxury boutique in or around this block yet')
+  // what there is to move into, from Apur's census of ground floors
+  const empty = num(EMPTY)
+  const big = num(BIG_EMPTY)
+  if (empty !== undefined && big !== undefined)
+    out.push(
+      big
+        ? `${big} empty shop${big === 1 ? '' : 's'} of 300 m² or more nearby, ${empty} empty in all`
+        : `${empty} empty shop${empty === 1 ? '' : 's'} nearby, none of 300 m² or more`,
+    )
+  const share = num(VACANCY)
+  if (share !== undefined && cell[WEAK_KEY] === 1)
+    out.push(`${Math.round(share * 100)}% of the shops around stand empty, more than in most of Paris`)
   const demand = num('demand')
   if (demand !== undefined)
     out.push(

@@ -4,8 +4,8 @@
 
 Writes the boutique layer and the H3 grid to web/public/data/, and the grid's
 feature table and the boutique cross-check to pipeline/output/. `--skip dvf insee
-idfm osm sirene` builds without those sources (for machines that can't reach data.gouv.fr,
-insee.fr, data.iledefrance-mobilites.fr or the Overpass API); their features are then
+idfm osm sirene apur` builds without those sources (for machines that can't reach data.gouv.fr,
+insee.fr, data.iledefrance-mobilites.fr, the Overpass API or carto2.apur.org); their features are then
 left empty.
 
 It also writes each block's own counts (not ring sums) to pipeline/output/paris_h3_blocks.csv,
@@ -23,15 +23,17 @@ from pathlib import Path
 import h3
 from shapely.geometry import Point
 
-from adresse_pipeline import dvf, idfm, insee, osm, sirene
+from adresse_pipeline import apur, dvf, idfm, insee, osm, sirene
 from adresse_pipeline.brands import Catalogue, Profile
 from adresse_pipeline.download import fetch
 from adresse_pipeline.features import (
+    APUR,
     CONTEXT_CATEGORIES,
     DVF,
     FEATURES,
     IDFM,
     INSEE,
+    OVERLAYS,
     OVERTURE,
     SIRENE,
     as_json,
@@ -47,7 +49,7 @@ from adresse_pipeline.grid import (
 from adresse_pipeline.luxury_stores import CATALOGUE, find_stores, to_geojson
 from adresse_pipeline.overture import PARIS_PADDED, read_paris_areas, read_places
 
-SKIPPABLE = ["dvf", "insee", "idfm", "osm", "sirene"]
+SKIPPABLE = ["dvf", "insee", "idfm", "osm", "sirene", "apur"]
 
 ROOT = Path(__file__).resolve().parents[3]
 WEB_DATA = ROOT / "web" / "public" / "data"
@@ -168,6 +170,24 @@ def main() -> None:
             json.dumps(idfm.to_geojson(stations), ensure_ascii=False, separators=(",", ":"))
         )
 
+    if "apur" not in args.skip:
+        fronts = [u for u in apur.units(apur.fetch_units()) if u.on_street]
+        empty = [u for u in fronts if u.empty]
+        all_fronts = ring_sum(count_by_cell((u.lon, u.lat) for u in fronts), cells)
+        columns["vacant_shops_r1"] = ring_sum(count_by_cell((u.lon, u.lat) for u in empty), cells)
+        columns["vacancy_r1"] = {
+            c: columns["vacant_shops_r1"][c] / all_fronts[c] if all_fronts[c] else None
+            for c in cells
+        }
+        columns["large_vacant_r1"] = ring_sum(
+            count_by_cell((u.lon, u.lat) for u in empty if u.flagship_size), cells
+        )
+        print(
+            f"apur: {len(fronts):,} shopfronts on the street or a corner, {len(empty):,} empty "
+            f"({len(empty) / len(fronts):.1%}), {sum(u.flagship_size for u in empty)} of 300 m² or more"
+        )
+        sources.append(f"{APUR}, {apur.RELEASE}")
+
     if "sirene" not in args.skip:
         release = sirene.stock_release()
         firms = list(sirene.establishments(sirene.read_rows(fetch(release.url))))
@@ -212,10 +232,12 @@ def main() -> None:
         return next((a.name for a in arrondissements if a.geometry.contains(point)), None)
 
     keys = [f.key for f in FEATURES]
+    # the overlays go to the map, not to the feature table the model trains on
+    overlays = [f.key for f in OVERLAYS]
     rows = []
     for cell in sorted(cells):
         row = {"cell": cell, "arrondissement": arrondissement(cell)}
-        for key in keys:
+        for key in [*keys, *overlays]:
             value = columns.get(key, {}).get(cell)
             row[key] = None if value is None else round(value, 4)
         rows.append(row)
@@ -223,7 +245,9 @@ def main() -> None:
     WEB_DATA.mkdir(parents=True, exist_ok=True)
     OUTPUT.mkdir(parents=True, exist_ok=True)
     with (OUTPUT / "paris_h3_features.csv").open("w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=["cell", "arrondissement", *keys])
+        writer = csv.DictWriter(
+            f, fieldnames=["cell", "arrondissement", *keys], extrasaction="ignore"
+        )
         writer.writeheader()
         writer.writerows(rows)
 
@@ -262,7 +286,7 @@ def main() -> None:
         )
     )
 
-    filled = {k: sum(r[k] is not None for r in rows) for k in keys if k in columns}
+    filled = {k: sum(r[k] is not None for r in rows) for k in [*keys, *overlays] if k in columns}
     print("coverage (cells with a value):")
     for k, n in filled.items():
         print(f"  {k}: {n}/{len(rows)}")

@@ -210,7 +210,7 @@ export default function App() {
       attributionControl: {
         compact: true,
         customAttribution:
-          'Places and streets © Overture Maps Foundation, OpenStreetMap contributors · INSEE · DGFiP · Île-de-France Mobilités · Addresses: BAN (IGN)',
+          'Places and streets © Overture Maps Foundation, OpenStreetMap contributors · INSEE · DGFiP · Île-de-France Mobilités · Apur, BDCOM 2023 · Addresses: BAN (IGN)',
       },
     })
     map.current = m
@@ -786,7 +786,8 @@ export default function App() {
                     {fresh ? (
                       <p className="answer">
                         {openCount} blocks look like the streets {NOUN[profile]} choose, but have{' '}
-                        <strong>no luxury boutique yet</strong>. Shoppers and spending are already there.{' '}
+                        <strong>no luxury boutique yet</strong>. Each has an empty shop of 300 m² or more nearby, on a street
+                        where few shops stand empty, with shoppers and spending already there.{' '}
                         {places.length > 0 && <>Start with these:</>}
                       </p>
                     ) : (

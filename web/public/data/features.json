@@ -4,6 +4,7 @@
   "INSEE Filosofi, 200 m grid, Filosofi 2021",
   "DVF (DGFiP, Etalab geolocated), 2021-2025",
   "Île-de-France Mobilités rail validations, Q4 2025",
+  "APUR BDCOM (census of Paris ground-floor units), BDCOM 2023",
   "INSEE Sirene establishments, stock of 2026-10-01"
  ],
  "features": [
@@ -139,6 +140,27 @@
    "unit": "sales",
    "source": "DVF (DGFiP, Etalab geolocated)",
    "description": "Commercial-premises sales in the cell and its six neighbours (about 350 m around)"
+  },
+  {
+   "key": "vacant_shops_r1",
+   "label": "Empty shops",
+   "unit": "units",
+   "source": "APUR BDCOM (census of Paris ground-floor units)",
+   "description": "Empty ground-floor shop units on the street or on a corner in the cell and its six neighbours (about 350 m around)"
+  },
+  {
+   "key": "vacancy_r1",
+   "label": "Empty shopfront share",
+   "unit": "share",
+   "source": "APUR BDCOM (census of Paris ground-floor units)",
+   "description": "Share of the shopfronts on the street or on a corner that stand empty, in the cell and its six neighbours (about 350 m around)"
+  },
+  {
+   "key": "large_vacant_r1",
+   "label": "Empty flagship-size shops",
+   "unit": "units",
+   "source": "APUR BDCOM (census of Paris ground-floor units)",
+   "description": "Empty shopfronts of 300 m² or more on the street or on a corner in the cell and its six neighbours (about 350 m around)"
   }
  ]
 }

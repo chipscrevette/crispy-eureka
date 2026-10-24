@@ -21,6 +21,7 @@ INSEE = "INSEE Filosofi, 200 m grid"
 DVF = "DVF (DGFiP, Etalab geolocated)"
 IDFM = "Île-de-France Mobilités rail validations"
 SIRENE = "INSEE Sirene establishments"
+APUR = "APUR BDCOM (census of Paris ground-floor units)"
 
 # Overture `basic_category` values counted for each context feature.
 CONTEXT_CATEGORIES: dict[str, frozenset[str]] = {
@@ -147,5 +148,32 @@ FEATURES: list[Feature] = [
 ]
 
 
+# Shown on the map and used by the free-spot check, but never given to the model: whether a
+# unit stands empty says whether a brand can move in, not whether the place suits luxury.
+OVERLAYS: list[Feature] = [
+    Feature(
+        "vacant_shops_r1",
+        "Empty shops",
+        "units",
+        APUR,
+        f"Empty ground-floor shop units on the street or on a corner {RING}",
+    ),
+    Feature(
+        "vacancy_r1",
+        "Empty shopfront share",
+        "share",
+        APUR,
+        f"Share of the shopfronts on the street or on a corner that stand empty, {RING}",
+    ),
+    Feature(
+        "large_vacant_r1",
+        "Empty flagship-size shops",
+        "units",
+        APUR,
+        f"Empty shopfronts of 300 m² or more on the street or on a corner {RING}",
+    ),
+]
+
+
 def as_json() -> list[dict]:
-    return [asdict(f) for f in FEATURES]
+    return [asdict(f) for f in [*FEATURES, *OVERLAYS]]
