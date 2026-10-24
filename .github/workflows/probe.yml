@@ -14,15 +14,21 @@ jobs:
         run: |
           set +e
           {
-          echo "== data.gouv commerces"
-          curl -s "https://www.data.gouv.fr/api/1/datasets/?q=commerces+paris+bdcom&page_size=8" | jq -r '.data[] | [.id, .title, (.organization.name // ""), .last_update] | @tsv'
-          echo "== data.gouv vacants"
-          curl -s "https://www.data.gouv.fr/api/1/datasets/?q=locaux+vacants+paris&page_size=8" | jq -r '.data[] | [.id, .title, (.organization.name // ""), .last_update] | @tsv'
-          echo "== opendata.paris commerce"
-          curl -s "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets?where=search(%22commerce%22)&limit=30" | jq -r '.results[] | [.dataset_id, .metas.default.title, .metas.default.modified, (.metas.default.records_count|tostring)] | @tsv'
-          echo "== apur"
-          curl -sL "https://opendata.apur.org/api/feed/dcat-ap/2.1.1.json" -o apur.json; head -c 300 apur.json; echo
-          jq -r '.dataset[]? | select((.title|ascii_downcase)|test("commerce|bdcom|vacan")) | [.identifier, .title, .modified] | @tsv' apur.json | head -30
+          echo "== apur hub search"
+          for q in commerce bdcom vacant "locaux vacants"; do
+            echo "-- $q"
+            curl -s "https://opendata.apur.org/api/search/v1/collections/dataset/items?q=$(jq -rn --arg q "$q" '$q|@uri')&limit=15" | jq -r '.features[]? | [.id, .properties.title, .properties.modified, (.properties.url // "")] | @tsv'
+          done
+          echo "== data.gouv bdcom"
+          curl -s "https://www.data.gouv.fr/api/1/datasets/?q=bdcom&page_size=8" | jq -r '.data[]? | [.id, .title, (.organization.name // "")] | @tsv'
+          curl -s "https://www.data.gouv.fr/api/1/datasets/?q=commerces%20apur&page_size=8" | jq -r '.data[]? | [.id, .title, (.organization.name // "")] | @tsv'
+          echo "== plub_protcom sample"
+          curl -s "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/plub_protcom/records?limit=3" | jq -c '.results[] | del(.geo_shape)'
+          curl -s "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/plub_protcom/records?group_by=lib&limit=20" | jq -c '.results'
+          echo "== zti sample"
+          curl -s "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/zones-touristiques-internationales/records?limit=12" | jq -r '.results[] | del(.geo_shape) | tostring'
+          echo "== datasets fields"
+          curl -s "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/plub_protcom" | jq -c '[.fields[] | .name]'
           } > probe.txt 2>&1
           git config user.name probe; git config user.email probe@users.noreply.github.com
           git add probe.txt && git commit -m "Probe output [skip ci]" && git push
