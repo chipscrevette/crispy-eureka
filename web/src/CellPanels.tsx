@@ -109,6 +109,11 @@ function facts(cell: CellProps) {
       title: "Residents' income, workers and hotel guests in the block; Paris average = 100",
     },
     {
+      value: num('street_footfall') !== undefined ? `${num('street_footfall')!.toFixed(1)}×` : undefined,
+      label: 'footfall of its busiest street',
+      title: 'Walks past the busiest street of the block, compared with a typical Paris street (estimated from the street network)',
+    },
+    {
       value: num('upscale_rooms_r1') !== undefined ? compact(num('upscale_rooms_r1')!) : undefined,
       label: '4- and 5-star hotel rooms',
       title: 'Rooms in 4- and 5-star hotels in the block and around it (Atout France)',

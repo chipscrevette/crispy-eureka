@@ -853,12 +853,18 @@ optgroup { font-style: normal; }
 .seg button:focus-visible { outline: 2px solid var(--seine); outline-offset: 2px; }
 .answer strong { color: var(--ink); }
 
-/* on/off switch for the stations layer, under the 2D/3D switch */
-.layer-toggle {
+/* on/off switches for the extra layers (stations, busy streets), under the 2D/3D switch */
+.layer-toggles {
   position: absolute;
   z-index: 2;
   top: 66px;
   right: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+.layer-toggle {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -877,3 +883,6 @@ optgroup { font-style: normal; }
 .layer-toggle[aria-pressed='true'] .legend-station { background: var(--surface); box-shadow: none; }
 .layer-toggle:focus-visible { outline: 2px solid var(--seine); outline-offset: 2px; }
 .legend-station { background: var(--ink); opacity: 0.85; }
+.legend-line { display: inline-block; width: 16px; height: 4px; border-radius: 2px; background: #6d50b4; flex: none; }
+.layer-toggle[aria-pressed='true'] .legend-line { background: var(--surface); }
+@media (prefers-color-scheme: dark) { .legend-line { background: #a991e6; } }
