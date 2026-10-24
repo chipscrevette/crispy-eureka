@@ -12,15 +12,16 @@ import {
   type GridMeta,
 } from './grid'
 import { SCORE_BREAKS, loadScores, ordinal, placeOf, scoreKey, withScores, type Scores } from './scores'
-import { CellScore, Compare } from './CellPanels'
-import { cellIndex, centroid } from './geo'
+import { CellScore, Compare, type Zone } from './CellPanels'
+import { cellAt, cellIndex, centroid, type LonLat } from './geo'
+import Search, { type Address } from './Search'
 import { readHash, writeHash } from './hash'
 import Memo from './Memo'
 import Method from './Method'
 import Ask from './Ask'
 import { loadAnswers, type AskAnswer } from './answers'
 import { loadCatchments, reachOf, type Catchments } from './catchments'
-import { demandLayers, loadDemand, withDemand } from './demand'
+import { demandLayers, loadDemand, withDemand, type Demand } from './demand'
 import Plan from './Plan'
 import { NEW_BRAND, loadPlanner, type Backtest, type Planner } from './planner'
 
@@ -50,6 +51,7 @@ type Data = {
   scores: Scores
   catchments: Catchments
   demand: FeatureInfo[]
+  groups: Demand['groups']
 }
 type Hover = { arrondissement?: string; value?: number }
 type Tab = 'explore' | 'plan' | 'ask' | 'method'
@@ -96,6 +98,9 @@ export default function App() {
   const pickingRef = useRef(picking)
   pickingRef.current = picking
   const [hover, setHover] = useState<Hover | null>(null)
+  const [address, setAddress] = useState<(Address & { cell: string }) | null>(null)
+  const [searchNote, setSearchNote] = useState('')
+  const pin = useRef<maplibregl.Marker | null>(null)
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
@@ -108,6 +113,7 @@ export default function App() {
           scores,
           catchments,
           demand: demandLayers(demand),
+          groups: demand.groups,
         }),
       (e: Error) => setError(e.message),
     )
@@ -125,7 +131,7 @@ export default function App() {
       attributionControl: {
         compact: true,
         customAttribution:
-          'Places and streets © Overture Maps Foundation, OpenStreetMap contributors · INSEE · DGFiP · Île-de-France Mobilités',
+          'Places and streets © Overture Maps Foundation, OpenStreetMap contributors · INSEE · DGFiP · Île-de-France Mobilités · Addresses: BAN (IGN)',
       },
     })
     map.current = m
@@ -338,6 +344,72 @@ export default function App() {
   const cells = useMemo(() => (data ? cellIndex(data.grid) : null), [data])
   const a = (cellA && cells?.get(cellA)?.properties) || null
   const b = (cellB && cells?.get(cellB)?.properties) || null
+  // which block each boutique stands in, for counting the boutiques a walk reaches
+  const storeCells = useMemo(
+    () =>
+      data
+        ? new Map(data.stores.features.map((f) => [f.properties.id, cellAt(data.grid, f.geometry.coordinates as LonLat)]))
+        : null,
+    [data],
+  )
+  const zone = useMemo((): Zone | undefined => {
+    if (!data || !cellA || !cells || !storeCells) return undefined
+    const reach = reachOf(data.catchments, cellA)
+    if (!reach.length) return undefined
+    const inReach = new Set(reach)
+    const sum = (key: string) =>
+      reach.reduce((t, c) => {
+        const v = cells.get(c)?.properties[key]
+        return t + (typeof v === 'number' ? v : 0)
+      }, 0)
+    const groups = data.groups.map((g) => ({ label: g.label, total: sum(`demand_${g.key}`) }))
+    const all = groups.reduce((t, g) => t + g.total, 0) || 1
+    const shops = data.stores.features.filter(
+      (f) => f.properties.profile === profile && inReach.has(storeCells.get(f.properties.id) ?? ''),
+    )
+    return {
+      minutes: data.catchments.minutes,
+      blocks: reach.length,
+      demand: sum('demand') / 100,
+      split: groups.map((g) => ({ label: g.label, share: g.total / all })),
+      boutiques: shops.length,
+      brands: new Set(shops.map((f) => f.properties.brand)).size,
+    }
+  }, [data, cellA, cells, storeCells, profile])
+
+  useEffect(() => {
+    if (!ready) return
+    pin.current?.remove()
+    pin.current = null
+    if (address && address.cell === cellA) {
+      const el = document.createElement('span')
+      el.className = 'address-pin'
+      el.setAttribute('aria-hidden', 'true')
+      pin.current = new maplibregl.Marker({ element: el, anchor: 'bottom' }).setLngLat(address.at).addTo(map.current!)
+    }
+  }, [ready, address, cellA])
+
+  const onFound = (found: Address) => {
+    const cell = data ? cellAt(data.grid, found.at) : null
+    if (!cell) {
+      setSearchNote(`${found.label} is outside the blocks we score.`)
+      return
+    }
+    setSearchNote('')
+    setAddress({ ...found, cell })
+    setSelected(null)
+    setPicking(false)
+    setCellA(cell)
+    setCellB(null)
+    setSheetOpen(true)
+    const phone = window.matchMedia('(max-width: 600px)').matches
+    map.current?.flyTo({
+      center: found.at,
+      zoom: 14.6,
+      padding: phone ? { top: 80, bottom: 380, left: 0, right: 0 } : { top: 0, bottom: 0, left: 380, right: 0 },
+    })
+  }
+
   const closeMemo = useCallback(() => setMemo(false), [])
   const closeMethod = useCallback(() => setMethod(false), [])
   const closeAsk = useCallback(() => setAsk(null), [])
@@ -472,6 +544,9 @@ export default function App() {
               <p className="muted small">Every block is scored by how closely it resembles where luxury brands chose to be.</p>
             </section>
 
+            <Search onFound={onFound} />
+            {searchNote && <p className="muted small search-status">{searchNote}</p>}
+
             <section aria-labelledby="profile-label">
               <h2 id="profile-label" className="visually-hidden">
                 Brand profile
@@ -598,7 +673,8 @@ export default function App() {
             {a && !b && (
               <CellScore
                 cell={a}
-                walk={{ minutes: data.catchments.minutes, blocks: reachOf(data.catchments, a.cell).length }}
+                zone={zone}
+                address={address?.cell === a.cell ? address.label.replace(/ \d{5} Paris$/, '') : undefined}
                 profile={profile}
                 scores={data.scores}
                 picking={picking}

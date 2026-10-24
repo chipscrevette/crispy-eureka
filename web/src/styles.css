@@ -117,6 +117,7 @@ h2 { margin: 0; }
 
 .tiles { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
 .tiles.three { grid-template-columns: repeat(3, 1fr); }
+.tiles:not(.three) > .tile:last-child:nth-child(odd) { grid-column: span 2; }
 .tile { display: grid; align-content: start; gap: 2px; padding: 12px; background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius-s); }
 .tile-value { font: 500 1.6rem/1.1 var(--display); color: var(--seine); font-variant-numeric: tabular-nums; }
 .tile-label { font-size: 0.75rem; line-height: 1.3; color: var(--muted); }
@@ -547,3 +548,57 @@ optgroup { font-style: normal; }
   .plan { top: auto; height: 58%; border-radius: var(--radius) var(--radius) 0 0; }
   .app.planning .panel { display: none; }
 }
+
+/* Address search */
+.search { position: relative; }
+.search input {
+  width: 100%;
+  padding: 11px 16px 11px 40px;
+  font: inherit;
+  color: var(--ink);
+  background: var(--surface) no-repeat 14px 50% / 16px
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235a6866' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-4-4'/%3E%3C/svg%3E");
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+}
+.search input:focus-visible { outline: 2px solid var(--seine); outline-offset: 1px; }
+.search-hits {
+  position: absolute;
+  z-index: 2;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-s);
+  box-shadow: var(--shadow);
+}
+.search-hits li { padding: 9px 10px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; }
+.search-hits li:hover, .search-hits li[aria-selected='true'] { background: var(--seine-soft); }
+.search-status { margin: -10px 0 0 16px; }
+.address-pin {
+  width: 22px;
+  height: 22px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  background: var(--brass);
+  border: 3px solid var(--surface);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.3);
+  pointer-events: none;
+}
+
+/* What a block reaches on foot */
+.zone { display: grid; gap: 10px; padding: 14px; background: var(--seine-soft); border-radius: var(--radius); }
+.zone .label { margin: 0; }
+.zone p { margin: 0; }
+.split { display: flex; gap: 3px; height: 10px; }
+.split span { border-radius: 999px; min-width: 4px; }
+.split-0 { background: var(--seine); }
+.split-1 { background: color-mix(in srgb, var(--seine) 60%, var(--surface)); }
+.split-2 { background: color-mix(in srgb, var(--seine) 28%, var(--surface)); }
+.split-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0; padding: 0; list-style: none; color: var(--muted); }
+.split-legend li { display: flex; align-items: center; gap: 6px; }
+.swatch { display: inline-block; width: 10px; height: 10px; border-radius: 3px; }
