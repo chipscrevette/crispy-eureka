@@ -19,7 +19,7 @@
 - **Plain words.** Layers are called "Luxury potential", "Spending power", "Residents' income", "Metro & RER traffic" and "Property prices". The legend uses words ("Good", "Very good", "Excellent", "Best 5%"), and a tooltip follows the pointer.
 
 **v4 (2026-10-24), a modern PC app.** Kevin asked for a more modern look inspired by the best tools in the field (Placer.ai, Kepler.gl, Felt, and Linear-style product apps), designed for PC first:
-- **Layout.** The map fills the whole window. The top bar, the controls panel, the legend and the drawers float above it as glass cards with a 1 px hairline border. The map centre is shifted right of the panel.
+- **Layout.** The map fills the whole window. The top bar, the controls panel, the legend and the drawers float above it as near-opaque cards with a 1 px hairline border. There is no backdrop blur: blurring a live map costs a redraw of the blur on every frame, and the map must never lag. The map centre is shifted right of the panel.
 - **Themes.** Light ("porcelain": warm white `#f6f6f3`, ink `#0f1419`, teal accent `#0f766e`) and dark ("midnight": `#0a0e13`, surfaces `#121821`, mint accent `#5eead4`). The dark theme uses the OpenFreeMap dark basemap. The visitor switches with the sun/moon button; the choice is kept in the browser, else the system setting applies.
 - **Fonts.** Outfit for titles and figures, Figtree for text, both at weight 500.
 - **Phone.** No longer a target (Kevin, 2026-10-24); it must only not break.
@@ -44,7 +44,7 @@ The v0 and v1 notes below are kept for history; where they differ, the latest ve
 | `--muted` | `#5A6866` | `#9AA9A6` | Labels, captions |
 | `--seine` | `#1F5C63` | `#7FC2C6` | Accent, score ramp anchor |
 | `--brass` | `#8A6A2E` | `#D3B57A` | Selected location only |
-| `--glass` | `#FFFFFF` at 84% | `#172020` at 86% | Floating cards, with an 18 px blur |
+| `--glass` | `#FFFFFF` at 95% | `#121821` at 94% | Floating cards, no blur |
 | `--seine-soft` | `#E3EEEE` | `#1D3234` | Tracks, bar backgrounds, notes |
 | `--radius` | 20 px (cards), 12 px (tiles, inputs), pill (buttons, tabs) | | |
 

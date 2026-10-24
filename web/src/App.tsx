@@ -160,7 +160,7 @@ export default function App() {
   const markers = useRef<maplibregl.Marker[]>([])
   const pickingRef = useRef(picking)
   pickingRef.current = picking
-  const [tip, setTip] = useState<Tip | null>(null)
+  const tipEl = useRef<HTMLDivElement>(null)
   const [address, setAddress] = useState<(Address & { cell: string }) | null>(null)
   const [searchNote, setSearchNote] = useState('')
   const pin = useRef<maplibregl.Marker | null>(null)
@@ -221,6 +221,11 @@ export default function App() {
       zoom: phone() ? 12.4 : 13,
       pitch: phone() ? 40 : 50,
       bearing: -12,
+      // a sharp screen draws 4× the pixels for little visible gain on coloured blocks, so the map caps it
+      pixelRatio: Math.min(window.devicePixelRatio, 1.5),
+      fadeDuration: 0,
+      maxPitch: 60,
+      renderWorldCopies: false,
       attributionControl: {
         compact: true,
         customAttribution:
@@ -692,7 +697,28 @@ export default function App() {
   useEffect(() => {
     if (!ready) return
     const m = map.current!
+    // the tooltip is written straight into its element: a React render of the whole page on every mouse move made the map stutter
+    const setTip = (t: Tip | null) => {
+      const el = tipEl.current
+      if (!el) return
+      el.hidden = !t
+      if (!t) return
+      el.style.transform = `translate(${t.x + 14}px, ${t.y}px) translateY(-50%)`
+      el.firstElementChild!.textContent = t.title
+      el.lastElementChild!.textContent = t.text
+    }
+    // at most one lookup per frame, and none while the map moves
+    let frame = 0
+    let last: maplibregl.MapMouseEvent | null = null
     const onMove = (e: maplibregl.MapMouseEvent) => {
+      last = e
+      if (!frame) frame = requestAnimationFrame(update)
+    }
+    const update = () => {
+      frame = 0
+      const e = last
+      if (!e) return
+      if (m.isMoving()) return setTip(null)
       const k = keyRef.current
       const onStations = m.getLayer('stations') && m.getLayoutProperty('stations', 'visibility') === 'visible'
       const station = onStations ? m.queryRenderedFeatures(e.point, { layers: ['stations'] })[0] : undefined
@@ -718,11 +744,17 @@ export default function App() {
             : `${k.name}: ${k.format(v)}`
       setTip({ x: e.point.x, y: e.point.y, title: placeOf(p).replace(/^Paris /, ''), text })
     }
-    const onLeave = () => setTip(null)
+    const onLeave = () => {
+      last = null
+      setTip(null)
+    }
     m.on('mousemove', onMove)
+    m.on('movestart', onLeave)
     m.getCanvas().addEventListener('mouseleave', onLeave)
     return () => {
+      cancelAnimationFrame(frame)
       m.off('mousemove', onMove)
+      m.off('movestart', onLeave)
       m.getCanvas().removeEventListener('mouseleave', onLeave)
     }
   }, [ready])
@@ -1121,12 +1153,10 @@ export default function App() {
                 </button>
               </div>
             )}
-            {tip && (
-              <div className="tip" style={{ left: tip.x, top: tip.y }} aria-hidden="true">
-                <strong>{tip.title}</strong>
-                <span>{tip.text}</span>
-              </div>
-            )}
+            <div className="tip" ref={tipEl} hidden aria-hidden="true">
+              <strong />
+              <span />
+            </div>
           </div>
 
         </section>
