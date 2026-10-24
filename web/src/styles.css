@@ -146,6 +146,8 @@ select:focus-visible { outline: 2px solid var(--seine); outline-offset: 2px; }
 .cell-score { display: grid; gap: 6px; margin-top: 8px; }
 .cell-score p { margin: 0; }
 .cell-score .label { margin: 10px 0 0; }
+.walk-note { display: flex; align-items: center; gap: 6px; }
+.walk-swatch { flex: none; width: 12px; height: 12px; background: color-mix(in srgb, var(--ink) 22%, transparent); }
 .drivers { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .drivers li { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; }
 .driver-name { font-size: 0.85rem; }
