@@ -814,6 +814,7 @@ export default function App() {
                     1
                   </span>
                   Choose a type of brand
+                  <span className="step-note">boutiques in Paris</span>
                 </h2>
                 <div className="choices" role="radiogroup" aria-labelledby="step-1">
                   {PROFILES.map((p) => (
@@ -831,7 +832,10 @@ export default function App() {
                     >
                       <span className="dot" aria-hidden="true" style={{ background: profileColour(p.id) }} />
                       <span className="choice-label">{p.label}</span>
-                      <span className="choice-count">{counts ? `${counts[p.id]} boutiques` : ''}</span>
+                      <span className="choice-count">
+                        {counts ? counts[p.id] : ''}
+                        <span className="visually-hidden"> boutiques</span>
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -857,12 +861,20 @@ export default function App() {
                 ) : (
                   <>
                     {fresh ? (
-                      <p className="answer">
-                        {openCount} blocks look like the streets {NOUN[profile]} choose, but have{' '}
-                        <strong>no luxury boutique yet</strong>. Each has an empty shop of 300 m² or more nearby, on a street
-                        where few shops stand empty, with shoppers and spending already there.{' '}
-                        {places.length > 0 && <>Start with these:</>}
-                      </p>
+                      <div className="stat">
+                        <span className="stat-value">{openCount}</span>
+                        <p className="answer">
+                          blocks look like the streets {NOUN[profile]} choose, with{' '}
+                          <strong>no luxury boutique yet</strong>.
+                        </p>
+                        <details className="stat-why">
+                          <summary>How are they picked?</summary>
+                          <p className="answer">
+                            Each has an empty shop of 300 m² or more nearby, on a street where few shops stand empty,
+                            with shoppers and spending already there.
+                          </p>
+                        </details>
+                      </div>
                     ) : (
                       <p className="answer">
                         The darker the block, the more it looks like where {NOUN[profile]} already are. These
@@ -875,7 +887,13 @@ export default function App() {
                           <button onClick={() => focusBlock(t.cell)}>
                             <span className="top-n">{i + 1}</span>
                             <span className="top-place">{t.place} arrondissement</span>
-                            <span className="top-value">{t.text} / 100</span>
+                            <span className="top-value">
+                              {t.text}
+                              <span className="top-max"> / 100</span>
+                            </span>
+                            <span className="top-bar" aria-hidden="true">
+                              <span style={{ width: `${Number(t.text)}%` }} />
+                            </span>
                           </button>
                         </li>
                       ))}

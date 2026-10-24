@@ -59,9 +59,9 @@ export default function Plan(props: Props) {
             </span>
             Which brand?
           </h3>
-          <div className="plan-profiles" role="group" aria-label="Type of brand">
+          <div className="seg seg-3" role="group" aria-label="Type of brand">
             {PROFILES.map((p) => (
-              <button key={p.id} className="chip" aria-pressed={p.id === profile} onClick={() => props.onProfile(p.id)}>
+              <button key={p.id} aria-pressed={p.id === profile} onClick={() => props.onProfile(p.id)}>
                 {SHORT[p.id]}
               </button>
             ))}
@@ -87,9 +87,9 @@ export default function Plan(props: Props) {
             </span>
             How many new boutiques?
           </h3>
-          <div className="plan-count" role="group" aria-labelledby="plan-count">
+          <div className="seg seg-n" role="group" aria-labelledby="plan-count">
             {Array.from({ length: planner.steps }, (_, i) => i + 1).map((n) => (
-              <button key={n} className="chip" aria-pressed={n === count} onClick={() => props.onCount(n)}>
+              <button key={n} aria-pressed={n === count} onClick={() => props.onCount(n)}>
                 {n}
               </button>
             ))}
@@ -113,14 +113,22 @@ export default function Plan(props: Props) {
                 </span>
                 <span className="plan-place">{placeOf(p.cell)}</span>
                 <span className="plan-gain">+{formatBlocks(p.gain)}</span>
+                <span className="top-bar" aria-hidden="true">
+                  <span style={{ width: `${(100 * p.gain) / Math.max(...picks.map((q) => q.gain), 1e-9)}%` }} />
+                </span>
               </button>
             </li>
           ))}
         </ol>
         <p className="plan-summary" aria-live="polite">
-          {picks.length === 1 ? 'It wins' : 'Together they win'} the spending of about{' '}
-          <strong>{formatBlocks(gain)} average Paris blocks</strong>
-          {isNew || lost < 50 ? '.' : `, after taking ${formatBlocks(lost)} from ${brand}'s own boutiques nearby.`}
+          <span className="stat-value" aria-hidden="true">
+            +{formatBlocks(gain)}
+          </span>
+          <span>
+            {picks.length === 1 ? 'It wins' : 'Together they win'} the spending of about{' '}
+            <strong>{formatBlocks(gain)} average Paris blocks</strong>
+            {isNew || lost < 50 ? '.' : `, after taking ${formatBlocks(lost)} from ${brand}'s own boutiques nearby.`}
+          </span>
         </p>
       </div>
 
