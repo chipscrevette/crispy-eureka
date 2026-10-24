@@ -154,6 +154,18 @@ FEATURES: list[Feature] = [
 # international tourist zones did not improve the hidden-brand test
 # (pipeline/output/benchmark.json, "open data + upscale hotel rooms" and "+ international tourist zones").
 OVERLAYS: list[Feature] = [
+    # the street-side grain: the same shop counts in the block alone, without its neighbourhood
+    *(
+        Feature(
+            f"{kind}_r0", f"{label} in the block", "places", OVERTURE, f"{what} in the block itself"
+        )
+        for kind, label, what in [
+            ("fashion_stores", "Fashion stores", "All fashion and apparel stores"),
+            ("beauty_stores", "Beauty stores", "All beauty and personal-care stores"),
+            ("dining", "Restaurants & cafés", "Restaurants, cafés and bars"),
+            ("mass_market", "Mass-market outlets", "Fast food and convenience stores"),
+        ]
+    ),
     Feature(
         "upscale_rooms_r1",
         "Upscale hotel rooms",

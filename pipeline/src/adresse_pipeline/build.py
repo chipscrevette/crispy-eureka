@@ -95,6 +95,7 @@ def main() -> None:
     for key, categories in CONTEXT_CATEGORIES.items():
         counts = count_by_cell((p.lon, p.lat) for p in places if p.category in categories)
         columns[key] = ring_sum(counts, cells)
+        columns[key.replace("_r1", "_r0")] = {c: counts.get(c, 0) for c in cells}
         if key == "hotels_r1":
             own["hotels"] = counts
 

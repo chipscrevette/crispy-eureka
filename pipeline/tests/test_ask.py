@@ -53,14 +53,14 @@ def test_white_space_blocks_really_have_no_boutique_of_the_profile_nearby(paris)
         for b in Tools(paris, trace).top_blocks(p, without_competitors=True):
             cell = b["cell"]
             nearby = set(h3.grid_disk(cell, 1))
-            stores = {h3.latlng_to_cell(s.lat, s.lon, 9) for s in paris.boutiques if s.profile == p}
+            stores = {h3.latlng_to_cell(s.lat, s.lon, paris.resolution) for s in paris.boutiques if s.profile == p}
             assert not nearby & stores, (p, cell)
 
 
 @needs_data
 def test_the_landmarks_fall_on_paris_blocks(paris):
     for lat, lon in (MARAIS, SAINT_GERMAIN):
-        assert h3.latlng_to_cell(lat, lon, 9) in paris.blocks
+        assert h3.latlng_to_cell(lat, lon, paris.resolution) in paris.blocks
 
 
 def test_arrondissement_names_read_as_english_ordinals():
