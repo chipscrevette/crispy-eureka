@@ -14,16 +14,17 @@ jobs:
         run: |
           set +e
           {
-          echo "== data.gouv hebergements classes"
-          for q in "hebergements touristiques classes" "classement hotels atout france" "hotels classes etoiles"; do
-            curl -s "https://www.data.gouv.fr/api/1/datasets/?q=$(jq -rn --arg q "$q" '$q|@uri')&page_size=6" | jq -r '.data[]? | [.id, .title, (.organization.name // ""), .last_update, (.license // "")] | @tsv'
-          done
-          echo "== zti dataset meta"
-          curl -s "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/zones-touristiques-internationales" | jq -c '{license: .metas.default.license, publisher: .metas.default.publisher, fields: [.fields[].name]}'
-          echo "== apur zones layer 4"
-          curl -s "https://carto2.apur.org/apur/rest/services/BDCOM/bdcom2023/MapServer/4/query?where=1%3D1&outFields=nom,c_type,id_secteur&returnGeometry=false&f=json" | jq -c '[.features[]?.attributes]'
-          echo "== paris hotels datasets"
-          curl -s "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets?where=search(%22hotel%22)&limit=15" | jq -r '.results[] | [.dataset_id, .metas.default.title, (.metas.default.records_count|tostring), (.metas.default.license // "")] | @tsv'
+          echo "== resources"
+          curl -s "https://www.data.gouv.fr/api/1/datasets/59c36c6a88ee3826d5998a35/" | jq -r '.resources[] | [.id, .title, .format, .last_modified, .url] | @tsv'
+          U=$(curl -s "https://www.data.gouv.fr/api/1/datasets/59c36c6a88ee3826d5998a35/" | jq -r '[.resources[] | select(.format=="csv")][0].url')
+          echo "== csv $U"
+          curl -sL "$U" -o h.csv; file h.csv; wc -l h.csv
+          head -c 1500 h.csv | iconv -f latin1 -t utf-8 2>/dev/null || head -c 1500 h.csv
+          echo; echo "== paris rows"
+          grep -ai ";PARIS;\|;75[0-9][0-9][0-9];" h.csv | wc -l
+          grep -ai "75[0-9][0-9][0-9]" h.csv | grep -ai "hôtel\|hotel" | head -5
+          echo "== apur zones all"
+          curl -s "https://carto2.apur.org/apur/rest/services/BDCOM/bdcom2023/MapServer/4/query?where=1%3D1&outFields=nom,c_type&returnGeometry=false&f=json" | jq -c '[.features[]?.attributes | [.c_type, .nom]]'
           } > probe.txt 2>&1
           git config user.name probe; git config user.email probe@users.noreply.github.com
           git add probe.txt && git commit -m "Probe output [skip ci]" && git push
