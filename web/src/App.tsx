@@ -24,6 +24,9 @@ import { loadCatchments, reachOf, type Catchments } from './catchments'
 import { demandLayers, loadDemand, withDemand, type Demand } from './demand'
 import Plan from './Plan'
 import { NEW_BRAND, loadPlanner, type Backtest, type Planner } from './planner'
+import Dashboard from './Dashboard'
+import { areaBars, topBlocks, type AreaBar } from './dashboardData'
+import { HEIGHTS, PROFILE_COLOUR, coloursOf, isDark, profileColour, rampFor, stepExpr } from './palette'
 
 const PARIS: [number, number] = [2.3325, 48.8665]
 const BASEMAP: string | StyleSpecification =
@@ -31,18 +34,11 @@ const BASEMAP: string | StyleSpecification =
     ? {
         version: 8,
         sources: {},
-        layers: [
-          {
-            id: 'bg',
-            type: 'background',
-            paint: { 'background-color': '#E4E8E6' },
-          },
-        ],
+        layers: [{ id: 'bg', type: 'background', paint: { 'background-color': '#E4E8E6' } }],
       }
     : (import.meta.env.VITE_BASEMAP_STYLE ?? 'https://tiles.openfreemap.org/styles/positron')
-// the bottom half of Paris stays clear, so the streets show and only the opportunities stand out
-const RAMP_OPACITY = [0, 0.16, 0.32, 0.5, 0.68]
 const SCORE = 'score'
+const FILL_OPACITY = 0.78
 
 type Data = {
   stores: Stores
@@ -53,7 +49,7 @@ type Data = {
   demand: FeatureInfo[]
   groups: Demand['groups']
 }
-type Hover = { arrondissement?: string; value?: number }
+type Tip = { x: number; y: number; title: string; text: string }
 type Tab = 'explore' | 'plan' | 'ask' | 'method'
 
 const TABS: { id: Tab; label: string }[] = [
@@ -64,13 +60,51 @@ const TABS: { id: Tab; label: string }[] = [
 ]
 const SHORT: Record<ProfileId, string> = { 'jewellery-watches': 'Jewellery', 'fashion-house': 'Fashion', beauty: 'Beauty' }
 
+/** The layers anyone can read at a glance, in plain words. Every other layer sits under "More data". */
+const QUICK: { key: string; label: string; help: string }[] = [
+  {
+    key: SCORE,
+    label: 'Luxury potential',
+    help: 'How much each block looks like the places luxury brands already chose. 100 is the best block of Paris.',
+  },
+  {
+    key: 'demand',
+    label: 'Spending power',
+    help: "Residents' income, people working there and hotel guests, one third each. 100 is an average block.",
+  },
+  {
+    key: 'living_standard_r1',
+    label: 'Residents’ income',
+    help: 'Disposable income per person of the people living around the block.',
+  },
+  {
+    key: 'transit_entries_r2',
+    label: 'Metro & RER traffic',
+    help: 'People entering the stations around the block on an average day.',
+  },
+  { key: 'apartment_price_m2', label: 'Property prices', help: 'Median sale price of apartments around the block.' },
+]
+/** Plain names for the score classes (SCORE_BREAKS: top half, quarter, tenth, twentieth). */
+const SCORE_WORDS = ['Below average', 'Good', 'Very good', 'Excellent', 'Best 5%']
+
 function cssVar(name: string) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim()
 }
 
-function rampOpacity(key: string, breaks: number[]): ExpressionSpecification {
-  const steps = breaks.flatMap((b, i) => [b, RAMP_OPACITY[i + 1]])
-  return ['case', ['has', key], ['step', ['get', key], RAMP_OPACITY[0], ...steps], 0]
+const phone = () => window.matchMedia('(max-width: 760px)').matches
+
+/** Fill colour of each block: the layer's ramp, greyed outside a walk, the selected block in coral. */
+function colourExpr(
+  key: string,
+  breaks: number[],
+  colours: string[],
+  focus: { cell: string | null; reach: string[] },
+): ExpressionSpecification {
+  let expr: ExpressionSpecification = stepExpr(key, breaks, colours)
+  if (focus.reach.length)
+    expr = ['case', ['in', ['get', 'cell'], ['literal', focus.reach]], expr, cssVar('--quiet')]
+  if (focus.cell) expr = ['case', ['==', ['get', 'cell'], focus.cell], cssVar('--pin'), expr]
+  return expr
 }
 
 export default function App() {
@@ -87,17 +121,17 @@ export default function App() {
   const [picking, setPicking] = useState(false)
   const [memo, setMemo] = useState(initial.memo)
   const [method, setMethod] = useState(initial.method)
-  const [sheetOpen, setSheetOpen] = useState(true)
   const [ask, setAsk] = useState<string | null>(initial.ask)
   const [answers, setAnswers] = useState<AskAnswer[] | null>(null)
   const [answerCells, setAnswerCells] = useState<string[]>([])
   const [plan, setPlan] = useState<string | null>(initial.plan)
   const [planCount, setPlanCount] = useState(initial.k)
   const [planner, setPlanner] = useState<[Planner, Backtest] | null>(null)
+  const [threeD, setThreeD] = useState(true)
   const markers = useRef<maplibregl.Marker[]>([])
   const pickingRef = useRef(picking)
   pickingRef.current = picking
-  const [hover, setHover] = useState<Hover | null>(null)
+  const [tip, setTip] = useState<Tip | null>(null)
   const [address, setAddress] = useState<(Address & { cell: string }) | null>(null)
   const [searchNote, setSearchNote] = useState('')
   const pin = useRef<maplibregl.Marker | null>(null)
@@ -127,7 +161,9 @@ export default function App() {
       container: container.current,
       style: BASEMAP,
       center: shared ? centroid(shared.geometry.coordinates[0]) : PARIS,
-      zoom: 13.2,
+      zoom: phone() ? 12.4 : 13,
+      pitch: phone() ? 40 : 50,
+      bearing: -12,
       attributionControl: {
         compact: true,
         customAttribution:
@@ -135,7 +171,7 @@ export default function App() {
       },
     })
     map.current = m
-    m.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right')
+    m.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'bottom-right')
 
     m.on('load', () => {
       // the credits start folded behind their (i) button, so they never cover the map on a phone
@@ -146,25 +182,16 @@ export default function App() {
         type: 'fill',
         source: 'grid',
         layout: { visibility: 'none' },
-        paint: {
-          'fill-color': cssVar('--seine'),
-          'fill-opacity': 0,
-          'fill-outline-color': cssVar('--surface'),
-        },
+        paint: { 'fill-color': cssVar('--seine'), 'fill-opacity': 0, 'fill-outline-color': 'rgba(255,255,255,0.35)' },
       })
       m.addLayer({
-        id: 'grid-hit',
-        type: 'fill',
+        id: 'grid-3d',
+        type: 'fill-extrusion',
         source: 'grid',
-        paint: { 'fill-opacity': 0 },
+        layout: { visibility: 'none' },
+        paint: { 'fill-extrusion-color': cssVar('--seine'), 'fill-extrusion-opacity': 0.88 },
       })
-      m.addLayer({
-        id: 'grid-catchment',
-        type: 'fill',
-        source: 'grid',
-        filter: ['in', ['get', 'cell'], ['literal', []]],
-        paint: { 'fill-color': cssVar('--ink'), 'fill-opacity': 0.1 },
-      })
+      m.addLayer({ id: 'grid-hit', type: 'fill', source: 'grid', paint: { 'fill-opacity': 0 } })
       m.addLayer({
         id: 'grid-answer',
         type: 'line',
@@ -177,14 +204,14 @@ export default function App() {
         type: 'line',
         source: 'grid',
         filter: ['in', ['get', 'cell'], ['literal', []]],
-        paint: { 'line-color': cssVar('--brass'), 'line-width': 2.5 },
+        paint: { 'line-color': cssVar('--pin'), 'line-width': 3 },
       })
       m.addLayer({
         id: 'grid-selected',
         type: 'line',
         source: 'grid',
         filter: ['==', ['get', 'cell'], ''],
-        paint: { 'line-color': cssVar('--brass'), 'line-width': 2.5 },
+        paint: { 'line-color': cssVar('--pin'), 'line-width': 3 },
       })
       m.addLayer({
         id: 'grid-compare',
@@ -193,19 +220,18 @@ export default function App() {
         filter: ['==', ['get', 'cell'], ''],
         paint: { 'line-color': cssVar('--ink'), 'line-width': 2.5, 'line-dasharray': [2, 1] },
       })
-      m.addSource('stores', {
-        type: 'geojson',
-        data: data.stores,
-        promoteId: 'id',
-      })
+      m.addSource('stores', { type: 'geojson', data: data.stores, promoteId: 'id' })
+      // a soft halo under each boutique of the profile, so the clusters glow
       m.addLayer({
-        id: 'stores-context',
+        id: 'stores-halo',
         type: 'circle',
         source: 'stores',
+        filter: ['==', ['get', 'profile'], 'jewellery-watches'],
         paint: {
-          'circle-radius': 3,
-          'circle-color': cssVar('--muted'),
-          'circle-opacity': 0.35,
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, 7, 16, 18],
+          'circle-color': cssVar('--surface'),
+          'circle-opacity': 0.5,
+          'circle-blur': 1,
         },
       })
       m.addLayer({
@@ -215,8 +241,8 @@ export default function App() {
         filter: ['==', ['get', 'profile'], 'jewellery-watches'],
         paint: {
           'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, 3, 16, 8],
-          'circle-color': cssVar('--seine'),
-          'circle-stroke-color': cssVar('--surface'),
+          'circle-color': profileColour('jewellery-watches'),
+          'circle-stroke-color': '#ffffff',
           'circle-stroke-width': 1.5,
         },
       })
@@ -227,8 +253,8 @@ export default function App() {
         filter: ['==', ['get', 'brand'], ''],
         paint: {
           'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, 4, 16, 9],
-          'circle-color': cssVar('--surface'),
-          'circle-stroke-color': cssVar('--brass'),
+          'circle-color': '#ffffff',
+          'circle-stroke-color': cssVar('--pin'),
           'circle-stroke-width': 2.5,
         },
       })
@@ -239,18 +265,16 @@ export default function App() {
         filter: ['==', ['get', 'id'], ''],
         paint: {
           'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, 6, 16, 12],
-          'circle-color': cssVar('--brass'),
-          'circle-stroke-color': cssVar('--surface'),
+          'circle-color': cssVar('--pin'),
+          'circle-stroke-color': '#ffffff',
           'circle-stroke-width': 2,
         },
       })
       m.on('click', (e) => {
-        const store = m.queryRenderedFeatures(e.point, {
-          layers: ['stores-profile'],
-        })[0]
-        const block = m.queryRenderedFeatures(e.point, {
-          layers: ['grid-hit'],
-        })[0]
+        const store = m.queryRenderedFeatures(e.point, { layers: ['stores-profile'] })[0]
+        // in 3D the raised top of a block is what the visitor clicks, not its footprint
+        const raised = m.getLayoutProperty('grid-3d', 'visibility') === 'visible'
+        const block = m.queryRenderedFeatures(e.point, { layers: raised ? ['grid-3d', 'grid-hit'] : ['grid-hit'] })[0]
         const id = block ? (block.properties as CellProps).cell : null
         if (pickingRef.current) {
           if (id) setCellB(id)
@@ -260,7 +284,6 @@ export default function App() {
         setSelected(store ? (store.properties as StoreProps) : null)
         setCellA(id)
         setCellB(null)
-        if (id) setSheetOpen(true)
       })
       m.on('mouseenter', 'stores-profile', () => (m.getCanvas().style.cursor = 'pointer'))
       m.on('mouseleave', 'stores-profile', () => (m.getCanvas().style.cursor = ''))
@@ -273,7 +296,10 @@ export default function App() {
   }, [data, initial.a])
 
   useEffect(() => {
-    if (ready) map.current!.setFilter('stores-profile', ['==', ['get', 'profile'], profile])
+    if (!ready) return
+    const m = map.current!
+    for (const id of ['stores-profile', 'stores-halo']) m.setFilter(id, ['==', ['get', 'profile'], profile])
+    m.setPaintProperty('stores-profile', 'circle-color', profileColour(profile))
   }, [ready, profile])
 
   useEffect(() => {
@@ -284,9 +310,7 @@ export default function App() {
     if (!ready) return
     map.current!.setFilter('grid-selected', ['==', ['get', 'cell'], cellA ?? ''])
     map.current!.setFilter('grid-compare', ['==', ['get', 'cell'], cellB ?? ''])
-    const reach = cellA && !cellB && data ? reachOf(data.catchments, cellA) : []
-    map.current!.setFilter('grid-catchment', ['in', ['get', 'cell'], ['literal', reach]])
-  }, [ready, cellA, cellB, data])
+  }, [ready, cellA, cellB])
 
   useEffect(() => {
     if (ready) map.current!.setFilter('grid-answer', ['in', ['get', 'cell'], ['literal', answerCells]])
@@ -309,6 +333,9 @@ export default function App() {
     return (plans[plan] ?? plans[NEW_BRAND]).picks.slice(0, planCount).map((p) => p.cell)
   }, [plan, planner, profile, planCount])
 
+  const fitPadding = () =>
+    phone() ? { top: 40, bottom: 40, left: 30, right: 30 } : { top: 60, bottom: 60, left: 60, right: plan || ask ? 480 : 60 }
+
   useEffect(() => {
     if (!ready || !data) return
     const m = map.current!
@@ -328,12 +355,9 @@ export default function App() {
     })
     if (at.length) {
       const bounds = at.reduce((b, p) => b.extend(p), new maplibregl.LngLatBounds(at[0], at[0]))
-      const phone = window.matchMedia('(max-width: 600px)').matches
-      m.fitBounds(bounds, {
-        maxZoom: 14.5,
-        padding: phone ? { top: 90, bottom: 420, left: 40, right: 40 } : { top: 110, bottom: 60, left: 420, right: 480 },
-      })
+      m.fitBounds(bounds, { maxZoom: 14.5, padding: fitPadding() })
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, data, picks, plan])
 
   useEffect(
@@ -389,6 +413,15 @@ export default function App() {
     }
   }, [ready, address, cellA])
 
+  const focusBlock = (cell: string) => {
+    const f = cells?.get(cell)
+    setSelected(null)
+    setPicking(false)
+    setCellA(cell)
+    setCellB(null)
+    if (f) map.current?.flyTo({ center: centroid(f.geometry.coordinates[0]), zoom: raised ? 13.9 : 14.6 })
+  }
+
   const onFound = (found: Address) => {
     const cell = data ? cellAt(data.grid, found.at) : null
     if (!cell) {
@@ -397,17 +430,17 @@ export default function App() {
     }
     setSearchNote('')
     setAddress({ ...found, cell })
-    setSelected(null)
-    setPicking(false)
-    setCellA(cell)
-    setCellB(null)
-    setSheetOpen(true)
-    const phone = window.matchMedia('(max-width: 600px)').matches
-    map.current?.flyTo({
-      center: found.at,
-      zoom: 14.6,
-      padding: phone ? { top: 80, bottom: 380, left: 0, right: 0 } : { top: 0, bottom: 0, left: 380, right: 0 },
+    focusBlock(cell)
+  }
+
+  const onArea = (bar: AreaBar) => {
+    const points = bar.cells.flatMap((c) => {
+      const f = cells?.get(c)
+      return f ? [centroid(f.geometry.coordinates[0])] : []
     })
+    if (!points.length || !map.current) return
+    const bounds = points.reduce((bb, p) => bb.extend(p), new maplibregl.LngLatBounds(points[0], points[0]))
+    map.current.fitBounds(bounds, { padding: fitPadding(), maxZoom: 15 })
   }
 
   const closeMemo = useCallback(() => setMemo(false), [])
@@ -424,22 +457,17 @@ export default function App() {
     setCellA(ans.cells[0] ?? null)
     setCellB(ans.compare ? (ans.cells[1] ?? null) : null)
     setAnswerCells(ans.cells)
-    setSheetOpen(true)
     setMemo(withMemo)
     const points = ans.cells.flatMap((c) => {
       const f = cells?.get(c)
       return f ? [centroid(f.geometry.coordinates[0])] : []
     })
     if (points.length && map.current) {
-      const bounds = points.reduce((b, p) => b.extend(p), new maplibregl.LngLatBounds(points[0], points[0]))
-      const phone = window.matchMedia('(max-width: 600px)').matches
-      map.current.fitBounds(bounds, {
-        maxZoom: 15,
-        padding: phone ? { top: 90, bottom: 320, left: 40, right: 40 } : { top: 110, bottom: 60, left: 420, right: 480 },
-      })
+      const bounds = points.reduce((bb, p) => bb.extend(p), new maplibregl.LngLatBounds(points[0], points[0]))
+      map.current.fitBounds(bounds, { maxZoom: 15, padding: fitPadding() })
     }
     // on a phone the drawer covers the map, so step aside; a shared link still reopens it
-    if (window.matchMedia('(max-width: 600px)').matches) setAsk(null)
+    if (phone()) setAsk(null)
   }
 
   const isScore = layer === SCORE
@@ -448,29 +476,81 @@ export default function App() {
     () => (isScore ? SCORE_BREAKS : data && key ? quantileBreaks(data.grid, key) : []),
     [data, key, isScore],
   )
-  const info = isScore
-    ? undefined
-    : [...(data?.meta.features ?? []), ...(data?.demand ?? [])].find((f) => f.key === layer)
+  const allInfo = useMemo(() => [...(data?.demand ?? []), ...(data?.meta.features ?? [])], [data])
+  const info = isScore ? undefined : allInfo.find((f) => f.key === layer)
+  const quick = QUICK.find((q) => q.key === layer)
+  const layerName = quick?.label ?? info?.label ?? 'No colour'
+  const colours = useMemo(() => coloursOf(rampFor(key || SCORE)), [key])
+  const format = useCallback(
+    (v: number) => (isScore ? `${Math.round(v)}` : formatValue(v, info?.unit ?? '')),
+    [isScore, info],
+  )
+  // Plan and Ask draw outlines and numbered pins on the ground, so they use the flat map
+  const raised = threeD && plan === null && ask === null
+  const reach = useMemo(
+    () => (cellA && !cellB && data ? reachOf(data.catchments, cellA) : []),
+    [cellA, cellB, data],
+  )
 
   useEffect(() => {
     if (!ready) return
     const m = map.current!
-    m.setLayoutProperty('grid-fill', 'visibility', key ? 'visible' : 'none')
-    if (!key) return
-    m.setPaintProperty('grid-fill', 'fill-opacity', rampOpacity(key, breaks))
-    const onMove = (e: maplibregl.MapLayerMouseEvent) => {
-      const p = e.features?.[0]?.properties
-      setHover(p ? { arrondissement: p.arrondissement, value: p[key] } : null)
+    const shown = !!key
+    m.setLayoutProperty('grid-fill', 'visibility', shown && !raised ? 'visible' : 'none')
+    m.setLayoutProperty('grid-3d', 'visibility', shown && raised ? 'visible' : 'none')
+    // in 3D the selected block is raised in coral; its outline on the ground would only confuse
+    m.setLayoutProperty('grid-selected', 'visibility', shown && raised ? 'none' : 'visible')
+    if (!shown) return
+    const color = colourExpr(key, breaks, colours, { cell: raised ? cellA : null, reach })
+    // the bottom half of Paris on the potential layer stays clear, so only the opportunities stand out
+    const visible: ExpressionSpecification = isScore
+      ? ['all', ['has', key], ['>=', ['get', key], SCORE_BREAKS[0]]]
+      : ['has', key]
+    m.setPaintProperty('grid-fill', 'fill-color', color)
+    m.setPaintProperty('grid-fill', 'fill-opacity', ['case', visible, FILL_OPACITY, 0])
+    m.setFilter('grid-3d', visible)
+    m.setPaintProperty('grid-3d', 'fill-extrusion-color', color)
+    const height = stepExpr(key, breaks, HEIGHTS)
+    // outside the walk the blocks lie flat, so the walk stands out
+    m.setPaintProperty(
+      'grid-3d',
+      'fill-extrusion-height',
+      reach.length ? ['case', ['in', ['get', 'cell'], ['literal', reach]], height, 0] : height,
+    )
+  }, [ready, key, breaks, colours, isScore, raised, cellA, reach])
+
+  useEffect(() => {
+    if (ready) map.current!.easeTo({ pitch: raised ? (phone() ? 40 : 50) : 0, bearing: raised ? -12 : 0, duration: 600 })
+  }, [ready, raised])
+
+  // a tooltip in plain words follows the pointer
+  const keyRef = useRef({ key, isScore, name: layerName, format })
+  keyRef.current = { key, isScore, name: layerName, format }
+  useEffect(() => {
+    if (!ready) return
+    const m = map.current!
+    const onMove = (e: maplibregl.MapMouseEvent) => {
+      const k = keyRef.current
+      const layers = ['grid-3d', 'grid-hit'].filter((l) => m.getLayoutProperty(l, 'visibility') !== 'none')
+      const p = m.queryRenderedFeatures(e.point, { layers })[0]?.properties as CellProps | undefined
+      if (!p || !k.key) return setTip(null)
+      const v = p[k.key]
+      const text =
+        typeof v !== 'number'
+          ? 'No data here'
+          : k.isScore
+            ? `${k.name}: ${Math.round(v)} / 100 · ${SCORE_WORDS[SCORE_BREAKS.filter((x) => v >= x).length]}`
+            : `${k.name}: ${k.format(v)}`
+      setTip({ x: e.point.x, y: e.point.y, title: placeOf(p).replace(/^Paris /, ''), text })
     }
-    const onLeave = () => setHover(null)
-    m.on('mousemove', 'grid-fill', onMove)
-    m.on('mouseleave', 'grid-fill', onLeave)
+    const onLeave = () => setTip(null)
+    m.on('mousemove', onMove)
+    m.getCanvas().addEventListener('mouseleave', onLeave)
     return () => {
-      m.off('mousemove', 'grid-fill', onMove)
-      m.off('mouseleave', 'grid-fill', onLeave)
-      setHover(null)
+      m.off('mousemove', onMove)
+      m.getCanvas().removeEventListener('mouseleave', onLeave)
     }
-  }, [ready, key, breaks])
+  }, [ready])
 
   const counts = useMemo(() => (data ? countByProfile(data.stores) : null), [data])
   const brands = useMemo(
@@ -483,13 +563,6 @@ export default function App() {
   )
 
   const validation = data?.scores.validation[profile]
-  const hoverText = (unit: string) =>
-    hover?.value !== undefined
-      ? `${hover.arrondissement ?? 'Paris'}: ${isScore ? `${Math.round(hover.value)} / 100` : formatValue(hover.value, unit)}`
-      : hover
-        ? `${hover.arrondissement ?? 'Paris'}: no data`
-        : 'Hover or tap a block to read its value.'
-
   const tab = method ? 'method' : plan !== null ? 'plan' : ask !== null ? 'ask' : 'explore'
   const openTab = (t: Tab) => {
     setMethod(t === 'method')
@@ -506,12 +579,25 @@ export default function App() {
   }
   const tested = validation ? ordinal(validation.model.mean_percentile) : '–'
 
+  // the dashboard follows the layer, the profile and the selected block
+  const bars = useMemo(() => (data && key ? areaBars(data.grid, key, isScore, format) : []), [data, key, isScore, format])
+  const top = useMemo(() => (data && key ? topBlocks(data.grid, key, format) : []), [data, key, format])
+  // with no block selected, the donut shows the boutiques of each profile in Paris
+  const cityMix = useMemo(() => {
+    if (!counts) return []
+    const all = PROFILES.reduce((t, p) => t + counts[p.id], 0) || 1
+    return PROFILES.map((p) => ({ label: `${p.label} (${counts[p.id]})`, share: counts[p.id] / all }))
+  }, [counts])
+  const legendWords = isScore ? SCORE_WORDS.slice(1) : ['Lowest', '', '', '', 'Highest']
+  const legendColours = isScore ? colours.slice(1) : colours.slice(0, breaks.length + 1)
+
   return (
     <div className={`app${ask !== null || plan !== null ? ' asking' : ''}${plan !== null ? ' planning' : ''}`}>
-      <div ref={container} className="map" aria-label="Map of luxury boutiques in Paris" role="region" />
-
       <header className="topbar">
-        <p className="wordmark">Adresse</p>
+        <p className="wordmark">
+          <span className="wordmark-dot" aria-hidden="true" />
+          Adresse
+        </p>
         <nav className="tabs" aria-label="Views">
           {TABS.map((t) => (
             <button
@@ -525,184 +611,234 @@ export default function App() {
             </button>
           ))}
         </nav>
+        <p className="topbar-note">Paris, from open data only</p>
       </header>
 
-      <aside id="panel" className={`panel${sheetOpen ? '' : ' collapsed'}${a ? ' has-selection' : ''}`}>
-        <button
-          className="handle"
-          aria-expanded={sheetOpen}
-          aria-controls="panel"
-          onClick={() => setSheetOpen((x) => !x)}
-        >
-          <span className="visually-hidden">{sheetOpen ? 'Hide details' : 'Show details'}</span>
-        </button>
-
-        {!(selected || a) && (
-          <>
-            <section className="intro">
-              <h1>Where should a luxury brand open next in Paris?</h1>
-              <p className="muted small">Every block is scored by how closely it resembles where luxury brands chose to be.</p>
-            </section>
-
-            <Search onFound={onFound} />
-            {searchNote && <p className="muted small search-status">{searchNote}</p>}
-
-            <section aria-labelledby="profile-label">
-              <h2 id="profile-label" className="visually-hidden">
-                Brand profile
-              </h2>
-              <div className="segmented" role="radiogroup" aria-labelledby="profile-label">
-                {PROFILES.map((p) => (
-                  <button
-                    key={p.id}
-                    id={`profile-${p.id}`}
-                    role="radio"
-                    aria-checked={profile === p.id}
-                    onClick={() => {
-                      setProfile(p.id)
-                      setSelected(null)
-                    }}
-                  >
-                    {SHORT[p.id]}
-                  </button>
-                ))}
-              </div>
-            </section>
-
-            {error ? (
-              <p className="error">{error}</p>
-            ) : (
-              <ul className="tiles three" aria-label="This profile in numbers">
-                <li className="tile">
-                  <span className="tile-value">{counts ? counts[profile] : '–'}</span>
-                  <span className="tile-label">boutiques</span>
-                </li>
-                <li className="tile">
-                  <span className="tile-value">{brands || '–'}</span>
-                  <span className="tile-label">brands</span>
-                </li>
-                <li className="tile" title="Boutiques of brands the model never saw landed at this percentile on average">
-                  <span className="tile-value">{tested}</span>
-                  <span className="tile-label">rank on unseen brands</span>
-                </li>
-              </ul>
-            )}
-
-            <section className="layers">
-              <label htmlFor="layer" className="label">
-                Map colour
-              </label>
-              <select id="layer" value={layer} onChange={(e) => setLayer(e.target.value)} disabled={!data}>
-                <option value={SCORE}>Opportunity score</option>
-                <option value="">None</option>
-                <optgroup label="Spending demand">
-                  {data?.demand.map((f) => (
-                    <option key={f.key} value={f.key}>
-                      {f.label}
-                    </option>
+      <main className="board">
+        <aside className="side" aria-label="Controls and details">
+          {!(selected || a) && (
+            <>
+              <section className="card hero">
+                <h1>Where should a luxury brand open next in Paris?</h1>
+                <Search onFound={onFound} />
+                {searchNote && <p className="muted small">{searchNote}</p>}
+                <div className="segmented" role="radiogroup" aria-label="Brand profile">
+                  {PROFILES.map((p) => (
+                    <button
+                      key={p.id}
+                      id={`profile-${p.id}`}
+                      role="radio"
+                      aria-checked={profile === p.id}
+                      onClick={() => {
+                        setProfile(p.id)
+                        setSelected(null)
+                      }}
+                    >
+                      <span
+                        className="dot"
+                        aria-hidden="true"
+                        style={{ background: isDark() ? PROFILE_COLOUR[p.id].dark : PROFILE_COLOUR[p.id].light }}
+                      />
+                      {SHORT[p.id]}
+                    </button>
                   ))}
-                </optgroup>
-                <optgroup label="Neighbourhood data">
-                  {data?.meta.features.map((f) => (
-                    <option key={f.key} value={f.key}>
-                      {f.label}
-                    </option>
-                  ))}
-                </optgroup>
-              </select>
-              {(isScore || info) && breaks.length > 0 && (
-                <div className="legend">
-                  <div className="ramp" aria-hidden="true" />
-                  <div className="ramp-labels">
-                    {isScore ? (
-                      <>
-                        <span>Bottom half</span>
-                        <span>Top 5%</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>Lower</span>
-                        <span>Higher</span>
-                      </>
-                    )}
-                  </div>
-                  {isScore && validation ? (
-                    <p className="muted small">
-                      Tested on brands the model never saw: their boutiques landed at the{' '}
-                      {ordinal(validation.model.mean_percentile)} percentile on average. Following other luxury
-                      boutiques alone gives the {ordinal(validation['luxury neighbours'].mean_percentile)}.
-                    </p>
-                  ) : (
-                    info && (
-                      <p className="muted small">
-                        {info.description}. Source: {info.source}.
-                      </p>
+                </div>
+                {error ? (
+                  <p className="error">{error}</p>
+                ) : (
+                  <ul className="tiles three" aria-label="This profile in numbers">
+                    <li className="tile">
+                      <span className="tile-value">{counts ? counts[profile] : '–'}</span>
+                      <span className="tile-label">boutiques today</span>
+                    </li>
+                    <li className="tile">
+                      <span className="tile-value">{brands || '–'}</span>
+                      <span className="tile-label">brands</span>
+                    </li>
+                    <li
+                      className="tile"
+                      title="We hid whole brands from the model; their real boutiques still landed this high on average"
+                    >
+                      <span className="tile-value">{tested}</span>
+                      <span className="tile-label">percentile in a blind test</span>
+                    </li>
+                  </ul>
+                )}
+              </section>
+
+              <section className="card" aria-labelledby="layers-title">
+                <h2 id="layers-title" className="card-title">
+                  What the map shows
+                </h2>
+                <div className="layer-list" role="radiogroup" aria-labelledby="layers-title">
+                  {QUICK.map((q) => {
+                    const sw = coloursOf(rampFor(q.key === SCORE ? scoreKey(profile) : q.key))
+                    return (
+                      <button
+                        key={q.key}
+                        role="radio"
+                        aria-checked={layer === q.key}
+                        className="layer"
+                        onClick={() => setLayer(q.key)}
+                        disabled={!data}
+                      >
+                        <span
+                          className="layer-swatch"
+                          aria-hidden="true"
+                          style={{ background: `linear-gradient(135deg, ${sw[1]}, ${sw[4]})` }}
+                        />
+                        <span>{q.label}</span>
+                      </button>
                     )
-                  )}
-                  <p className="hover" aria-live="polite">
-                    {hoverText(info?.unit ?? '')}
+                  })}
+                </div>
+                <label htmlFor="layer" className="label">
+                  More data
+                </label>
+                <select
+                  id="layer"
+                  value={quick ? '' : layer}
+                  onChange={(e) => setLayer(e.target.value || SCORE)}
+                  disabled={!data}
+                >
+                  <option value="">Choose a layer…</option>
+                  {allInfo
+                    .filter((f) => !QUICK.some((q) => q.key === f.key))
+                    .map((f) => (
+                      <option key={f.key} value={f.key}>
+                        {f.label}
+                      </option>
+                    ))}
+                </select>
+                <p className="muted small">{quick?.help ?? (info ? `${info.description}. Source: ${info.source}.` : '')}</p>
+                {isScore && validation && (
+                  <p className="muted small">
+                    Fair test: for brands the model never saw, their real boutiques landed at the{' '}
+                    {ordinal(validation.model.mean_percentile)} percentile on average.
+                  </p>
+                )}
+              </section>
+
+              <details className="card sources small">
+                <summary>Data sources</summary>
+                <p className="muted">{data?.meta.sources.join(' · ') ?? 'Loading'}.</p>
+              </details>
+            </>
+          )}
+
+          {(selected || a) && data && (
+            <section className="card selected" aria-live="polite">
+              <button className="back" onClick={clearSelection}>
+                <span aria-hidden="true">←</span> All of Paris
+              </button>
+              {selected && (
+                <div className="store">
+                  <p className="brand">{selected.brand}</p>
+                  <p className="muted small">
+                    {selected.segment}
+                    {selected.osm_confirmed !== undefined &&
+                      (selected.osm_confirmed
+                        ? '. Also mapped in OpenStreetMap within 75 m.'
+                        : '. Not found in OpenStreetMap, so treat this location with care.')}
                   </p>
                 </div>
               )}
+              {a && !b && (
+                <CellScore
+                  cell={a}
+                  zone={zone}
+                  address={address?.cell === a.cell ? address.label.replace(/ \d{5} Paris$/, '') : undefined}
+                  profile={profile}
+                  scores={data.scores}
+                  picking={picking}
+                  onCompare={() => setPicking((x) => !x)}
+                  onMemo={() => setMemo(true)}
+                />
+              )}
+              {a && b && (
+                <Compare
+                  a={a}
+                  b={b}
+                  profile={profile}
+                  scores={data.scores}
+                  onMemo={() => setMemo(true)}
+                  onClear={() => setCellB(null)}
+                />
+              )}
             </section>
+          )}
+        </aside>
 
-            <details className="sources small">
-              <summary>Data sources</summary>
-              <p className="muted">{data?.meta.sources.join(' · ') ?? 'Loading'}.</p>
-            </details>
-          </>
-        )}
-
-        {(selected || a) && data && (
-          <section className="selected" aria-live="polite">
-            <button className="back" onClick={clearSelection}>
-              <span aria-hidden="true">←</span> All of Paris
-            </button>
-            {selected && (
-              <div className="store">
-                <p className="brand">{selected.brand}</p>
-                <p className="muted small">
-                  {selected.segment}
-                  {selected.osm_confirmed !== undefined &&
-                    (selected.osm_confirmed
-                      ? '. Also mapped in OpenStreetMap within 75 m.'
-                      : '. Not found in OpenStreetMap, so treat this location with care.')}
-                </p>
+        <section className="stage" aria-label="Map and charts">
+          <div className="map-card">
+            <div ref={container} className="map" aria-label="Map of luxury boutiques in Paris" role="region" />
+            <div className="map-legend" aria-label={`Map legend: ${layerName}`}>
+              <span className="legend-title">{layerName}</span>
+              {key && (
+                <span className="legend-row">
+                  {legendColours.map((c, i) => (
+                    <span key={c} className="legend-step">
+                      <span className="legend-swatch" style={{ background: c }} aria-hidden="true" />
+                      {legendWords[i] && <span className="legend-word">{legendWords[i]}</span>}
+                    </span>
+                  ))}
+                </span>
+              )}
+              <span className="legend-row">
+                <span className="legend-step">
+                  <span className="legend-dot" style={{ background: profileColour(profile) }} aria-hidden="true" />
+                  <span className="legend-word">{PROFILES.find((p) => p.id === profile)?.label} boutique</span>
+                </span>
+              </span>
+            </div>
+            {plan === null && ask === null && (
+              <div className="view-toggle" role="group" aria-label="Map view">
+                <button aria-pressed={!threeD} onClick={() => setThreeD(false)}>
+                  2D
+                </button>
+                <button aria-pressed={threeD} onClick={() => setThreeD(true)}>
+                  3D
+                </button>
               </div>
             )}
-            {a && !b && (
-              <CellScore
-                cell={a}
-                zone={zone}
-                address={address?.cell === a.cell ? address.label.replace(/ \d{5} Paris$/, '') : undefined}
-                profile={profile}
-                scores={data.scores}
-                picking={picking}
-                onCompare={() => setPicking((x) => !x)}
-                onMemo={() => setMemo(true)}
-              />
+            {tip && (
+              <div className="tip" style={{ left: tip.x, top: tip.y }} aria-hidden="true">
+                <strong>{tip.title}</strong>
+                <span>{tip.text}</span>
+              </div>
             )}
-            {a && b && (
-              <Compare
-                a={a}
-                b={b}
-                profile={profile}
-                scores={data.scores}
-                onMemo={() => setMemo(true)}
-                onClear={() => setCellB(null)}
-              />
-            )}
-          </section>
-        )}
-      </aside>
+          </div>
+
+          {data && key && (
+            <Dashboard
+              title={isScore ? 'Best arrondissements' : `${layerName} by arrondissement`}
+              bars={bars}
+              barNote={isScore ? 'Blocks in the top 10% of Paris. Click to zoom.' : 'Average block. Click to zoom.'}
+              colours={colours}
+              mix={zone ? zone.split : cityMix}
+              mixColours={zone ? [colours[4], colours[3], colours[1]] : PROFILES.map((p) => profileColour(p.id))}
+              mixTitle={zone ? `Spending within a ${zone.minutes}-minute walk` : 'Luxury boutiques in Paris'}
+              mixNote={
+                zone
+                  ? 'Share of the spending power in the walk. For Paris as a whole it is one third each.'
+                  : 'Street boutiques of the catalogue brands, by profile.'
+              }
+              top={top}
+              topTitle={isScore ? 'Best blocks for this profile' : `Highest blocks: ${layerName.toLowerCase()}`}
+              onArea={onArea}
+              onBlock={focusBlock}
+            />
+          )}
+        </section>
+      </main>
 
       {ask !== null && data && answers && (
         <Ask
           answers={answers}
           first={ask}
           onAsked={onAsked}
-          onShow={(a) => showAnswer(a)}
-          onMemo={(a) => showAnswer(a, true)}
+          onShow={(x) => showAnswer(x)}
+          onMemo={(x) => showAnswer(x, true)}
           onMethod={() => setMethod(true)}
           onClose={closeAsk}
         />

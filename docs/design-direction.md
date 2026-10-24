@@ -4,6 +4,22 @@
 
 **v1 (2026-10-24):** the same palette, made lighter and more visual. The map fills the screen, and the interface floats above it on rounded glass cards (blurred, see-through white or dark green). A pill top bar holds the four views: Explore, Plan, Ask and Method. Key numbers sit in tiles with a large serif figure and a short plain label. The score is shown as a ring. The bottom half of Paris is not coloured, so the streets show through.
 
+**v2 (2026-10-24), a dashboard around a modern map.** Kevin asked for something clear to anyone, not only to specialists:
+- **Layout.** The map sits in a rounded card. The controls are on its left, and three chart cards below it follow the map: the best arrondissements, a spending or boutique donut, and the top blocks.
+- **3D.** By default the blocks rise in 3D by class. When a block is selected, its 10-minute walk stays raised and coloured, and the rest of Paris lies flat and grey.
+- **Fonts.** Two rounded sans-serifs at one weight (500): **Outfit** for titles and figures, **Nunito** for text. Hierarchy comes only from size and colour.
+- **Colours.** Each layer has its own colour family:
+  - potential: mint to deep blue;
+  - spending: sand to wine;
+  - income: greens;
+  - metro and RER traffic: violets;
+  - prices: blues.
+
+  Each profile has its own boutique colour: gold for jewellery, violet for fashion, rose for beauty. The selected block is coral. Tokens are in `web/src/palette.ts` and `web/src/styles.css`.
+- **Plain words.** Layers are called "Luxury potential", "Spending power", "Residents' income", "Metro & RER traffic" and "Property prices". The legend uses words ("Good", "Very good", "Excellent", "Best 5%"), and a tooltip follows the pointer.
+
+The v0 and v1 notes below are kept for history; where they differ, v2 wins.
+
 ## Principles
 
 1. **Map first.** The map fills the screen. Panels are narrow and can be folded away.
