@@ -62,3 +62,20 @@ def test_a_steeper_decay_shrinks_reach():
 
 def test_mean_percentile_of_the_top_block_is_100():
     assert mean_percentile(np.array([1.0, 2.0, 3.0, 4.0]), np.array([0, 0, 0, 1], bool)) == 100
+
+
+def test_a_boutique_in_a_luxury_cluster_pulls_more_shoppers():
+    m = street(demand=(0.0, 100.0, 0.0, 0.0))
+    # one rival in a, one in c; c sits in a cluster of three other luxury boutiques
+    luxury = m.sites(["c", "c", "c"])
+    flat = m.capture(m.sites(["c"]), m.sites(["a"]))
+    clustered = m.with_cluster(luxury, gamma=1.0).capture(m.sites(["c"]), m.sites(["a"]))
+    assert clustered > flat
+    assert m.with_cluster(luxury, gamma=0.0).capture(m.sites(["c"]), m.sites(["a"])) == flat
+
+
+def test_a_larger_outside_option_shrinks_every_share():
+    m = street()
+    own, rivals = m.sites(["a"]), m.sites(["d"])
+    wide = m.with_cluster(m.sites([]), gamma=0.0, outside=100.0)
+    assert wide.capture(own, rivals) < m.capture(own, rivals)

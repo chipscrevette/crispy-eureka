@@ -8,8 +8,9 @@ repeats with that boutique in place. Greedy picking is the standard heuristic fo
 problem (maximum capture location), and it never picks two sites that only win the same
 shoppers.
 
-Huff alone would send a luxury brand to any busy block nobody serves yet. So the planner
-only considers blocks that the lookalike score already rates as suitable for the profile
+Boutiques pull more inside luxury clusters (`huff.Market.with_cluster`), with the cluster
+strength and outside option the backtest chose. Huff alone would send a luxury brand to
+any busy block nobody serves yet, so the planner only considers blocks that the lookalike score already rates as suitable for the profile
 (SUITABLE or more), and never a block where the brand already is.
 """
 
@@ -60,16 +61,20 @@ def plan(market: Market, own: np.ndarray, rivals: np.ndarray, allowed: np.ndarra
 
 def main() -> None:
     huff = json.loads((OUTPUT / "huff.json").read_text())
+    backtest = json.loads((OUTPUT / "backtest.json").read_text())["profiles"]
     scores = json.loads((WEB_DATA / "scores.json").read_text())["profiles"]
     demand = pd.read_csv(OUTPUT / "demand.csv", index_col="cell")["demand"]
     times = pd.read_parquet(OUTPUT / "walk_times.parquet")
     cells = demand.index.tolist()
     boutiques = load_boutiques(Catalogue.from_csv(CATALOGUE))
 
+    luxury = [b for b in boutiques if b.cell in set(cells)]
     out = {"suitable": SUITABLE, "steps": STEPS, "profiles": {}}
     for profile in Profile:
         beta = huff["profiles"][profile.value]["beta"]
-        market = Market.build(cells, demand.to_numpy(), times, beta)
+        gamma = backtest[profile.value]["gamma"]
+        outside = backtest[profile.value]["outside"]
+        base = Market.build(cells, demand.to_numpy(), times, beta)
         score = np.array([scores[profile.value]["cells"].get(c, [0])[0] for c in cells])
         allowed = score >= SUITABLE
         shops = by_profile(boutiques, profile)
@@ -77,6 +82,9 @@ def main() -> None:
 
         plans = {}
         for brand in [*brands, NEW_BRAND]:
+            market = base.with_cluster(
+                base.sites([b.cell for b in luxury if b.brand != brand]), gamma, outside
+            )
             own = market.sites([s.cell for s in shops if s.brand == brand])
             rivals = market.sites([s.cell for s in shops if s.brand != brand])
             picks = plan(market, own, rivals, allowed, STEPS)
@@ -95,6 +103,8 @@ def main() -> None:
             }
         out["profiles"][profile.value] = {
             "beta": beta,
+            "gamma": gamma,
+            "outside": outside,
             "candidates": int(allowed.sum()),
             "plans": plans,
         }
