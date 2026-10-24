@@ -1,3 +1,6 @@
+import io
+import json
+
 import pandas as pd
 import pytest
 
@@ -88,3 +91,22 @@ def test_sensitivity_names_every_variant():
     names = [row["weights"] for row in sensitivity(shares)]
 
     assert len(names) == 6 and "workers only" in names and "without visitors" in names
+
+
+def test_finds_this_month_s_establishment_stock_in_parquet(monkeypatch):
+    titles = [
+        "Sirene : Fichier StockEtablissement - 01 octobre 2026",
+        "Sirene : Fichier StockEtablissement - 01 octobre 2026 (format parquet)",
+        "Sirene : Fichier StockEtablissementHistorique - 01 octobre 2026 (format parquet)",
+    ]
+    body = {
+        "resources": [
+            {"title": t, "url": f"u{i}", "last_modified": "2026-10-01T03:00"}
+            for i, t in enumerate(titles)
+        ]
+    }
+    monkeypatch.setattr(
+        sirene.urllib.request, "urlopen", lambda *a, **k: io.BytesIO(json.dumps(body).encode())
+    )
+
+    assert sirene.stock_release() == sirene.Release("u1", "2026-10-01")

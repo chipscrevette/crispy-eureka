@@ -74,13 +74,10 @@ def stock_release(api: str = DATASET_API) -> Release:
     """The current establishment stock in Parquet, from the dataset's resource list."""
     with urllib.request.urlopen(api, timeout=60) as res:
         resources = json.load(res)["resources"]
+    # titles read "Sirene : Fichier StockEtablissement - 01 octobre 2026 (format parquet)"
     for r in resources:
-        name = f"{r.get('title', '')} {r['url']}"
-        if (
-            "StockEtablissement_" in name
-            and "Historique" not in name
-            and r["url"].endswith(".parquet")
-        ):
+        title = r.get("title") or ""
+        if "Fichier StockEtablissement -" in title and "parquet" in title.lower():
             return Release(r["url"], (r.get("last_modified") or "")[:10])
     raise ValueError(f"no StockEtablissement parquet in {[r.get('title') for r in resources]}")
 
