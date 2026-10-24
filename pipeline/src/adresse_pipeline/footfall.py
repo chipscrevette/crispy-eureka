@@ -19,13 +19,14 @@ import igraph as ig
 import numpy as np
 import pandas as pd
 import scipy.sparse as sp
+import shapely
 
 from adresse_pipeline.walk import METRES_PER_MIN, ORIGIN, WalkGraph
 
 # About a 10-minute walk, the radius at which space syntax studies usually find local
 # pedestrian movement. Of 400, 800 and 1,600 m, it also follows the shops of each block best.
 RADIUS_M = 800.0
-# The map draws the busiest 5% of street pieces (about 17,000, 190 KB gzipped) in three steps.
+# The map draws the busiest 5% of street pieces in three steps: top 5%, 2% and 0.5%.
 MAP_LEVELS = (0.95, 0.98, 0.995)
 
 
@@ -69,26 +70,33 @@ def by_cell(streets: pd.DataFrame, cell_of: Callable[[float, float], str]) -> pd
 
 
 def to_geojson(streets: pd.DataFrame) -> dict:
-    """The busiest streets as lines, each with its level (1 to 3) and footfall index."""
+    """The busiest streets as lines, each with its level (1 to 3) and the footfall index every
+    piece of it reaches at least. Pieces of the same level that meet are joined into one line,
+    which keeps the file small and the map fast."""
     cuts = streets["walks"].quantile(list(MAP_LEVELS)).to_numpy()
+    median = streets["walks"].median()
     busy = streets[streets["walks"] >= cuts[0]]
-    level = np.searchsorted(cuts, busy["walks"].to_numpy(), side="right")
-    lon0, lat0 = to_lonlat(busy["x0"].to_numpy(), busy["y0"].to_numpy())
-    lon1, lat1 = to_lonlat(busy["x1"].to_numpy(), busy["y1"].to_numpy())
-    return {
-        "type": "FeatureCollection",
-        "features": [
-            {
-                "type": "Feature",
-                "properties": {"level": int(lv), "index": round(float(ix), 1)},
-                "geometry": {
-                    "type": "LineString",
-                    "coordinates": [
-                        [round(float(a), 5), round(float(b), 5)],
-                        [round(float(c), 5), round(float(d), 5)],
-                    ],
-                },
-            }
-            for lv, ix, a, b, c, d in zip(level, busy["index"], lon0, lat0, lon1, lat1, strict=True)
-        ],
-    }
+    levels = np.searchsorted(cuts, busy["walks"].to_numpy(), side="right")
+    features = []
+    for lv in (1, 2, 3):
+        part = busy[levels == lv]
+        pieces = shapely.MultiLineString(
+            [[(a, b), (c, d)] for a, b, c, d in part[["x0", "y0", "x1", "y1"]].to_numpy()]
+        )
+        for line in shapely.get_parts(shapely.line_merge(pieces)):
+            xy = shapely.get_coordinates(line)
+            lon, lat = to_lonlat(xy[:, 0], xy[:, 1])
+            features.append(
+                {
+                    "type": "Feature",
+                    "properties": {"level": lv, "index": round(float(cuts[lv - 1] / median), 1)},
+                    "geometry": {
+                        "type": "LineString",
+                        "coordinates": [
+                            [round(float(o), 5), round(float(a), 5)]
+                            for o, a in zip(lon, lat, strict=True)
+                        ],
+                    },
+                }
+            )
+    return {"type": "FeatureCollection", "features": features}

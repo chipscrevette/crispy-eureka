@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from scipy.sparse import coo_matrix
 
 from adresse_pipeline import footfall
@@ -41,3 +42,14 @@ def test_the_map_gets_only_the_busiest_streets_with_their_level():
     # with three pieces, only the middle one reaches the cuts, and it is the busiest of all
     assert [f["properties"] for f in lines] == [{"level": 3, "index": 1.3}]
     assert lines[0]["geometry"]["coordinates"][0] == [2.34837, 48.859]
+
+
+def test_touching_busy_pieces_of_one_level_become_one_line():
+    quiet = [(0.0, i * 50.0, 10.0, i * 50.0, i + 1.0) for i in range(100)]
+    busy = [(1000.0, 0.0, 1100.0, 0.0, 1000.0), (1100.0, 0.0, 1200.0, 0.0, 1000.0)]
+    streets = pd.DataFrame(quiet + busy, columns=["x0", "y0", "x1", "y1", "walks"])
+
+    top = [f for f in footfall.to_geojson(streets)["features"] if f["properties"]["level"] == 3]
+
+    assert len(top) == 1
+    assert len(top[0]["geometry"]["coordinates"]) == 3

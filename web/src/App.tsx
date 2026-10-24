@@ -26,7 +26,7 @@ import Plan from './Plan'
 import { NEW_BRAND, loadPlanner, type Backtest, type Planner } from './planner'
 import Dashboard from './Dashboard'
 import { entriesText, loadStations, type Stations } from './stations'
-import { footfallText, loadStreets, type Streets } from './streets'
+import { footfallText, loadStreets, streetTitle, type StreetProps, type Streets } from './streets'
 import {
   areaBars,
   bestPlaces,
@@ -685,8 +685,8 @@ export default function App() {
       const onStreets = m.getLayer('streets') && m.getLayoutProperty('streets', 'visibility') === 'visible'
       const street = onStreets ? m.queryRenderedFeatures(e.point, { layers: ['streets'] })[0] : undefined
       if (street) {
-        const index = (street.properties as { index: number }).index
-        return setTip({ x: e.point.x, y: e.point.y, title: 'Busy street', text: footfallText(index) })
+        const sp = street.properties as StreetProps
+        return setTip({ x: e.point.x, y: e.point.y, title: streetTitle(sp.level), text: footfallText(sp.index) })
       }
       const layers = ['grid-3d', 'grid-hit'].filter((l) => m.getLayoutProperty(l, 'visibility') !== 'none')
       const p = m.queryRenderedFeatures(e.point, { layers })[0]?.properties as CellProps | undefined
