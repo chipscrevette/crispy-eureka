@@ -25,6 +25,7 @@ import { demandLayers, loadDemand, withDemand, type Demand } from './demand'
 import Plan from './Plan'
 import { NEW_BRAND, loadPlanner, type Backtest, type Planner } from './planner'
 import Dashboard from './Dashboard'
+import { entriesText, loadStations, type Stations } from './stations'
 import {
   areaBars,
   bestPlaces,
@@ -152,6 +153,8 @@ export default function App() {
   const [searchNote, setSearchNote] = useState('')
   const pin = useRef<maplibregl.Marker | null>(null)
   const [ready, setReady] = useState(false)
+  const [stations, setStations] = useState<Stations | null>(null)
+  const [showStations, setShowStations] = useState(false)
   // a one-time hint on the map; storage can be blocked, so it falls back to showing once per visit
   const [hintSeen, setHintSeen] = useState(() => {
     try {
@@ -167,6 +170,11 @@ export default function App() {
     } catch {
       // nothing to remember the hint with; it stays closed for this visit
     }
+  }, [])
+
+  useEffect(() => {
+    // an extra layer: the map works without it
+    loadStations().then(setStations, () => setStations(null))
   }, [])
 
   useEffect(() => {
@@ -568,6 +576,41 @@ export default function App() {
     if (ready) map.current!.easeTo({ pitch: raised ? (phone() ? 40 : 50) : 0, bearing: raised ? -12 : 0, duration: 600 })
   }, [ready, raised])
 
+  // stations sit under the boutiques; the circle grows with the daily entries
+  useEffect(() => {
+    if (!ready || !stations) return
+    const m = map.current!
+    if (!m.getSource('stations')) {
+      m.addSource('stations', { type: 'geojson', data: stations })
+      const size = (small: number, big: number): ExpressionSpecification => [
+        'interpolate',
+        ['linear'],
+        ['sqrt', ['get', 'entries']],
+        30,
+        small,
+        300,
+        big,
+      ]
+      m.addLayer(
+        {
+          id: 'stations',
+          type: 'circle',
+          source: 'stations',
+          layout: { visibility: 'none' },
+          paint: {
+            'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, size(2, 7), 15, size(5, 16)],
+            'circle-color': cssVar('--ink'),
+            'circle-opacity': 0.75,
+            'circle-stroke-color': cssVar('--surface'),
+            'circle-stroke-width': 1.5,
+          },
+        },
+        'stores-halo',
+      )
+    }
+    m.setLayoutProperty('stations', 'visibility', showStations ? 'visible' : 'none')
+  }, [ready, stations, showStations])
+
   // the free spots are spread across Paris, so the map steps back to show them all
   useEffect(() => {
     if (!ready || !data || !fresh || cellA || plan !== null || ask !== null) return
@@ -592,6 +635,12 @@ export default function App() {
     const m = map.current!
     const onMove = (e: maplibregl.MapMouseEvent) => {
       const k = keyRef.current
+      const onStations = m.getLayer('stations') && m.getLayoutProperty('stations', 'visibility') === 'visible'
+      const station = onStations ? m.queryRenderedFeatures(e.point, { layers: ['stations'] })[0] : undefined
+      if (station) {
+        const sp = station.properties as { name: string; entries: number }
+        return setTip({ x: e.point.x, y: e.point.y, title: sp.name, text: entriesText(sp.entries) })
+      }
       const layers = ['grid-3d', 'grid-hit'].filter((l) => m.getLayoutProperty(l, 'visibility') !== 'none')
       const p = m.queryRenderedFeatures(e.point, { layers })[0]?.properties as CellProps | undefined
       if (!p || !k.key) return setTip(null)
@@ -923,6 +972,14 @@ export default function App() {
                   </span>
                 </span>
               )}
+              {showStations && stations && (
+                <span className="legend-row">
+                  <span className="legend-step">
+                    <span className="legend-dot legend-station" aria-hidden="true" />
+                    <span className="legend-word">Station: the bigger, the more people a day</span>
+                  </span>
+                </span>
+              )}
               <span className="legend-row">
                 <span className="legend-step">
                   <span className="legend-dot" style={{ background: profileColour(profile) }} aria-hidden="true" />
@@ -939,6 +996,12 @@ export default function App() {
                   3D
                 </button>
               </div>
+            )}
+            {stations && plan === null && ask === null && (
+              <button className="layer-toggle" aria-pressed={showStations} onClick={() => setShowStations((v) => !v)}>
+                <span className="legend-dot legend-station" aria-hidden="true" />
+                Stations
+              </button>
             )}
             {!hintSeen && !a && plan === null && ask === null && (
               <div className="hint" role="note">

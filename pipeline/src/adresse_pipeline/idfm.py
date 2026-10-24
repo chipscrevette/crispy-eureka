@@ -90,5 +90,21 @@ def stations(rows: Iterable[dict[str, str]], entries: dict[str, float]) -> list[
     return joined
 
 
+def to_geojson(stations: Iterable[Station]) -> dict:
+    """The stations as map points, busiest first, so the map draws the big ones on top."""
+    return {
+        "type": "FeatureCollection",
+        "period": VALIDATIONS_PERIOD,
+        "features": [
+            {
+                "type": "Feature",
+                "geometry": {"type": "Point", "coordinates": [round(s.lon, 5), round(s.lat, 5)]},
+                "properties": {"name": s.name, "entries": round(s.daily_entries)},
+            }
+            for s in sorted(stations, key=lambda s: s.daily_entries)
+        ],
+    }
+
+
 def _columns(rows: list[dict[str, str]]) -> list[str]:
     return sorted(rows[0]) if rows else []
