@@ -18,7 +18,13 @@
   Each profile has its own boutique colour: gold for jewellery, violet for fashion, rose for beauty. The selected block is coral. Tokens are in `web/src/palette.ts` and `web/src/styles.css`.
 - **Plain words.** Layers are called "Luxury potential", "Spending power", "Residents' income", "Metro & RER traffic" and "Property prices". The legend uses words ("Good", "Very good", "Excellent", "Best 5%"), and a tooltip follows the pointer.
 
-The v0 and v1 notes below are kept for history; where they differ, v2 wins.
+**v4 (2026-10-24), a modern PC app.** Kevin asked for a more modern look inspired by the best tools in the field (Placer.ai, Kepler.gl, Felt, and Linear-style product apps), designed for PC first:
+- **Layout.** The map fills the whole window. The top bar, the controls panel, the legend and the drawers float above it as glass cards with a 1 px hairline border. The map centre is shifted right of the panel.
+- **Themes.** Light ("porcelain": warm white `#f6f6f3`, ink `#0f1419`, teal accent `#0f766e`) and dark ("midnight": `#0a0e13`, surfaces `#121821`, mint accent `#5eead4`). The dark theme uses the OpenFreeMap dark basemap. The visitor switches with the sun/moon button; the choice is kept in the browser, else the system setting applies.
+- **Fonts.** Outfit for titles and figures, Figtree for text, both at weight 500.
+- **Phone.** No longer a target (Kevin, 2026-10-24); it must only not break.
+
+The v0 and v1 notes below are kept for history; where they differ, the latest version wins.
 
 ## Principles
 

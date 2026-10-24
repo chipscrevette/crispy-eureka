@@ -43,7 +43,8 @@ export function rampFor(key: string): Ramp {
   return RAMPS.score
 }
 
-export const isDark = () => window.matchMedia('(prefers-color-scheme: dark)').matches
+/** The theme index.html set from the visitor's choice or their system. */
+export const isDark = () => document.documentElement.dataset.theme === 'dark'
 export const coloursOf = (r: Ramp) => (isDark() ? r.dark : r.light)
 
 /** Profile colours, for boutique dots and the profile switch. */
