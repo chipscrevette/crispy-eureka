@@ -66,9 +66,11 @@ export function bestPlaces(grid: Grid, key: string, n = 3): TopBlock[] {
 
 /**
  * An open space: a block that looks like where the brand type already is, but has no luxury
- * boutique around it yet, people with money to spend, and shops on the street already.
+ * boutique around it yet, people with money to spend, shops on the street already, and at least
+ * one empty shopfront to move into (Apur's census of ground floors).
  */
-export const OPEN_RULE = { score: 85, spending: 100, shops: 20 }
+export const OPEN_RULE = { score: 85, spending: 100, shops: 20, empty: 1 }
+export const EMPTY = 'vacant_shops_r1'
 // catalogue boutiques of each profile in the block and its six neighbours, the same as the map's dots
 export const LUXURY = ['luxury_jewellery-watches_r1', 'luxury_fashion-house_r1', 'luxury_beauty_r1']
 export const openKey = (key: string) => `open_${key}`
@@ -81,7 +83,8 @@ export function withOpenSpaces(grid: Grid, keys: string[]): Grid {
     const base =
       LUXURY.every((k) => num(k) === 0) &&
       num('demand') >= OPEN_RULE.spending &&
-      num('fashion_stores_r1') + num('beauty_stores_r1') >= OPEN_RULE.shops
+      num('fashion_stores_r1') + num('beauty_stores_r1') >= OPEN_RULE.shops &&
+      num(EMPTY) >= OPEN_RULE.empty
     for (const k of keys) p[openKey(k)] = base && num(k) >= OPEN_RULE.score ? 1 : 0
   }
   return grid

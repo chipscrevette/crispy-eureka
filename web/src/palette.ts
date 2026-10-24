@@ -39,7 +39,7 @@ export function rampFor(key: string): Ramp {
   if (key.includes('living_standard') || key.includes('owners')) return RAMPS.income
   if (key.includes('transit') || key.includes('dining') || key.includes('hotels') || key.includes('culture'))
     return RAMPS.footfall
-  if (key.includes('price') || key.includes('sales')) return RAMPS.price
+  if (key.includes('price') || key.includes('sales') || key.includes('vacant')) return RAMPS.price
   return RAMPS.score
 }
 
