@@ -46,6 +46,7 @@ jobs:
           node scripts/demo-video.cjs "$RUNNER_TEMP/demo"
       - name: Convert to MP4
         run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null
           cd "$RUNNER_TEMP/demo"
           for f in demo-phone demo-desktop; do
             ffmpeg -v error -y -i "$f.webm" -c:v libx264 -pix_fmt yuv420p -crf 20 -movflags +faststart "$f.mp4"
