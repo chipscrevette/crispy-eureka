@@ -51,7 +51,7 @@ def test_refuses_a_stock_without_positions(tmp_path):
 
 def blocks(**columns):
     base = {"resident_income": [1.0] * 3, "workers": [1.0] * 3}
-    base |= {"hotels": [1.0] * 3, "station_entries": [1.0] * 3}
+    base |= {"hotels": [1.0] * 3}
     return Blocks(pd.DataFrame(base | columns, index=["a", "b", "c"]))
 
 
@@ -60,8 +60,7 @@ def test_each_group_is_a_share_of_paris():
 
     assert shares.sum().tolist() == pytest.approx([1, 1, 1])
     assert shares[Group.WORKERS]["b"] == pytest.approx(0.75)
-    # visitors: half from hotels (all in a), half from even station entries
-    assert shares[Group.VISITORS]["a"] == pytest.approx(0.5 + 1 / 6)
+    assert shares[Group.VISITORS]["a"] == 1
 
 
 def test_the_average_block_scores_100():

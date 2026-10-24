@@ -7,7 +7,11 @@ each group here has an open stand-in:
 
 - residents: the disposable income of the people living in the block (INSEE Filosofi);
 - workers: the people working in the block (Sirene headcount bands);
-- visitors: hotels (Overture) and station entries (Île-de-France Mobilités), half each.
+- visitors: hotels (Overture Maps).
+
+Station entries are left out on purpose. Most of them are commuters, already counted where
+they live and where they work, and a handful of rail hubs (Saint-Lazare, Gare de Lyon,
+Montparnasse) would otherwise top the whole index.
 
 Each group is turned into the block's share of the Paris total, so the units cancel out,
 and the groups are added with equal weights: nothing open tells us how much each group
@@ -41,7 +45,7 @@ LABELS = {
 INPUTS = {
     Group.RESIDENTS: "Disposable income of the residents (INSEE Filosofi, 200 m grid)",
     Group.WORKERS: "People working in the block, from Sirene headcount bands",
-    Group.VISITORS: "Hotels (Overture Maps) and daily station entries (IDFM), half each",
+    Group.VISITORS: "Hotels and lodgings (Overture Maps Places)",
 }
 EQUAL = {g: 1 / 3 for g in Group}
 TOP = 50
@@ -51,9 +55,9 @@ TOP = 50
 class Blocks:
     """Each block's own inputs, as `build` wrote them to paris_h3_blocks.csv."""
 
-    frame: pd.DataFrame  # index cell; columns resident_income, workers, hotels, station_entries
+    frame: pd.DataFrame  # index cell; columns resident_income, workers, hotels
 
-    REQUIRED = ("resident_income", "workers", "hotels", "station_entries")
+    REQUIRED = ("resident_income", "workers", "hotels")
 
     @classmethod
     def read(cls, path=OUTPUT / "paris_h3_blocks.csv") -> Blocks:
@@ -78,7 +82,7 @@ def group_shares(blocks: Blocks) -> pd.DataFrame:
         {
             Group.RESIDENTS: share(f["resident_income"]),
             Group.WORKERS: share(f["workers"]),
-            Group.VISITORS: (share(f["hotels"]) + share(f["station_entries"])) / 2,
+            Group.VISITORS: share(f["hotels"]),
         }
     )
 

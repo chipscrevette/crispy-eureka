@@ -27,7 +27,7 @@ export function demandLayers(d: Demand): FeatureInfo[] {
       key: DEMAND,
       label: 'Spending demand',
       unit: UNIT,
-      source: 'INSEE Filosofi, Sirene, Overture Maps, Île-de-France Mobilités',
+      source: 'INSEE Filosofi, INSEE Sirene, Overture Maps',
       description: `Residents' income, workers and visitors within the block, one third each`,
     },
     ...d.groups.map((g) => ({
