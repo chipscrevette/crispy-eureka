@@ -9,6 +9,7 @@ Code in this repository is MIT. Data keeps its original licence. Each layer we p
 | DVF, Demandes de valeurs foncières (DGFiP / Etalab) | Licence Ouverte 2.0 | "DGFiP, DVF" | In use, 2021–2025 (`web/public/data/paris_h3.geojson`) |
 | INSEE Filosofi, 200 m grid | Licence Ouverte 2.0 | "INSEE, Filosofi" | In use, Filosofi 2021 (`web/public/data/paris_h3.geojson`) |
 | Île-de-France Mobilités rail validations (Q4 2025) and station locations | Licence Ouverte 2.0 (via data.gouv.fr) | "Île-de-France Mobilités" | In use (`transit_entries_r2`) |
+| Overture Maps transportation segments (release 2026-10-21.0), walking network | ODbL (derived from OpenStreetMap) | "© OpenStreetMap contributors, Overture Maps Foundation" | In use: walking catchments (`pipeline/output/walk_times.parquet`, `web/public/data/catchments.json`) |
 | OpenStreetMap shops (Overpass API) | ODbL | "© OpenStreetMap contributors" | In use, cross-check only (`pipeline/output/boutique_crosscheck.json`) |
 | Google AlphaEarth Foundations satellite embeddings (annual 2025, public GCS bucket) | CC-BY 4.0 | "The AlphaEarth Foundations Satellite Embedding dataset is produced by Google and Google DeepMind." | In use: satellite benchmark (`pipeline/output/alphaearth_2025.csv`) |
 | Ai2 OlmoEarth models | OlmoEarth Artifact License: no military, surveillance, policing or extractive use; cite Ai2; pass these restrictions on to anyone using our derivatives | "OlmoEarth by Ai2" | In use: satellite benchmark (`pipeline/output/olmoearth_2025.csv`); the restrictions apply to that file |

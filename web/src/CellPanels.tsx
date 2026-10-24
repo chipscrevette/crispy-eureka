@@ -20,12 +20,14 @@ type CellScoreProps = {
   cell: CellProps
   profile: ProfileId
   scores: Scores
+  /** Blocks reachable on foot, drawn shaded on the map. */
+  walk?: { minutes: number; blocks: number }
   onCompare: () => void
   onMemo: () => void
   picking: boolean
 }
 
-export function CellScore({ cell, profile, scores, onCompare, onMemo, picking }: CellScoreProps) {
+export function CellScore({ cell, profile, scores, walk, onCompare, onMemo, picking }: CellScoreProps) {
   const entry = cellScore(scores, profile, cell.cell)
   if (!entry) return null
   const [score, drivers] = entry
@@ -39,6 +41,12 @@ export function CellScore({ cell, profile, scores, onCompare, onMemo, picking }:
       <p className="muted small">
         {profileLabel(profile)} opportunity: this block {rankText(score)}.
       </p>
+      {walk && walk.blocks > 0 && (
+        <p className="muted small walk-note">
+          <span className="walk-swatch" aria-hidden="true" /> {walk.blocks} blocks are within a {walk.minutes}-minute
+          walk along the streets.
+        </p>
+      )}
       <h3 className="label">What drives it</h3>
       <p className="muted small">Teal bars raise the score, grey bars lower it.</p>
       <ul className="drivers">

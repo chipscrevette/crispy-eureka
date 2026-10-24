@@ -10,6 +10,7 @@ import Memo from './Memo'
 import Method from './Method'
 import Ask from './Ask'
 import { loadAnswers, type AskAnswer } from './answers'
+import { loadCatchments, reachOf, type Catchments } from './catchments'
 
 const PARIS: [number, number] = [2.3325, 48.8665]
 const BASEMAP: string | StyleSpecification =
@@ -29,7 +30,7 @@ const BASEMAP: string | StyleSpecification =
 const RAMP_OPACITY = [0.06, 0.2, 0.36, 0.54, 0.74]
 const SCORE = 'score'
 
-type Data = { stores: Stores; grid: Grid; meta: GridMeta; scores: Scores }
+type Data = { stores: Stores; grid: Grid; meta: GridMeta; scores: Scores; catchments: Catchments }
 type Hover = { arrondissement?: string; value?: number }
 
 function cssVar(name: string) {
@@ -65,22 +66,26 @@ export default function App() {
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    Promise.all([loadStores(), loadGrid(), loadGridMeta(), loadScores()]).then(
-      ([stores, grid, meta, scores]) => setData({ stores, grid: withScores(grid, scores), meta, scores }),
+    Promise.all([loadStores(), loadGrid(), loadGridMeta(), loadScores(), loadCatchments()]).then(
+      ([stores, grid, meta, scores, catchments]) =>
+        setData({ stores, grid: withScores(grid, scores), meta, scores, catchments }),
       (e: Error) => setError(e.message),
     )
   }, [])
 
   useEffect(() => {
     if (!container.current || !data) return
+    // a shared link opens on its block, not on the city centre
+    const shared = initial.a ? data.grid.features.find((f) => f.properties.cell === initial.a) : undefined
     const m = new maplibregl.Map({
       container: container.current,
       style: BASEMAP,
-      center: PARIS,
+      center: shared ? centroid(shared.geometry.coordinates[0]) : PARIS,
       zoom: 13.2,
       attributionControl: {
         compact: true,
-        customAttribution: 'Places © Overture Maps Foundation · INSEE · DGFiP · Île-de-France Mobilités',
+        customAttribution:
+          'Places and streets © Overture Maps Foundation, OpenStreetMap contributors · INSEE · DGFiP · Île-de-France Mobilités',
       },
     })
     map.current = m
@@ -104,6 +109,13 @@ export default function App() {
         type: 'fill',
         source: 'grid',
         paint: { 'fill-opacity': 0 },
+      })
+      m.addLayer({
+        id: 'grid-catchment',
+        type: 'fill',
+        source: 'grid',
+        filter: ['in', ['get', 'cell'], ['literal', []]],
+        paint: { 'fill-color': cssVar('--ink'), 'fill-opacity': 0.14 },
       })
       m.addLayer({
         id: 'grid-answer',
@@ -191,7 +203,7 @@ export default function App() {
       setReady(false)
       m.remove()
     }
-  }, [data])
+  }, [data, initial.a])
 
   useEffect(() => {
     if (ready) map.current!.setFilter('stores-profile', ['==', ['get', 'profile'], profile])
@@ -205,7 +217,9 @@ export default function App() {
     if (!ready) return
     map.current!.setFilter('grid-selected', ['==', ['get', 'cell'], cellA ?? ''])
     map.current!.setFilter('grid-compare', ['==', ['get', 'cell'], cellB ?? ''])
-  }, [ready, cellA, cellB])
+    const reach = cellA && !cellB && data ? reachOf(data.catchments, cellA) : []
+    map.current!.setFilter('grid-catchment', ['in', ['get', 'cell'], ['literal', reach]])
+  }, [ready, cellA, cellB, data])
 
   useEffect(() => {
     if (ready) map.current!.setFilter('grid-answer', ['in', ['get', 'cell'], ['literal', answerCells]])
@@ -439,6 +453,7 @@ export default function App() {
             {a && !b && (
               <CellScore
                 cell={a}
+                walk={{ minutes: data.catchments.minutes, blocks: reachOf(data.catchments, a.cell).length }}
                 profile={profile}
                 scores={data.scores}
                 picking={picking}
