@@ -829,3 +829,26 @@ optgroup { font-style: normal; }
 @media (max-width: 760px) {
   .map-legend > .legend-row:last-child { display: none; }
 }
+
+/* two-way switch inside a guide step */
+.seg {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  padding: 4px;
+  margin-bottom: 10px;
+  background: var(--seine-soft);
+  border-radius: 999px;
+}
+.seg button {
+  padding: 8px 10px;
+  font: var(--weight) 0.85rem var(--display);
+  color: var(--muted);
+  background: none;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.seg button[aria-pressed='true'] { color: var(--surface); background: var(--ink); }
+.seg button:focus-visible { outline: 2px solid var(--seine); outline-offset: 2px; }
+.answer strong { color: var(--ink); }
