@@ -1,7 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import maplibregl, { type ExpressionSpecification, type StyleSpecification } from 'maplibre-gl'
 import { PROFILES, countByProfile, loadStores, type ProfileId, type StoreProps, type Stores } from './stores'
-import { formatValue, loadGrid, loadGridMeta, quantileBreaks, type CellProps, type Grid, type GridMeta } from './grid'
+import {
+  formatValue,
+  loadGrid,
+  loadGridMeta,
+  quantileBreaks,
+  type CellProps,
+  type FeatureInfo,
+  type Grid,
+  type GridMeta,
+} from './grid'
 import { SCORE_BREAKS, loadScores, ordinal, scoreKey, withScores, type Scores } from './scores'
 import { CellScore, Compare } from './CellPanels'
 import { cellIndex, centroid } from './geo'
@@ -11,6 +20,7 @@ import Method from './Method'
 import Ask from './Ask'
 import { loadAnswers, type AskAnswer } from './answers'
 import { loadCatchments, reachOf, type Catchments } from './catchments'
+import { demandLayers, loadDemand, withDemand } from './demand'
 
 const PARIS: [number, number] = [2.3325, 48.8665]
 const BASEMAP: string | StyleSpecification =
@@ -30,7 +40,14 @@ const BASEMAP: string | StyleSpecification =
 const RAMP_OPACITY = [0.06, 0.2, 0.36, 0.54, 0.74]
 const SCORE = 'score'
 
-type Data = { stores: Stores; grid: Grid; meta: GridMeta; scores: Scores; catchments: Catchments }
+type Data = {
+  stores: Stores
+  grid: Grid
+  meta: GridMeta
+  scores: Scores
+  catchments: Catchments
+  demand: FeatureInfo[]
+}
 type Hover = { arrondissement?: string; value?: number }
 
 function cssVar(name: string) {
@@ -66,9 +83,16 @@ export default function App() {
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    Promise.all([loadStores(), loadGrid(), loadGridMeta(), loadScores(), loadCatchments()]).then(
-      ([stores, grid, meta, scores, catchments]) =>
-        setData({ stores, grid: withScores(grid, scores), meta, scores, catchments }),
+    Promise.all([loadStores(), loadGrid(), loadGridMeta(), loadScores(), loadCatchments(), loadDemand()]).then(
+      ([stores, grid, meta, scores, catchments, demand]) =>
+        setData({
+          stores,
+          grid: withDemand(withScores(grid, scores), demand),
+          meta,
+          scores,
+          catchments,
+          demand: demandLayers(demand),
+        }),
       (e: Error) => setError(e.message),
     )
   }, [])
@@ -275,7 +299,9 @@ export default function App() {
     () => (isScore ? SCORE_BREAKS : data && key ? quantileBreaks(data.grid, key) : []),
     [data, key, isScore],
   )
-  const info = isScore ? undefined : data?.meta.features.find((f) => f.key === layer)
+  const info = isScore
+    ? undefined
+    : [...(data?.meta.features ?? []), ...(data?.demand ?? [])].find((f) => f.key === layer)
 
   useEffect(() => {
     if (!ready) return
@@ -386,6 +412,13 @@ export default function App() {
           <select id="layer" value={layer} onChange={(e) => setLayer(e.target.value)} disabled={!data}>
             <option value={SCORE}>Opportunity score</option>
             <option value="">None</option>
+            <optgroup label="Spending demand">
+              {data?.demand.map((f) => (
+                <option key={f.key} value={f.key}>
+                  {f.label}
+                </option>
+              ))}
+            </optgroup>
             <optgroup label="Neighbourhood data">
               {data?.meta.features.map((f) => (
                 <option key={f.key} value={f.key}>
