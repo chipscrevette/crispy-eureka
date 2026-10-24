@@ -1,0 +1,62 @@
+name: Demo video
+
+# Records the scripted walkthrough (web/scripts/demo-video.cjs) against a production
+# build with the real basemap, converts it to MP4 for LinkedIn, and pushes the files
+# to the `demo-video` branch so they can be downloaded or reviewed.
+
+on:
+  workflow_dispatch:
+  push:
+    branches-ignore: [main, demo-video]
+    paths:
+      - web/scripts/demo-video.cjs
+      - .github/workflows/demo.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: demo-video
+  cancel-in-progress: true
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - name: Install a browser
+        run: |
+          npm i --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Record
+        run: |
+          npx vite preview --port 4180 --strictPort &
+          npx wait-on -t 60000 http://localhost:4180/ 2>/dev/null || sleep 8
+          node scripts/demo-video.cjs "$RUNNER_TEMP/demo"
+      - name: Convert to MP4
+        run: |
+          cd "$RUNNER_TEMP/demo"
+          for f in demo-phone demo-desktop; do
+            ffmpeg -v error -y -i "$f.webm" -c:v libx264 -pix_fmt yuv420p -crf 20 -movflags +faststart "$f.mp4"
+          done
+          ls -la
+      - name: Push to the demo-video branch
+        run: |
+          cd "$RUNNER_TEMP/demo"
+          git init -q -b demo-video
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add *.mp4
+          git commit -q -m "Demo video from ${GITHUB_SHA::7}"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" demo-video
