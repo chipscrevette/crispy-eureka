@@ -29,6 +29,7 @@ SEEDS = (7, 11, 23, 42, 101)
 CANDIDATES = {
     "upscale hotel rooms": ["upscale_rooms_r1"],
     "international tourist zones": ["tourist_zone_r1"],
+    "street footfall": ["street_footfall"],
 }
 OVERLAYS = OUTPUT / "paris_h3_overlays.csv"
 

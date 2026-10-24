@@ -1,0 +1,55 @@
+import numpy as np
+import pandas as pd
+from scipy.sparse import coo_matrix
+
+from adresse_pipeline import footfall
+from adresse_pipeline.walk import METRES_PER_MIN, WalkGraph
+
+
+def street(n: int, metres: float = 100.0) -> WalkGraph:
+    """A straight street of n nodes, `metres` apart, as `walk.build_graph` stores it."""
+    a = np.arange(n - 1)
+    minutes = np.full(n - 1, metres / METRES_PER_MIN)
+    edges = coo_matrix((minutes, (a, a + 1)), shape=(n, n)).tocsr()
+    return WalkGraph(edges, np.column_stack([np.arange(n) * metres, np.zeros(n)]))
+
+
+def test_the_middle_of_a_street_carries_the_most_walks():
+    walks = footfall.street_betweenness(street(4), radius=1000)["walks"].tolist()
+
+    # 0-1 lies on the walks from 0 to 1, 2, 3; 1-2 on every walk crossing the middle
+    assert walks == [3, 4, 3]
+
+
+def test_walks_longer_than_the_radius_do_not_count():
+    walks = footfall.street_betweenness(street(4), radius=150)["walks"].tolist()
+
+    assert walks == [1, 1, 1]
+    assert footfall.street_betweenness(street(4))["metres"].tolist() == [100, 100, 100]
+
+
+def test_each_block_gets_its_busiest_street_as_a_multiple_of_the_median():
+    streets = footfall.street_betweenness(street(4), radius=1000)
+    cells = footfall.by_cell(streets, lambda lon, lat: "east" if lon > 2.3488 else "west")
+
+    assert cells.to_dict() == {"east": 4 / 3, "west": 1.0}
+
+
+def test_the_map_gets_only_the_busiest_streets_with_their_level():
+    streets = footfall.street_betweenness(street(4), radius=1000)
+    lines = footfall.to_geojson(streets)["features"]
+
+    # with three pieces, only the middle one reaches the cuts, and it is the busiest of all
+    assert [f["properties"] for f in lines] == [{"level": 3, "index": 1.3}]
+    assert lines[0]["geometry"]["coordinates"][0] == [2.34837, 48.859]
+
+
+def test_touching_busy_pieces_of_one_level_become_one_line():
+    quiet = [(0.0, i * 50.0, 10.0, i * 50.0, i + 1.0) for i in range(100)]
+    busy = [(1000.0, 0.0, 1100.0, 0.0, 1000.0), (1100.0, 0.0, 1200.0, 0.0, 1000.0)]
+    streets = pd.DataFrame(quiet + busy, columns=["x0", "y0", "x1", "y1", "walks"])
+
+    top = [f for f in footfall.to_geojson(streets)["features"] if f["properties"]["level"] == 3]
+
+    assert len(top) == 1
+    assert len(top[0]["geometry"]["coordinates"]) == 3

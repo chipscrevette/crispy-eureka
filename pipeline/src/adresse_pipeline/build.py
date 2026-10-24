@@ -4,7 +4,7 @@
 
 Writes the boutique layer and the H3 grid to web/public/data/, and the grid's
 feature table and the boutique cross-check to pipeline/output/. `--skip dvf insee
-idfm osm sirene apur hotels` builds without those sources (for machines that can't reach data.gouv.fr,
+idfm osm sirene apur hotels footfall` builds without those sources (for machines that can't reach data.gouv.fr,
 insee.fr, data.iledefrance-mobilites.fr, the Overpass API, carto2.apur.org or the BAN geocoder); their features are then
 left empty.
 
@@ -25,7 +25,7 @@ import h3
 from shapely.geometry import Point
 from shapely.ops import unary_union
 
-from adresse_pipeline import apur, dvf, hotels, idfm, insee, osm, sirene
+from adresse_pipeline import apur, dvf, footfall, hotels, idfm, insee, osm, sirene
 from adresse_pipeline.brands import Catalogue, Profile
 from adresse_pipeline.download import fetch
 from adresse_pipeline.features import (
@@ -39,6 +39,7 @@ from adresse_pipeline.features import (
     OVERLAYS,
     OVERTURE,
     SIRENE,
+    STREETS,
     as_json,
 )
 from adresse_pipeline.grid import (
@@ -51,8 +52,9 @@ from adresse_pipeline.grid import (
 )
 from adresse_pipeline.luxury_stores import CATALOGUE, find_stores, to_geojson
 from adresse_pipeline.overture import PARIS_PADDED, read_paris_areas, read_places
+from adresse_pipeline.walk import build_graph, read_segments
 
-SKIPPABLE = ["dvf", "insee", "idfm", "osm", "sirene", "apur", "hotels"]
+SKIPPABLE = ["dvf", "insee", "idfm", "osm", "sirene", "apur", "hotels", "footfall"]
 
 ROOT = Path(__file__).resolve().parents[3]
 WEB_DATA = ROOT / "web" / "public" / "data"
@@ -172,6 +174,20 @@ def main() -> None:
         (WEB_DATA / "stations.geojson").write_text(
             json.dumps(idfm.to_geojson(stations), ensure_ascii=False, separators=(",", ":"))
         )
+
+    if "footfall" not in args.skip:
+        streets = footfall.street_betweenness(build_graph(read_segments(args.overture_release)))
+        columns["street_footfall"] = (
+            footfall.by_cell(streets, cell_of).reindex(list(cells)).fillna(0).to_dict()
+        )
+        lines = footfall.to_geojson(streets)
+        print(
+            f"footfall: {len(streets):,} street pieces, walks of up to {footfall.RADIUS_M:g} m; "
+            f"{len(lines['features']):,} busiest drawn on the map"
+        )
+        sources.append(f"{STREETS}, release {args.overture_release}")
+        WEB_DATA.mkdir(parents=True, exist_ok=True)
+        (WEB_DATA / "streets.geojson").write_text(json.dumps(lines, separators=(",", ":")))
 
     if "hotels" not in args.skip:
         classified = list(hotels.paris_hotels(hotels.read_register(fetch(hotels.REGISTER_URL))))

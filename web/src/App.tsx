@@ -26,6 +26,7 @@ import Plan from './Plan'
 import { NEW_BRAND, loadPlanner, type Backtest, type Planner } from './planner'
 import Dashboard from './Dashboard'
 import { entriesText, loadStations, type Stations } from './stations'
+import { footfallText, loadStreets, streetTitle, type StreetProps, type Streets } from './streets'
 import {
   areaBars,
   bestPlaces,
@@ -155,6 +156,8 @@ export default function App() {
   const [ready, setReady] = useState(false)
   const [stations, setStations] = useState<Stations | null>(null)
   const [showStations, setShowStations] = useState(false)
+  const [streets, setStreets] = useState<Streets | null>(null)
+  const [showStreets, setShowStreets] = useState(false)
   // a one-time hint on the map; storage can be blocked, so it falls back to showing once per visit
   const [hintSeen, setHintSeen] = useState(() => {
     try {
@@ -414,6 +417,8 @@ export default function App() {
   )
 
   const cells = useMemo(() => (data ? cellIndex(data.grid) : null), [data])
+  // the street layer exists once the data build has estimated street footfall
+  const hasStreets = !!data && typeof data.grid.features[0]?.properties.street_footfall === 'number'
   const a = (cellA && cells?.get(cellA)?.properties) || null
   const b = (cellB && cells?.get(cellB)?.properties) || null
   // which block each boutique stands in, for counting the boutiques a walk reaches
@@ -611,6 +616,42 @@ export default function App() {
     m.setLayoutProperty('stations', 'visibility', showStations ? 'visible' : 'none')
   }, [ready, stations, showStations])
 
+  // the busiest streets, loaded the first time the layer is turned on; lines thicken with footfall
+  useEffect(() => {
+    if (showStreets && !streets) loadStreets().then(setStreets, () => setStreets(null))
+  }, [showStreets, streets])
+  useEffect(() => {
+    if (!ready || !streets) return
+    const m = map.current!
+    if (!m.getSource('streets')) {
+      m.addSource('streets', { type: 'geojson', data: streets })
+      const ramp = coloursOf(rampFor('street_footfall'))
+      m.addLayer(
+        {
+          id: 'streets',
+          type: 'line',
+          source: 'streets',
+          layout: { visibility: 'none', 'line-cap': 'round' },
+          paint: {
+            'line-color': ['match', ['get', 'level'], 3, ramp[4], 2, ramp[3], ramp[2]],
+            'line-width': [
+              'interpolate',
+              ['linear'],
+              ['zoom'],
+              11,
+              ['match', ['get', 'level'], 3, 2, 2, 1.2, 0.6],
+              16,
+              ['match', ['get', 'level'], 3, 7, 2, 4.5, 2.5],
+            ],
+            'line-opacity': 0.9,
+          },
+        },
+        'stores-halo',
+      )
+    }
+    m.setLayoutProperty('streets', 'visibility', showStreets ? 'visible' : 'none')
+  }, [ready, streets, showStreets])
+
   // the free spots are spread across Paris, so the map steps back to show them all
   useEffect(() => {
     if (!ready || !data || !fresh || cellA || plan !== null || ask !== null) return
@@ -640,6 +681,12 @@ export default function App() {
       if (station) {
         const sp = station.properties as { name: string; entries: number }
         return setTip({ x: e.point.x, y: e.point.y, title: sp.name, text: entriesText(sp.entries) })
+      }
+      const onStreets = m.getLayer('streets') && m.getLayoutProperty('streets', 'visibility') === 'visible'
+      const street = onStreets ? m.queryRenderedFeatures(e.point, { layers: ['streets'] })[0] : undefined
+      if (street) {
+        const sp = street.properties as StreetProps
+        return setTip({ x: e.point.x, y: e.point.y, title: streetTitle(sp.level), text: footfallText(sp.index) })
       }
       const layers = ['grid-3d', 'grid-hit'].filter((l) => m.getLayoutProperty(l, 'visibility') !== 'none')
       const p = m.queryRenderedFeatures(e.point, { layers })[0]?.properties as CellProps | undefined
@@ -973,6 +1020,14 @@ export default function App() {
                   </span>
                 </span>
               )}
+              {showStreets && streets && (
+                <span className="legend-row">
+                  <span className="legend-step">
+                    <span className="legend-line" aria-hidden="true" />
+                    <span className="legend-word">Busy street: the thicker, the more people walk past</span>
+                  </span>
+                </span>
+              )}
               {showStations && stations && (
                 <span className="legend-row">
                   <span className="legend-step">
@@ -998,11 +1053,21 @@ export default function App() {
                 </button>
               </div>
             )}
-            {stations && plan === null && ask === null && (
-              <button className="layer-toggle" aria-pressed={showStations} onClick={() => setShowStations((v) => !v)}>
-                <span className="legend-dot legend-station" aria-hidden="true" />
-                Stations
-              </button>
+            {plan === null && ask === null && (
+              <div className="layer-toggles" role="group" aria-label="Extra map layers">
+                {stations && (
+                  <button className="layer-toggle" aria-pressed={showStations} onClick={() => setShowStations((v) => !v)}>
+                    <span className="legend-dot legend-station" aria-hidden="true" />
+                    Stations
+                  </button>
+                )}
+                {hasStreets && (
+                  <button className="layer-toggle" aria-pressed={showStreets} onClick={() => setShowStreets((v) => !v)}>
+                    <span className="legend-line" aria-hidden="true" />
+                    Busy streets
+                  </button>
+                )}
+              </div>
             )}
             {!hintSeen && !a && plan === null && ask === null && (
               <div className="hint" role="note">
