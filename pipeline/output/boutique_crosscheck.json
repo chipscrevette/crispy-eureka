@@ -234,6 +234,13 @@
    "lat": 48.8711859
   },
   {
+   "brand": "Hermès",
+   "name": "Hermès",
+   "osm": "node/14314688500",
+   "lon": 2.3039962,
+   "lat": 48.8713034
+  },
+  {
    "brand": "Jaeger-LeCoultre",
    "name": "Jaeger-LeCoultre",
    "osm": "node/3584325051",

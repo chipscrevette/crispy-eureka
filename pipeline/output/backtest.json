@@ -2,7 +2,7 @@
  "within_minutes": 5.0,
  "suitable": 80.0,
  "folds": 5,
- "positives": "overture",
+ "positives": "overture+osm",
  "gammas": [
   0.0,
   0.5,
@@ -22,10 +22,10 @@
    "brands": 26,
    "boutique_blocks": 84,
    "found_percent": {
-    "planner": 52.4,
-    "huff alone": 52.4,
+    "planner": 46.4,
+    "huff alone": 46.4,
+    "lookalike": 26.2,
     "demand": 23.8,
-    "lookalike": 20.2,
     "luxury neighbours": 10.7,
     "random": 0.9
    },
@@ -46,7 +46,7 @@
     ],
     "3": [
      0.5,
-     10.0
+     100.0
     ],
     "4": [
      0.5,
@@ -67,7 +67,7 @@
     {
      "gamma": 0.0,
      "outside": 100.0,
-     "found_percent": 10.7
+     "found_percent": 11.9
     },
     {
      "gamma": 0.0,
@@ -87,7 +87,7 @@
     {
      "gamma": 0.5,
      "outside": 10.0,
-     "found_percent": 52.4
+     "found_percent": 48.8
     },
     {
      "gamma": 0.5,
@@ -97,7 +97,7 @@
     {
      "gamma": 0.5,
      "outside": 1000.0,
-     "found_percent": 39.3
+     "found_percent": 41.7
     },
     {
      "gamma": 0.5,
@@ -107,7 +107,7 @@
     {
      "gamma": 1.0,
      "outside": 1.0,
-     "found_percent": 10.7
+     "found_percent": 9.5
     },
     {
      "gamma": 1.0,
@@ -117,7 +117,7 @@
     {
      "gamma": 1.0,
      "outside": 100.0,
-     "found_percent": 50.0
+     "found_percent": 48.8
     },
     {
      "gamma": 1.0,
@@ -132,12 +132,12 @@
     {
      "gamma": 1.5,
      "outside": 1.0,
-     "found_percent": 17.9
+     "found_percent": 11.9
     },
     {
      "gamma": 1.5,
      "outside": 10.0,
-     "found_percent": 34.5
+     "found_percent": 35.7
     },
     {
      "gamma": 1.5,
@@ -147,7 +147,7 @@
     {
      "gamma": 1.5,
      "outside": 1000.0,
-     "found_percent": 41.7
+     "found_percent": 44.0
     },
     {
      "gamma": 1.5,
@@ -167,12 +167,12 @@
     {
      "gamma": 2.0,
      "outside": 100.0,
-     "found_percent": 40.5
+     "found_percent": 41.7
     },
     {
      "gamma": 2.0,
      "outside": 1000.0,
-     "found_percent": 46.4
+     "found_percent": 47.6
     },
     {
      "gamma": 2.0,
@@ -187,9 +187,9 @@
    "found_percent": {
     "planner": 29.2,
     "huff alone": 29.2,
-    "lookalike": 23.4,
+    "lookalike": 22.8,
     "demand": 19.3,
-    "luxury neighbours": 16.4,
+    "luxury neighbours": 18.7,
     "random": 1.0
    },
    "gamma": 1.5,
@@ -220,37 +220,37 @@
     {
      "gamma": 0.0,
      "outside": 1.0,
-     "found_percent": 0.6
-    },
-    {
-     "gamma": 0.0,
-     "outside": 10.0,
      "found_percent": 1.2
     },
     {
      "gamma": 0.0,
+     "outside": 10.0,
+     "found_percent": 1.8
+    },
+    {
+     "gamma": 0.0,
      "outside": 100.0,
-     "found_percent": 4.7
+     "found_percent": 5.3
     },
     {
      "gamma": 0.0,
      "outside": 1000.0,
-     "found_percent": 8.8
+     "found_percent": 8.2
     },
     {
      "gamma": 0.0,
      "outside": 10000.0,
-     "found_percent": 8.8
+     "found_percent": 8.2
     },
     {
      "gamma": 0.5,
      "outside": 1.0,
-     "found_percent": 2.9
+     "found_percent": 3.5
     },
     {
      "gamma": 0.5,
      "outside": 10.0,
-     "found_percent": 24.0
+     "found_percent": 25.1
     },
     {
      "gamma": 0.5,
@@ -260,12 +260,12 @@
     {
      "gamma": 0.5,
      "outside": 1000.0,
-     "found_percent": 24.0
+     "found_percent": 24.6
     },
     {
      "gamma": 0.5,
      "outside": 10000.0,
-     "found_percent": 22.8
+     "found_percent": 23.4
     },
     {
      "gamma": 1.0,
@@ -275,12 +275,12 @@
     {
      "gamma": 1.0,
      "outside": 10.0,
-     "found_percent": 23.4
+     "found_percent": 22.8
     },
     {
      "gamma": 1.0,
      "outside": 100.0,
-     "found_percent": 28.1
+     "found_percent": 27.5
     },
     {
      "gamma": 1.0,
@@ -295,7 +295,7 @@
     {
      "gamma": 1.5,
      "outside": 1.0,
-     "found_percent": 16.4
+     "found_percent": 15.8
     },
     {
      "gamma": 1.5,
@@ -320,12 +320,12 @@
     {
      "gamma": 2.0,
      "outside": 1.0,
-     "found_percent": 16.4
+     "found_percent": 15.8
     },
     {
      "gamma": 2.0,
      "outside": 10.0,
-     "found_percent": 23.4
+     "found_percent": 24.0
     },
     {
      "gamma": 2.0,
@@ -348,23 +348,23 @@
    "brands": 12,
    "boutique_blocks": 54,
    "found_percent": {
-    "lookalike": 14.8,
+    "lookalike": 16.7,
     "demand": 14.8,
-    "luxury neighbours": 9.3,
     "planner": 7.4,
     "huff alone": 7.4,
+    "luxury neighbours": 7.4,
     "random": 1.0
    },
    "gamma": 0.5,
-   "outside": 10.0,
+   "outside": 100.0,
    "setting_by_fold": {
     "0": [
      0.5,
      100.0
     ],
     "1": [
-     0.5,
-     10.0
+     1.5,
+     1.0
     ],
     "2": [
      1.5,
@@ -413,7 +413,7 @@
     {
      "gamma": 0.5,
      "outside": 10.0,
-     "found_percent": 14.8
+     "found_percent": 13.0
     },
     {
      "gamma": 0.5,
@@ -423,12 +423,12 @@
     {
      "gamma": 0.5,
      "outside": 1000.0,
-     "found_percent": 13.0
+     "found_percent": 14.8
     },
     {
      "gamma": 0.5,
      "outside": 10000.0,
-     "found_percent": 13.0
+     "found_percent": 14.8
     },
     {
      "gamma": 1.0,
@@ -468,7 +468,7 @@
     {
      "gamma": 1.5,
      "outside": 100.0,
-     "found_percent": 9.3
+     "found_percent": 11.1
     },
     {
      "gamma": 1.5,
