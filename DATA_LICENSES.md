@@ -11,5 +11,6 @@ Code in this repository is MIT. Data keeps its original licence. Each layer we p
 | Île-de-France Mobilités rail validations (Q4 2025) and station locations | Licence Ouverte 2.0 (via data.gouv.fr) | "Île-de-France Mobilités" | In use (`transit_entries_r2`) |
 | OpenStreetMap shops (Overpass API) | ODbL | "© OpenStreetMap contributors" | In use, cross-check only (`pipeline/output/boutique_crosscheck.json`) |
 | Google AlphaEarth Foundations satellite embeddings (annual 2025, public GCS bucket) | CC-BY 4.0 | "The AlphaEarth Foundations Satellite Embedding dataset is produced by Google and Google DeepMind." | In use: satellite benchmark (`pipeline/output/alphaearth_2025.csv`) |
-| Ai2 OlmoEarth models | OlmoEarth Artifact License: no military, surveillance, policing or extractive use; cite Ai2; pass these restrictions on to anyone using our derivatives | "Ai2 OlmoEarth" | Planned (Week 6) |
+| Ai2 OlmoEarth models | OlmoEarth Artifact License: no military, surveillance, policing or extractive use; cite Ai2; pass these restrictions on to anyone using our derivatives | "OlmoEarth by Ai2" | In use: satellite benchmark (`pipeline/output/olmoearth_2025.csv`); the restrictions apply to that file |
+| Copernicus Sentinel-2 L2A (2025, via Microsoft Planetary Computer) | Copernicus open data licence | "Contains modified Copernicus Sentinel data 2025" | In use: input to OlmoEarth only, images are not redistributed |
 | Brand catalogue (`pipeline/data/luxury_brands.csv`) | Our own curation; Wikidata IDs are CC0 | None | In use |
