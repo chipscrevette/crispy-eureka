@@ -1,11 +1,25 @@
-== data.gouv hebergements classes
-59c36c6a88ee3826d5998a35	Hébergements touristiques classés en France	ATOUT FRANCE - Agence de développement touristique de la France	2026-10-22T04:00:05+00:00	fr-lo
-== zti dataset meta
-{"license":"Open Database License (ODbL)","publisher":"Direction de l'Urbanisme - Ville de Paris","fields":["name","type","_timestamp","_uid","source","_user","_version","boundary","_changeset","_id","geo_point_2d","geo_shape"]}
-== apur zones layer 4
-[{"nom":"Champs Elysées-Montaigne","c_type":"ZTI","id_secteur":6},{"nom":"Palais des Congrès","c_type":"ZTI","id_secteur":17},{"nom":"Rue d'Arcole","c_type":"ZT","id_secteur":104},{"nom":"Avenue Daumesnil","c_type":"ZT","id_secteur":106},{"nom":"Bercy-Saint Emilion","c_type":"ZT","id_secteur":120},{"nom":"Quartier de la Villette","c_type":"ZT","id_secteur":121},{"nom":"Italie 2","c_type":"ZC","id_secteur":201},{"nom":"Gare Saint-Lazare","c_type":"GF","id_secteur":501},{"nom":"Gare de l'Est","c_type":"GF","id_secteur":503},{"nom":"Gare du Nord","c_type":"GF","id_secteur":502},{"nom":"Gare de Lyon","c_type":"GF","id_secteur":504},{"nom":"Gare d'Austerlitz","c_type":"GF","id_secteur":505},{"nom":"Gare Montparnasse","c_type":"GF","id_secteur":506},{"nom":"Montmartre","c_type":"ZTI","id_secteur":18},{"nom":"Beaugrenelle","c_type":"ZTI","id_secteur":16},{"nom":"Saint Honoré\r\nVendôme","c_type":"ZTI","id_secteur":1},{"nom":"Haussmann","c_type":"ZTI","id_secteur":8},{"nom":"Les Halles","c_type":"ZTI","id_secteur":3},{"nom":"Le Marais","c_type":"ZTI","id_secteur":2},{"nom":"Saint Germain","c_type":"ZTI","id_secteur":5},{"nom":"Rennes-Saint Sulpice","c_type":"ZTI","id_secteur":4}]
-== paris hotels datasets
-exclusion-sans-domicilisme0	Exclusion / sans abrisme : Places d'hébergement à Paris	3	Open Database License (ODbL)
-plub_pepent	PLU bioclimatique - Sites de protection des incubateurs, pépinières d'entreprises et hôtels d'activités	49	Open Database License (ODbL)
-accessibilite-des-hebergements-en-ile-de-france-paris-je-t-aime	Accessibilité des Hébergements en Ile de France - Paris je t'aime	536	Open Database License (ODbL)
-seniors-a-paris-loisirs-et-citoyennete	Seniors à Paris - Activités de loisirs et citoyenneté	1078	Open Database License (ODbL)
+== resources
+3ce290bf-07ec-4d63-b12b-d0496193a535	Listes des hébergements collectifs classés en France	csv	2026-10-22T04:00:05+00:00	https://data.classement.atout-france.fr/static/exportHebergementsClasses/hebergements_classes.csv
+== csv https://data.classement.atout-france.fr/static/exportHebergementsClasses/hebergements_classes.csv
+h.csv: Unicode text, UTF-8 text, with very long lines (386)
+21369 h.csv
+DATE DE CLASSEMENT;TYPOLOGIE ÃTABLISSEMENT;CLASSEMENT;CATÃGORIE;MENTION (villages de vacances);NOM COMMERCIAL;ADRESSE;CODE POSTAL;COMMUNE;SITE INTERNET;TYPE DE SÃJOUR;CAPACITÃ D'ACCUEIL (PERSONNES);NOMBRE DE CHAMBRES;NOMBRE D'EMPLACEMENTS;NOMBRE D'UNITES D'HABITATION (rÃ©sidences de tourisme);NOMBRE DE LOGEMENTS (villages de vacances);classement prorogÃ©
+19/06/2023;HÃTEL DE TOURISME;3 Ã©toiles;-;-;1924 HÃTEL;2 Rue Gabriel PÃ©ri;38000;GRENOBLE;https://www.1924hotel.com/;-;62;37;-;-;-;non
+20/10/2021;HÃTEL DE TOURISME;4 Ã©toiles;-;-;25HOURS HÃTEL TERMINUS NORD;12 boulevard de Denain;75010;PARIS 10E ARRONDISSEMENT;https://www.25hours-hotels.com/fr;-;489;237;-;-;-;oui
+20/03/2023;HÃTEL DE TOURISME;5 Ã©toiles;-;-;5 TERRES HÃTEL & SPA MGALLERY BY SOFITEL;11 Place de l'HÃ´tel de ville;67140;BARR;https://5terres-hotel.fr/fr/;-;54;27;-;-;-;non
+18/02/2025;HÃTEL DE TOURISME;4 Ã©toiles;-;-;6 VH HOTEL;6 Avenue Victor Hugo;75116;PARIS 16E ARRONDISSEMENT;https://www.le6vhhotel.com/;-;70;35;-;-;-;non
+24/10/2022;HÃTEL DE TOURISME;4 Ã©toiles;-;-;7HÃTEL&SPA;550 Boulevard SÃ©bastien Brandt;67400;ILLKIRCH-GRAFFENSTADEN;https://7hotel.fr/;-;288;137;-;-;-;non
+23/12/2024;HÃTEL DE TOURISME;3 Ã©toiles;-;-;9 HÃTEL BASTILLE LYON;23 rue de lyon;75012;PARIS;https://www.9-hotel-bastille-lyon.fr;-;88;48;-;-;-;non
+12/10/2026;HÃTEL DE TOURISME;3 Ã©toiles;-;-;9HÃTEL OPÃRA;14 rue Papillon;75009;PARIS 9E ARRONDISSEMENT;https://www.9-hotel-opera-paris.fr/;-;90;48;-;-;-;non
+21/02/2022;HÃTEL DE TOU
+== paris rows
+1665
+20/10/2021;HÔTEL DE TOURISME;4 étoiles;-;-;25HOURS HÔTEL TERMINUS NORD;12 boulevard de Denain;75010;PARIS 10E ARRONDISSEMENT;https://www.25hours-hotels.com/fr;-;489;237;-;-;-;oui
+18/02/2025;HÔTEL DE TOURISME;4 étoiles;-;-;6 VH HOTEL;6 Avenue Victor Hugo;75116;PARIS 16E ARRONDISSEMENT;https://www.le6vhhotel.com/;-;70;35;-;-;-;non
+23/12/2024;HÔTEL DE TOURISME;3 étoiles;-;-;9 HÔTEL BASTILLE LYON;23 rue de lyon;75012;PARIS;https://www.9-hotel-bastille-lyon.fr;-;88;48;-;-;-;non
+12/10/2026;HÔTEL DE TOURISME;3 étoiles;-;-;9HÔTEL OPÉRA;14 rue Papillon;75009;PARIS 9E ARRONDISSEMENT;https://www.9-hotel-opera-paris.fr/;-;90;48;-;-;-;non
+21/02/2022;HÔTEL DE TOURISME;4 étoiles;-;-;9HÔTEL RÉPUBLIQUE;7/9 Rue Pierre Chausson;75010;PARIS 10E ARRONDISSEMENT;https://www.9-hotel-republique-paris.fr/;-;92;48;-;-;-;non
+grep: write error: Broken pipe
+grep: write error: Broken pipe
+== apur zones all
+[["ZTI","Champs Elysées-Montaigne"],["ZTI","Palais des Congrès"],["ZT","Rue d'Arcole"],["ZT","Avenue Daumesnil"],["ZT","Bercy-Saint Emilion"],["ZT","Quartier de la Villette"],["ZC","Italie 2"],["GF","Gare Saint-Lazare"],["GF","Gare de l'Est"],["GF","Gare du Nord"],["GF","Gare de Lyon"],["GF","Gare d'Austerlitz"],["GF","Gare Montparnasse"],["ZTI","Montmartre"],["ZTI","Beaugrenelle"],["ZTI","Saint Honoré\r\nVendôme"],["ZTI","Haussmann"],["ZTI","Les Halles"],["ZTI","Le Marais"],["ZTI","Saint Germain"],["ZTI","Rennes-Saint Sulpice"]]
