@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useDialog } from './dialog'
 import type { AskAnswer, ToolCall } from './answers'
 
 type Props = {
@@ -24,12 +25,7 @@ export default function Ask({ answers, first, onAsked, onShow, onMemo, onMethod,
   const drawer = useRef<HTMLDivElement>(null)
   const end = useRef<HTMLLIElement>(null)
 
-  useEffect(() => {
-    drawer.current?.focus()
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  useDialog(drawer, onClose)
 
   useEffect(() => {
     if (asked.length > 1) end.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })

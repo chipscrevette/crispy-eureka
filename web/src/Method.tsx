@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useDialog } from './dialog'
 import type { GridMeta } from './grid'
 import { describeValue, ordinal, type Scores } from './scores'
 import { PROFILES, countByProfile, type Stores } from './stores'
@@ -9,12 +10,7 @@ const REPO = 'https://github.com/chipscrevette/crispy-eureka'
 
 export default function Method({ scores, stores, meta, cells, onClose }: Props) {
   const page = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    page.current?.focus()
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  useDialog(page, onClose)
 
   const counts = countByProfile(stores)
   const brands = new Set(stores.features.map((f) => f.properties.brand)).size
@@ -306,7 +302,7 @@ function SatelliteBenchmark() {
           · mean over {data.seeds.length} brand splits, range in brackets; every set also sees nearby luxury boutiques
         </span>
       </figcaption>
-      <div className="bench-wrap">
+      <div className="bench-wrap" tabIndex={0} role="region" aria-label="Benchmark table, scrolls sideways">
         <table className="method-table bench">
           <thead>
             <tr>

@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react'
+import { useRef } from 'react'
+import { useDialog } from './dialog'
 import { centroid, distanceM, toMetres, type LonLat } from './geo'
 import type { CellProps, Grid, GridMeta } from './grid'
 import { cellScore, describeValue, ordinal, placeOf, rankText, scoreKey, SCORE_BREAKS, type Scores } from './scores'
@@ -20,12 +21,7 @@ type Props = {
 
 export default function Memo({ cell, profile, grid, stores, scores, meta, onClose }: Props) {
   const dialog = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    dialog.current?.focus()
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  useDialog(dialog, onClose)
 
   const entry = cellScore(scores, profile, cell.cell)
   const feature = grid.features.find((f) => f.properties.cell === cell.cell)
