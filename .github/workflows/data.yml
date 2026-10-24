@@ -87,5 +87,6 @@ jobs:
             echo "Layers unchanged."
           else
             git commit -m "Rebuild Paris data layers" -m "$(cat build.log)"
+            git pull --rebase origin "${{ github.ref_name }}"
             git push
           fi

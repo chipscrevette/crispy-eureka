@@ -20,7 +20,7 @@ Out of scope for v1: other cities, change radar, cannibalization between a brand
 
 ## Method in one paragraph
 
-We have no sales data, so we learn from where luxury brands already chose to be. Existing luxury stores are positive examples, all other cells are unlabelled (positive-unlabelled learning). A LightGBM model learns what the surroundings of those stores have in common, and the score shows "lookalike" cells. We validate by holding out whole brands and checking that their real stores rank high. Satellite embeddings (AlphaEarth, then OlmoEarth) are tested as extra features, and we publish whether they help.
+We have no sales data, so we learn from where luxury brands already chose to be. Existing luxury stores are positive examples, all other cells are unlabelled (positive-unlabelled learning). A LightGBM model learns what the surroundings of those stores have in common, and the score shows "lookalike" cells. We validate by holding out whole brands and checking that their real stores rank high. Satellite embeddings (AlphaEarth and OlmoEarth) were tested as extra features; neither helped, and the benchmark is published.
 
 ## Week 0 facts we already checked
 
@@ -59,6 +59,7 @@ We have no sales data, so we learn from where luxury brands already chose to be.
 | 12 | Build the site memo in the browser and print it with the system dialog | No server, no PDF library; one A4 page, and every view is a shareable link (`#profile=…&a=…&memo=1`) | 2026-10-23 |
 | 13 | Keep AlphaEarth out of the production score | Over 5 brand splits it did not raise the held-out percentile for any profile (8 PCA components or all 64 dims); published as a benchmark instead | 2026-10-23 |
 | 14 | Ask Adresse ships as curated, pre-computed answers | Kevin's choice: no API key or hosting; every number filled from a real query run at build time | 2026-10-23 |
+| 15 | Keep OlmoEarth out of the production score too | OlmoEarth v1.2 Tiny on 2025 Sentinel-2, same 5 brand splits: no gain beyond the split-to-split spread, lower top-10% hit rate for all profiles | 2026-10-24 |
 
 ## Open questions for Kevin
 

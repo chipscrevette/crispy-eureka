@@ -15,7 +15,7 @@ import json
 import numpy as np
 import pandas as pd
 
-from adresse_pipeline import alphaearth
+from adresse_pipeline import alphaearth, olmoearth
 from adresse_pipeline.brands import Catalogue, Profile
 from adresse_pipeline.luxury_stores import CATALOGUE
 from adresse_pipeline.model import OUTPUT, WEB_DATA, PositiveSet, load_boutiques, validate
@@ -26,21 +26,34 @@ PCA_DIMS = 8
 SEEDS = (7, 11, 23, 42, 101)
 
 
-def pca(x: pd.DataFrame, dims: int) -> pd.DataFrame:
+def pca(x: pd.DataFrame, dims: int, name: str = "aef") -> pd.DataFrame:
     centred = x - x.mean()
     _, _, vt = np.linalg.svd(centred.to_numpy(), full_matrices=False)
     scores = centred.to_numpy() @ vt[:dims].T
-    return pd.DataFrame(scores, index=x.index, columns=[f"aef_pc{i + 1}" for i in range(dims)])
+    return pd.DataFrame(
+        scores, index=x.index, columns=[f"{name.lower()}_pc{i + 1}" for i in range(dims)]
+    )
 
 
-def feature_sets(grid: pd.DataFrame, embeddings: pd.DataFrame) -> dict[str, pd.DataFrame]:
-    emb = embeddings.reindex(grid.index)
+def embedding_sets(name: str, grid: pd.DataFrame, emb: pd.DataFrame) -> dict[str, pd.DataFrame]:
+    emb = emb.reindex(grid.index)
+    dims = emb.shape[1]
     return {
-        "open data": grid,
-        f"open data + AlphaEarth ({PCA_DIMS} components)": grid.join(pca(emb.fillna(0), PCA_DIMS)),
-        "open data + AlphaEarth (64 dims)": grid.join(emb),
-        "AlphaEarth (64 dims) + luxury neighbours": grid[[]].join(emb),
+        f"open data + {name} ({PCA_DIMS} components)": grid.join(
+            pca(emb.fillna(0), PCA_DIMS, name)
+        ),
+        f"open data + {name} ({dims} dims)": grid.join(emb),
+        f"{name} ({dims} dims) + luxury neighbours": grid[[]].join(emb),
     }
+
+
+def feature_sets(
+    grid: pd.DataFrame, embeddings: dict[str, pd.DataFrame]
+) -> dict[str, pd.DataFrame]:
+    sets = {"open data": grid}
+    for name, emb in embeddings.items():
+        sets |= embedding_sets(name, grid, emb)
+    return sets
 
 
 def main() -> None:
@@ -48,13 +61,22 @@ def main() -> None:
     grid = pd.read_csv(OUTPUT / "paris_h3_features.csv", index_col="cell").drop(
         columns=["arrondissement"]
     )
-    embeddings = pd.read_csv(alphaearth.OUTPUT, index_col="cell")
+    embeddings = {"AlphaEarth": pd.read_csv(alphaearth.OUTPUT, index_col="cell")}
+    if olmoearth.OUTPUT.exists():
+        embeddings["OlmoEarth"] = pd.read_csv(olmoearth.OUTPUT, index_col="cell")
     boutiques = load_boutiques(catalogue)
 
     results: dict = {
         "positives": POSITIVES.value,
         "seeds": list(SEEDS),
-        "embeddings": f"AlphaEarth {alphaearth.YEAR}",
+        "embeddings": {
+            "AlphaEarth": f"AlphaEarth Foundations annual {alphaearth.YEAR}",
+            **(
+                {"OlmoEarth": f"{olmoearth.MODEL}, Sentinel-2 {olmoearth.YEAR}"}
+                if "OlmoEarth" in embeddings
+                else {}
+            ),
+        },
         "sets": {},
     }
     for name, x in feature_sets(grid, embeddings).items():

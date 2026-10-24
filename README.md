@@ -28,7 +28,7 @@ How well it works, with brands held out (mean percentile of their boutiques amon
 
 For jewellery and watches the simple baseline wins: those brands cluster so tightly around Place Vendôme and rue de la Paix that "go next to the others" is hard to beat. The app says so next to the map. Full numbers are in `pipeline/output/model_report.json`.
 
-Satellite embeddings from Google AlphaEarth and Ai2 OlmoEarth are tested as extra features, and the results will be published either way.
+Satellite embeddings from Google AlphaEarth and Ai2 OlmoEarth were tested as extra features. Neither improves the score, and the result is published on the How it works page.
 
 ## Data
 
@@ -38,7 +38,7 @@ Satellite embeddings from Google AlphaEarth and Ai2 OlmoEarth are tested as extr
 | DVF (property sales, Etalab) | Price levels |
 | INSEE Filosofi 200 m grid | Resident income and population |
 | Île-de-France Mobilités ridership | Footfall proxy |
-| AlphaEarth / OlmoEarth embeddings | Satellite benchmark: does the urban fabric seen from space add anything? (AlphaEarth: no, see the How it works page) |
+| AlphaEarth / OlmoEarth embeddings | Satellite benchmark: does the urban fabric seen from space add anything? (neither helps, see the How it works page) |
 
 Licences and attribution: [DATA_LICENSES.md](DATA_LICENSES.md).
 

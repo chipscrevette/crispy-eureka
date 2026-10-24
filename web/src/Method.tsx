@@ -132,7 +132,12 @@ export default function Method({ scores, stores, meta, cells, onClose }: Props) 
             The fingerprints do not improve the score. On their own, with only the nearby luxury boutiques beside them,
             they come within a few points for fashion and beauty, so they do capture what a luxury street looks like.
             But the open data already holds that signal, and 64 extra numbers mostly add noise for a model trained on a
-            few hundred boutiques. Ai2's OlmoEarth will be tested the same way.
+            few hundred boutiques.
+          </p>
+          <p>
+            Ai2's OlmoEarth was then run on 2025 Sentinel-2 images of Paris and tested the same way. It gives the same
+            answer: no profile gains more than the spread between splits, and fewer held-out boutiques reach the top 10%
+            of blocks. For this question, what is around a street matters more than what it looks like from space.
           </p>
         </section>
 
@@ -275,7 +280,7 @@ function ValidationChart({ scores }: { scores: Scores }) {
 }
 
 type Benchmark = {
-  embeddings: string
+  embeddings: Record<string, string>
   seeds: number[]
   sets: Record<string, Record<string, { mean_percentile: number; min: number; max: number }>>
 }
@@ -335,8 +340,9 @@ function SatelliteBenchmark() {
         </table>
       </div>
       <p className="muted small">
-        {data.embeddings} annual embeddings. The AlphaEarth Foundations Satellite Embedding dataset is produced by
-        Google and Google DeepMind (CC-BY 4.0).
+        Embeddings: {Object.values(data.embeddings).join('; ')}. The AlphaEarth Foundations Satellite Embedding dataset
+        is produced by Google and Google DeepMind (CC-BY 4.0).
+        {'OlmoEarth' in data.embeddings && ' OlmoEarth by Ai2, under the OlmoEarth Artifact License.'}
       </p>
     </figure>
   )
