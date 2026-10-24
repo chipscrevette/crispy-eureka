@@ -161,6 +161,14 @@ OVERLAYS: list[Feature] = [
         f"Rooms in 4- and 5-star hotels {RING}",
     ),
     Feature(
+        "tourist_zone_r1",
+        "International tourist zone",
+        "share",
+        APUR,
+        "Share of the block and its six neighbours inside an international tourist zone (ZTI), "
+        "where shops may open on Sundays and late in the evening",
+    ),
+    Feature(
         "vacant_shops_r1",
         "Empty shops",
         "units",
