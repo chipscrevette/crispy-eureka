@@ -20,11 +20,60 @@ type CellScoreProps = {
   cell: CellProps
   profile: ProfileId
   scores: Scores
-  /** Blocks reachable on foot, drawn shaded on the map. */
-  walk?: { minutes: number; blocks: number }
+  /** What the block reaches on foot, drawn shaded on the map. */
+  zone?: Zone
+  /** The searched address in this block, if any. */
+  address?: string
   onCompare: () => void
   onMemo: () => void
   picking: boolean
+}
+
+/** What a block reaches on foot (computed in the app from the pipeline's catchments and demand). */
+export type Zone = {
+  minutes: number
+  blocks: number
+  /** Spending demand reached, in average Paris blocks. */
+  demand: number
+  /** Share of that demand from each group, in the pipeline's group order. */
+  split: { label: string; share: number }[]
+  boutiques: number
+  brands: number
+}
+
+function ZoneCard({ zone, profile }: { zone: Zone; profile: ProfileId }) {
+  return (
+    <section className="zone" aria-labelledby="zone-title">
+      <h3 id="zone-title" className="label">
+        Within a {zone.minutes}-minute walk
+      </h3>
+      <ul className="tiles">
+        <li className="tile" title="Spending demand of every block in the walk; 1 = an average Paris block">
+          <span className="tile-value">{zone.demand.toFixed(1)}</span>
+          <span className="tile-label">average blocks of spending</span>
+        </li>
+        <li className="tile" title="Catalogue boutiques of this profile in the blocks of the walk">
+          <span className="tile-value">{zone.boutiques}</span>
+          <span className="tile-label">
+            {profileLabel(profile).toLowerCase()} boutiques, {zone.brands} brand{zone.brands === 1 ? '' : 's'}
+          </span>
+        </li>
+      </ul>
+      <div className="split" role="img" aria-label={zone.split.map((g) => `${g.label} ${Math.round(g.share * 100)}%`).join(', ')}>
+        {zone.split.map((g, i) => (
+          <span key={g.label} className={`split-${i}`} style={{ flexGrow: g.share }} />
+        ))}
+      </div>
+      <ul className="split-legend small" aria-hidden="true">
+        {zone.split.map((g, i) => (
+          <li key={g.label}>
+            <span className={`swatch split-${i}`} /> {g.label} {Math.round(g.share * 100)}%
+          </li>
+        ))}
+      </ul>
+      <p className="muted small">{zone.blocks} blocks, shaded on the map. The bar shows where their spending comes from.</p>
+    </section>
+  )
 }
 
 /** Score as a ring: the share of Paris this block beats. */
@@ -53,18 +102,13 @@ const compact = (v: number) =>
   v >= 10000 ? `${Math.round(v / 1000)}k` : v >= 1000 ? `${(v / 1000).toFixed(1)}k` : `${Math.round(v)}`
 
 /** The block's own numbers from the pipeline, as tiles. Missing values are left out. */
-function facts(cell: CellProps, walk?: { minutes: number; blocks: number }) {
+function facts(cell: CellProps) {
   const num = (k: string) => (typeof cell[k] === 'number' ? (cell[k] as number) : undefined)
   const rows: { value?: string; label: string; title: string }[] = [
     {
       value: num('demand') !== undefined ? compact(num('demand')!) : undefined,
       label: 'spending demand',
       title: "Residents' income, workers and hotel guests in the block; Paris average = 100",
-    },
-    {
-      value: walk && walk.blocks > 0 ? String(walk.blocks) : undefined,
-      label: `blocks within ${walk?.minutes ?? ''} min on foot`,
-      title: 'Blocks reachable along the streets, shaded on the map',
     },
     {
       value: num(NEIGHBOURS) !== undefined ? String(num(NEIGHBOURS)) : undefined,
@@ -90,7 +134,7 @@ function facts(cell: CellProps, walk?: { minutes: number; blocks: number }) {
   return rows.filter((r) => r.value !== undefined)
 }
 
-export function CellScore({ cell, profile, scores, walk, onCompare, onMemo, picking }: CellScoreProps) {
+export function CellScore({ cell, profile, scores, zone, address, onCompare, onMemo, picking }: CellScoreProps) {
   const entry = cellScore(scores, profile, cell.cell)
   if (!entry) return null
   const [score, drivers] = entry
@@ -100,20 +144,21 @@ export function CellScore({ cell, profile, scores, walk, onCompare, onMemo, pick
       <div className="score-head">
         <ScoreRing score={score} />
         <div>
-          <h2 className="place">{shortPlaceOf(cell)}</h2>
+          <h2 className="place">{address ?? shortPlaceOf(cell)}</h2>
           <p className="muted small">
             {profileLabel(profile)} opportunity: this block {rankText(score)}.
           </p>
         </div>
       </div>
       <ul className="tiles" aria-label="This block in numbers">
-        {facts(cell, walk).map((f) => (
+        {facts(cell).map((f) => (
           <li key={f.label} className="tile" title={f.title}>
             <span className="tile-value">{f.value}</span>
             <span className="tile-label">{f.label}</span>
           </li>
         ))}
       </ul>
+      {zone && <ZoneCard zone={zone} profile={profile} />}
       <h3 className="label">What drives the score</h3>
       <ul className="drivers">
         {drivers.map(([key, contribution, value]) => {

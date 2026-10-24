@@ -20,3 +20,20 @@ export function centroid(ring: number[][]): LonLat {
 export function cellIndex(grid: Grid) {
   return new Map(grid.features.map((f) => [f.properties.cell, f]))
 }
+
+/** Furthest a point can be from its hexagon's centre on the grid (resolution 9 edges are about 174 m). */
+const CELL_REACH_M = 200
+
+/** The block a point falls in: the nearest block centre, or null outside the grid. */
+export function cellAt(grid: Grid, point: LonLat): string | null {
+  let best: string | null = null
+  let bestD = CELL_REACH_M
+  for (const f of grid.features) {
+    const d = distanceM(point, centroid(f.geometry.coordinates[0]))
+    if (d < bestD) {
+      bestD = d
+      best = f.properties.cell
+    }
+  }
+  return best
+}
