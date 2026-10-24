@@ -150,6 +150,13 @@
    "description": "Rooms in 4- and 5-star hotels in the cell and its six neighbours (about 350 m around)"
   },
   {
+   "key": "tourist_zone_r1",
+   "label": "International tourist zone",
+   "unit": "share",
+   "source": "APUR BDCOM (census of Paris ground-floor units)",
+   "description": "Share of the block and its six neighbours inside an international tourist zone (ZTI), where shops may open on Sundays and late in the evening"
+  },
+  {
    "key": "vacant_shops_r1",
    "label": "Empty shops",
    "unit": "units",
