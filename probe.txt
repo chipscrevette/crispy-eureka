@@ -1,0 +1,11 @@
+== data.gouv hebergements classes
+59c36c6a88ee3826d5998a35	Hébergements touristiques classés en France	ATOUT FRANCE - Agence de développement touristique de la France	2026-10-22T04:00:05+00:00	fr-lo
+== zti dataset meta
+{"license":"Open Database License (ODbL)","publisher":"Direction de l'Urbanisme - Ville de Paris","fields":["name","type","_timestamp","_uid","source","_user","_version","boundary","_changeset","_id","geo_point_2d","geo_shape"]}
+== apur zones layer 4
+[{"nom":"Champs Elysées-Montaigne","c_type":"ZTI","id_secteur":6},{"nom":"Palais des Congrès","c_type":"ZTI","id_secteur":17},{"nom":"Rue d'Arcole","c_type":"ZT","id_secteur":104},{"nom":"Avenue Daumesnil","c_type":"ZT","id_secteur":106},{"nom":"Bercy-Saint Emilion","c_type":"ZT","id_secteur":120},{"nom":"Quartier de la Villette","c_type":"ZT","id_secteur":121},{"nom":"Italie 2","c_type":"ZC","id_secteur":201},{"nom":"Gare Saint-Lazare","c_type":"GF","id_secteur":501},{"nom":"Gare de l'Est","c_type":"GF","id_secteur":503},{"nom":"Gare du Nord","c_type":"GF","id_secteur":502},{"nom":"Gare de Lyon","c_type":"GF","id_secteur":504},{"nom":"Gare d'Austerlitz","c_type":"GF","id_secteur":505},{"nom":"Gare Montparnasse","c_type":"GF","id_secteur":506},{"nom":"Montmartre","c_type":"ZTI","id_secteur":18},{"nom":"Beaugrenelle","c_type":"ZTI","id_secteur":16},{"nom":"Saint Honoré\r\nVendôme","c_type":"ZTI","id_secteur":1},{"nom":"Haussmann","c_type":"ZTI","id_secteur":8},{"nom":"Les Halles","c_type":"ZTI","id_secteur":3},{"nom":"Le Marais","c_type":"ZTI","id_secteur":2},{"nom":"Saint Germain","c_type":"ZTI","id_secteur":5},{"nom":"Rennes-Saint Sulpice","c_type":"ZTI","id_secteur":4}]
+== paris hotels datasets
+exclusion-sans-domicilisme0	Exclusion / sans abrisme : Places d'hébergement à Paris	3	Open Database License (ODbL)
+plub_pepent	PLU bioclimatique - Sites de protection des incubateurs, pépinières d'entreprises et hôtels d'activités	49	Open Database License (ODbL)
+accessibilite-des-hebergements-en-ile-de-france-paris-je-t-aime	Accessibilité des Hébergements en Ile de France - Paris je t'aime	536	Open Database License (ODbL)
+seniors-a-paris-loisirs-et-citoyennete	Seniors à Paris - Activités de loisirs et citoyenneté	1078	Open Database License (ODbL)
