@@ -4,8 +4,8 @@
 
 Writes the boutique layer and the H3 grid to web/public/data/, and the grid's
 feature table and the boutique cross-check to pipeline/output/. `--skip dvf insee
-idfm osm sirene apur` builds without those sources (for machines that can't reach data.gouv.fr,
-insee.fr, data.iledefrance-mobilites.fr, the Overpass API or carto2.apur.org); their features are then
+idfm osm sirene apur hotels` builds without those sources (for machines that can't reach data.gouv.fr,
+insee.fr, data.iledefrance-mobilites.fr, the Overpass API, carto2.apur.org or the BAN geocoder); their features are then
 left empty.
 
 It also writes each block's own counts (not ring sums) to pipeline/output/paris_h3_blocks.csv,
@@ -18,12 +18,13 @@ import argparse
 import csv
 import json
 from collections import Counter
+from datetime import date
 from pathlib import Path
 
 import h3
 from shapely.geometry import Point
 
-from adresse_pipeline import apur, dvf, idfm, insee, osm, sirene
+from adresse_pipeline import apur, dvf, hotels, idfm, insee, osm, sirene
 from adresse_pipeline.brands import Catalogue, Profile
 from adresse_pipeline.download import fetch
 from adresse_pipeline.features import (
@@ -31,6 +32,7 @@ from adresse_pipeline.features import (
     CONTEXT_CATEGORIES,
     DVF,
     FEATURES,
+    HOTELS,
     IDFM,
     INSEE,
     OVERLAYS,
@@ -49,7 +51,7 @@ from adresse_pipeline.grid import (
 from adresse_pipeline.luxury_stores import CATALOGUE, find_stores, to_geojson
 from adresse_pipeline.overture import PARIS_PADDED, read_paris_areas, read_places
 
-SKIPPABLE = ["dvf", "insee", "idfm", "osm", "sirene", "apur"]
+SKIPPABLE = ["dvf", "insee", "idfm", "osm", "sirene", "apur", "hotels"]
 
 ROOT = Path(__file__).resolve().parents[3]
 WEB_DATA = ROOT / "web" / "public" / "data"
@@ -170,6 +172,20 @@ def main() -> None:
             json.dumps(idfm.to_geojson(stations), ensure_ascii=False, separators=(",", ":"))
         )
 
+    if "hotels" not in args.skip:
+        classified = list(hotels.paris_hotels(hotels.read_register(fetch(hotels.REGISTER_URL))))
+        upscale = [h for h in classified if h.stars >= hotels.UPSCALE]
+        placed = hotels.place(upscale)
+        rooms: dict[str, float] = Counter()
+        for p in placed:
+            rooms[cell_of(p.lon, p.lat)] += p.hotel.rooms
+        columns["upscale_rooms_r1"] = ring_sum(rooms, cells)
+        print(
+            f"hotels: {len(classified)} classified Paris hotels, {len(upscale)} with 4 or 5 stars, "
+            f"{len(placed)} placed by the geocoder ({sum(p.hotel.rooms for p in placed):,} rooms)"
+        )
+        sources.append(f"{HOTELS}, register of {date.today().isoformat()}")
+
     if "apur" not in args.skip:
         fronts = [u for u in apur.units(apur.fetch_units()) if u.on_street]
         empty = [u for u in fronts if u.empty]
@@ -248,6 +264,12 @@ def main() -> None:
         writer = csv.DictWriter(
             f, fieldnames=["cell", "arrondissement", *keys], extrasaction="ignore"
         )
+        writer.writeheader()
+        writer.writerows(rows)
+
+    # the overlays on their own, so the benchmark can test what each would add to the model
+    with (OUTPUT / "paris_h3_overlays.csv").open("w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=["cell", *overlays], extrasaction="ignore")
         writer.writeheader()
         writer.writerows(rows)
 

@@ -35,6 +35,29 @@
     "luxury_neighbours_baseline": 63.5
    }
   },
+  "open data + upscale hotel rooms": {
+   "jewellery-watches": {
+    "mean_percentile": 89.6,
+    "min": 84.9,
+    "max": 92.8,
+    "top10_hit_rate": 0.735,
+    "luxury_neighbours_baseline": 95.0
+   },
+   "fashion-house": {
+    "mean_percentile": 88.4,
+    "min": 87.4,
+    "max": 89.7,
+    "top10_hit_rate": 0.734,
+    "luxury_neighbours_baseline": 70.6
+   },
+   "beauty": {
+    "mean_percentile": 91.3,
+    "min": 89.5,
+    "max": 91.9,
+    "top10_hit_rate": 0.71,
+    "luxury_neighbours_baseline": 63.5
+   }
+  },
   "open data + AlphaEarth (8 components)": {
    "jewellery-watches": {
     "mean_percentile": 87.2,
