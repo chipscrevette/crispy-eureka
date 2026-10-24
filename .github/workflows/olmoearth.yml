@@ -35,7 +35,7 @@ jobs:
       - name: Install
         run: |
           pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
-          pip install -e pipeline "rslearn==0.1.18" olmoearth-pretrain-minimal planetary_computer pystac_client huggingface_hub einops
+          pip install -e pipeline "rslearn==0.1.18" olmoearth-pretrain-minimal planetary_computer pystac_client huggingface_hub einops wandb mlflow-skinny
       - name: Compute embeddings
         shell: bash
         run: |
