@@ -181,8 +181,8 @@
    "brand": "Dior",
    "name": "Dior",
    "osm": "node/9936159428",
-   "lon": 2.3064268,
-   "lat": 48.8706159
+   "lon": 2.3064142,
+   "lat": 48.8705647
   },
   {
    "brand": "Dolce & Gabbana",
@@ -223,8 +223,8 @@
    "brand": "Guerlain",
    "name": "La Maison Guerlain",
    "osm": "node/3980268298",
-   "lon": 2.3052094,
-   "lat": 48.8709239
+   "lon": 2.3051803,
+   "lat": 48.8709631
   },
   {
    "brand": "Guerlain",
@@ -232,6 +232,13 @@
    "osm": "node/9388558820",
    "lon": 2.3052803,
    "lat": 48.8711859
+  },
+  {
+   "brand": "Hermès",
+   "name": "Hermès",
+   "osm": "node/14314688500",
+   "lon": 2.3039962,
+   "lat": 48.8713034
   },
   {
    "brand": "Jaeger-LeCoultre",

@@ -111,7 +111,7 @@
   "overture+osm": {
    "jewellery-watches": {
     "model": {
-     "mean_percentile": 93.5,
+     "mean_percentile": 93.7,
      "top10_hit_rate": 0.833,
      "held_out_cells": 12
     },
@@ -128,7 +128,7 @@
    },
    "fashion-house": {
     "model": {
-     "mean_percentile": 84.9,
+     "mean_percentile": 85.1,
      "top10_hit_rate": 0.625,
      "held_out_cells": 16
     },
@@ -145,8 +145,8 @@
    },
    "beauty": {
     "model": {
-     "mean_percentile": 91.3,
-     "top10_hit_rate": 0.75,
+     "mean_percentile": 91.5,
+     "top10_hit_rate": 0.833,
      "held_out_cells": 12
     },
     "luxury neighbours": {
