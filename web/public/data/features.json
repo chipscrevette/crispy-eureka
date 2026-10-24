@@ -147,6 +147,20 @@
    "unit": "units",
    "source": "APUR BDCOM (census of Paris ground-floor units)",
    "description": "Empty ground-floor shop units on the street or on a corner in the cell and its six neighbours (about 350 m around)"
+  },
+  {
+   "key": "vacancy_r1",
+   "label": "Empty shopfront share",
+   "unit": "share",
+   "source": "APUR BDCOM (census of Paris ground-floor units)",
+   "description": "Share of the shopfronts on the street or on a corner that stand empty, in the cell and its six neighbours (about 350 m around)"
+  },
+  {
+   "key": "large_vacant_r1",
+   "label": "Empty flagship-size shops",
+   "unit": "units",
+   "source": "APUR BDCOM (census of Paris ground-floor units)",
+   "description": "Empty shopfronts of 300 m² or more on the street or on a corner in the cell and its six neighbours (about 350 m around)"
   }
  ]
 }
