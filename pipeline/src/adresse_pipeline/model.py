@@ -6,7 +6,7 @@ Reads the grid features and boutique layers that `build` wrote, then:
 
 1. validates the model by holding out whole brands, against two simple baselines,
    for three choices of which boutiques count as positives;
-2. trains the final model on the best choice;
+2. trains the final model on the Overture boutiques, unless another choice is clearly better;
 3. writes a 0-100 score and its top drivers (SHAP) for every cell and profile.
 """
 
@@ -202,6 +202,19 @@ def drivers(contrib: np.ndarray, row: np.ndarray, keys: list[str], top: int = 4)
     ]
 
 
+# The sets hold out different boutiques, so their test scores are only roughly comparable,
+# and one boutique added to OpenStreetMap can move them by a few tenths. Leaving the default
+# takes a clear gain, so the score does not flip from one data build to the next.
+DEFAULT_POSITIVES = PositiveSet.OVERTURE
+CLEAR_GAIN = 2.0  # points of mean held-out percentile
+
+
+def choose_positives(mean_percentile: dict[PositiveSet, float]) -> PositiveSet:
+    best = max(mean_percentile, key=mean_percentile.__getitem__)
+    gain = mean_percentile[best] - mean_percentile[DEFAULT_POSITIVES]
+    return best if gain > CLEAR_GAIN else DEFAULT_POSITIVES
+
+
 def main() -> None:
     catalogue = Catalogue.from_csv(CATALOGUE)
     grid = pd.read_csv(OUTPUT / "paris_h3_features.csv", index_col="cell").drop(
@@ -221,11 +234,12 @@ def main() -> None:
         }
         print(f"validation, trained on {positives.value}: {summary}")
 
-    chosen = max(
-        PositiveSet,
-        key=lambda s: np.mean(
-            [v["model"]["mean_percentile"] for v in report["validation"][s.value].values()]
-        ),
+    chosen = choose_positives(
+        {
+            s: float(np.mean([v["model"]["mean_percentile"] for v in by_profile.values()]))
+            for s in PositiveSet
+            for by_profile in [report["validation"][s.value]]
+        }
     )
     report["positives"] = chosen.value
     print(f"final model trained on: {chosen.value}")
