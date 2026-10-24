@@ -267,6 +267,12 @@ def main() -> None:
         writer.writeheader()
         writer.writerows(rows)
 
+    # the overlays on their own, so the benchmark can test what each would add to the model
+    with (OUTPUT / "paris_h3_overlays.csv").open("w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=["cell", *overlays], extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(rows)
+
     with (OUTPUT / "paris_h3_blocks.csv").open("w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=["cell", *own])
         writer.writeheader()

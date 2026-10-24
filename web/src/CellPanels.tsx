@@ -109,6 +109,11 @@ function facts(cell: CellProps) {
       title: "Residents' income, workers and hotel guests in the block; Paris average = 100",
     },
     {
+      value: num('upscale_rooms_r1') !== undefined ? compact(num('upscale_rooms_r1')!) : undefined,
+      label: '4- and 5-star hotel rooms',
+      title: 'Rooms in 4- and 5-star hotels in the block and around it (Atout France)',
+    },
+    {
       value: num(NEIGHBOURS) !== undefined ? String(num(NEIGHBOURS)) : undefined,
       label: 'luxury boutiques around',
       title: 'Luxury boutiques of any profile in the six blocks around it',

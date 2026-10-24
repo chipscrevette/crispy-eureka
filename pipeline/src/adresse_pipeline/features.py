@@ -42,13 +42,6 @@ RING = "in the cell and its six neighbours (about 350 m around)"
 FEATURES: list[Feature] = [
     Feature("hotels_r1", "Hotels", "places", OVERTURE, f"Hotels and lodgings {RING}"),
     Feature(
-        "upscale_rooms_r1",
-        "Upscale hotel rooms",
-        "rooms",
-        HOTELS,
-        f"Rooms in 4- and 5-star hotels {RING}",
-    ),
-    Feature(
         "dining_r1",
         "Restaurants & cafés",
         "places",
@@ -156,9 +149,17 @@ FEATURES: list[Feature] = [
 ]
 
 
-# Shown on the map and used by the free-spot check, but never given to the model: whether a
-# unit stands empty says whether a brand can move in, not whether the place suits luxury.
+# Shown on the map, but never given to the model. Whether a unit stands empty says whether a
+# brand can move in, not whether the place suits luxury. Upscale hotel rooms did not improve
+# the hidden-brand test (pipeline/output/benchmark.json, "open data + upscale hotel rooms").
 OVERLAYS: list[Feature] = [
+    Feature(
+        "upscale_rooms_r1",
+        "Upscale hotel rooms",
+        "rooms",
+        HOTELS,
+        f"Rooms in 4- and 5-star hotels {RING}",
+    ),
     Feature(
         "vacant_shops_r1",
         "Empty shops",
