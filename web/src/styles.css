@@ -2,7 +2,7 @@
 :root {
   --limestone: #f6f6f3;
   --surface: #ffffff;
-  --glass: rgb(255 255 255 / 0.84);
+  --glass: rgb(255 255 255 / 0.95);
   --ink: #0f1419;
   --muted: #667085;
   --rule: #e6e6e1;
@@ -14,7 +14,6 @@
   --radius: 18px;
   --radius-s: 12px;
   --shadow: 0 1px 2px rgb(15 20 25 / 0.04), 0 12px 32px rgb(15 20 25 / 0.08);
-  --blur: blur(18px) saturate(1.4);
   /* two rounded sans, one weight: Outfit for titles and figures, Figtree for text */
   --display: 'Outfit', 'Figtree', system-ui, sans-serif;
   --ui: 'Figtree', system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -27,7 +26,7 @@
 :root[data-theme='dark'] {
   --limestone: #0a0e13;
   --surface: #121821;
-  --glass: rgb(18 24 33 / 0.8);
+  --glass: rgb(18 24 33 / 0.94);
   --ink: #eef2f6;
   --muted: #8e9aab;
   --rule: rgb(255 255 255 / 0.08);
@@ -72,8 +71,6 @@ button, input, select { font-family: var(--ui); }
 .wordmark, .tabs, .topbar-note, .theme-toggle {
   height: 44px;
   background: var(--glass);
-  -webkit-backdrop-filter: var(--blur);
-  backdrop-filter: var(--blur);
   border: 1px solid var(--rule);
   border-radius: 999px;
   box-shadow: var(--shadow);
@@ -123,8 +120,6 @@ button, input, select { font-family: var(--ui); }
   gap: 14px;
   padding: 22px;
   background: var(--glass);
-  -webkit-backdrop-filter: var(--blur);
-  backdrop-filter: var(--blur);
   border: 1px solid var(--rule);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
@@ -147,8 +142,6 @@ button, input, select { font-family: var(--ui); }
   border: 1px solid var(--rule);
   padding: 12px 14px;
   background: var(--glass);
-  -webkit-backdrop-filter: blur(14px);
-  backdrop-filter: blur(14px);
   border-radius: var(--radius-s);
   box-shadow: var(--shadow);
   font-size: 0.8rem;
@@ -169,8 +162,6 @@ button, input, select { font-family: var(--ui); }
   border: 1px solid var(--rule);
   padding: 4px;
   background: var(--glass);
-  -webkit-backdrop-filter: blur(14px);
-  backdrop-filter: blur(14px);
   border-radius: 999px;
   box-shadow: var(--shadow);
 }
@@ -192,8 +183,10 @@ button, input, select { font-family: var(--ui); }
   z-index: 3;
   display: grid;
   gap: 2px;
+  top: 0;
+  left: 0;
   padding: 8px 12px;
-  transform: translate(14px, -50%);
+  will-change: transform;
   font-size: 0.82rem;
   background: var(--surface);
   border-radius: 10px;
@@ -201,6 +194,7 @@ button, input, select { font-family: var(--ui); }
   pointer-events: none;
   white-space: nowrap;
 }
+.tip[hidden] { display: none; }
 .tip strong { font-family: var(--display); font-size: 0.9rem; }
 
 /* Charts under the map */
@@ -476,8 +470,6 @@ optgroup { font-style: normal; }
   gap: 12px;
   padding: 12px max(16px, calc((100% - 760px) / 2));
   background: var(--glass);
-  -webkit-backdrop-filter: var(--blur);
-  backdrop-filter: var(--blur);
   border-bottom: 1px solid var(--rule);
 }
 .method-bar .label { margin: 0; }
@@ -947,8 +939,6 @@ optgroup { font-style: normal; }
   font: var(--weight) 0.85rem var(--display);
   color: var(--muted);
   background: var(--glass);
-  -webkit-backdrop-filter: blur(14px);
-  backdrop-filter: blur(14px);
   border: 1px solid var(--rule);
   border-radius: 999px;
   box-shadow: var(--shadow);
