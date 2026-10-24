@@ -786,8 +786,8 @@ export default function App() {
                     {fresh ? (
                       <p className="answer">
                         {openCount} blocks look like the streets {NOUN[profile]} choose, but have{' '}
-                        <strong>no luxury boutique yet</strong>, and an empty shopfront to move into. Shoppers and
-                        spending are already there.{' '}
+                        <strong>no luxury boutique yet</strong>. Each has an empty shop of 300 m² or more nearby, on a street
+                        where few shops stand empty, with shoppers and spending already there.{' '}
                         {places.length > 0 && <>Start with these:</>}
                       </p>
                     ) : (

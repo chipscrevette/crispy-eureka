@@ -66,17 +66,31 @@ export function bestPlaces(grid: Grid, key: string, n = 3): TopBlock[] {
 
 /**
  * An open space: a block that looks like where the brand type already is, but has no luxury
- * boutique around it yet, people with money to spend, shops on the street already, and at least
- * one empty shopfront to move into (Apur's census of ground floors).
+ * boutique around it yet, people with money to spend, shops on the street already, an empty
+ * shopfront of 300 m² or more to move into, and a healthy street: no more of its shopfronts
+ * empty than in three quarters of Paris (Apur's census of ground floors).
  */
-export const OPEN_RULE = { score: 85, spending: 100, shops: 20, empty: 1 }
+export const OPEN_RULE = { score: 85, spending: 100, shops: 20, bigEmpty: 1, weakStreet: 0.75 }
 export const EMPTY = 'vacant_shops_r1'
+export const BIG_EMPTY = 'large_vacant_r1'
+export const VACANCY = 'vacancy_r1'
+export const WEAK_KEY = 'weak_street'
+
+/** The empty-shopfront share above which a street counts as weak: Paris's top quarter. */
+function weakAbove(grid: Grid): number {
+  const v = grid.features
+    .map((f) => f.properties[VACANCY])
+    .filter((x): x is number => typeof x === 'number')
+    .sort((a, b) => a - b)
+  return v.length ? v[Math.floor(OPEN_RULE.weakStreet * (v.length - 1))] : Infinity
+}
 // catalogue boutiques of each profile in the block and its six neighbours, the same as the map's dots
 export const LUXURY = ['luxury_jewellery-watches_r1', 'luxury_fashion-house_r1', 'luxury_beauty_r1']
 export const openKey = (key: string) => `open_${key}`
 
 /** Marks every block with open_<score key> = 1 or 0, for each profile's score key. */
 export function withOpenSpaces(grid: Grid, keys: string[]): Grid {
+  const weak = weakAbove(grid)
   for (const f of grid.features) {
     const p = f.properties
     const num = (k: string) => (typeof p[k] === 'number' ? (p[k] as number) : 0)
@@ -84,7 +98,9 @@ export function withOpenSpaces(grid: Grid, keys: string[]): Grid {
       LUXURY.every((k) => num(k) === 0) &&
       num('demand') >= OPEN_RULE.spending &&
       num('fashion_stores_r1') + num('beauty_stores_r1') >= OPEN_RULE.shops &&
-      num(EMPTY) >= OPEN_RULE.empty
+      num(BIG_EMPTY) >= OPEN_RULE.bigEmpty &&
+      num(VACANCY) <= weak
+    p[WEAK_KEY] = num(VACANCY) > weak ? 1 : 0
     for (const k of keys) p[openKey(k)] = base && num(k) >= OPEN_RULE.score ? 1 : 0
   }
   return grid
