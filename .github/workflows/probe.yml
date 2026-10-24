@@ -1,0 +1,14 @@
+name: Probe BDCOM
+on:
+  push:
+    branches: [claude/probe-bdcom]
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          set -x
+          curl -s "https://www.data.gouv.fr/api/1/datasets/?q=commerces+paris+bdcom&page_size=8" | jq -r '.data[] | [.id, .title, (.organization.name // ""), .last_update] | @tsv'
+          curl -s "https://www.data.gouv.fr/api/1/datasets/?q=locaux+vacants+paris&page_size=8" | jq -r '.data[] | [.id, .title, (.organization.name // ""), .last_update] | @tsv'
+          curl -s "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets?where=search(%22commerce%22)&limit=20" | jq -r '.results[] | [.dataset_id, .metas.default.title, .metas.default.modified, (.metas.default.records_count|tostring)] | @tsv'
+          curl -s "https://opendata.apur.org/api/feed/dcat-ap/2.1.1.json" -o apur.json; jq -r '.dataset[]? | select((.title|ascii_downcase)|test("commerce|bdcom|vacan")) | [.identifier, .title, .modified] | @tsv' apur.json | head -30
