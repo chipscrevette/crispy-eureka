@@ -80,6 +80,12 @@ function ScoreRing({ score }: { score: number }) {
   const c = 2 * Math.PI * r
   return (
     <svg className="ring" viewBox="0 0 72 72" aria-hidden="true">
+      <defs>
+        <linearGradient id="ring-gradient" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="var(--seine)" />
+          <stop offset="1" stopColor="var(--ring-end)" />
+        </linearGradient>
+      </defs>
       <circle className="ring-track" cx="36" cy="36" r={r} />
       <circle
         className="ring-value"
@@ -180,15 +186,34 @@ function keyFacts(cell: CellProps) {
   const tourist = num('tourist_zone_r1')
   if (tourist !== undefined && tourist >= 0.5)
     out.push('In an international tourist zone: shops may open on Sundays and late in the evening')
+  return out
+}
+
+/** Three headline figures for the block, each straight from its pipeline values. */
+function headline(cell: CellProps) {
+  const num = (k: string) => (typeof cell[k] === 'number' ? (cell[k] as number) : undefined)
   const demand = num('demand')
-  if (demand !== undefined)
-    out.push(
-      demand >= 100
-        ? `Spending power ${(demand / 100).toFixed(1)}× the Paris average`
-        : `Spending power below the Paris average`,
-    )
+  const street = num('street_footfall')
   const entries = num('transit_entries_r2')
-  if (entries !== undefined) out.push(`${compact(entries)} metro and RER entries a day nearby`)
+  const out: { value: string; label: string; title: string }[] = []
+  if (demand !== undefined)
+    out.push({
+      value: `${(demand / 100).toFixed(1)}×`,
+      label: 'spending vs Paris average',
+      title: "Residents' income, workers and hotel guests in the block, against the average Paris block",
+    })
+  if (street !== undefined)
+    out.push({
+      value: `${street.toFixed(1)}×`,
+      label: 'walkers on its busiest street',
+      title: 'Walks past the busiest street of the block, against a typical Paris street (estimated from the street network)',
+    })
+  if (entries !== undefined)
+    out.push({
+      value: compact(entries),
+      label: 'station entries a day nearby',
+      title: 'Average daily entries at metro, RER and train stations within about 600 m (Île-de-France Mobilités)',
+    })
   return out
 }
 
@@ -209,6 +234,14 @@ export function CellScore({ cell, profile, scores, zone, address, onCompare, onM
           <p className="muted small">This block {rankText(score)}.</p>
         </div>
       </div>
+      <ul className="kpis" aria-label="This block at a glance">
+        {headline(cell).map((k) => (
+          <li key={k.label} title={k.title}>
+            <span className="kpi-value">{k.value}</span>
+            <span className="kpi-label">{k.label}</span>
+          </li>
+        ))}
+      </ul>
       <ul className="facts">
         {keyFacts(cell).map((f) => (
           <li key={f}>{f}</li>
