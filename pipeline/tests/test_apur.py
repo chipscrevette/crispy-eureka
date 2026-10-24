@@ -28,6 +28,14 @@ def test_only_street_and_corner_units_count_as_shopfronts():
     assert shops[0].size is apur.Size.UNDER_300
 
 
+def test_situation_codes_in_any_case_and_missing_ones_are_read():
+    shops = list(apur.vacant_shops([unit("r"), unit(" a"), unit(None, surf=None), unit("??")]))
+
+    assert [s.on_street for s in shops] == [True, True, False, False]
+    assert shops[2].situation is apur.Situation.UNKNOWN
+    assert shops[2].size is None
+
+
 def test_units_without_a_position_are_left_out():
     row = unit("R")
     row["geometry"] = None

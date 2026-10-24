@@ -28,6 +28,7 @@ class Situation(Enum):
     CORNER = "A"
     MALL = "CC"
     COURTYARD = "CI"
+    UNKNOWN = ""
 
 
 class Size(Enum):
@@ -42,7 +43,7 @@ class VacantShop:
     lon: float
     lat: float
     situation: Situation
-    size: Size
+    size: Size | None
 
     @property
     def on_street(self) -> bool:
@@ -85,6 +86,12 @@ def fetch_vacant() -> list[dict]:
     return features
 
 
+def situation_of(code: str | None) -> Situation:
+    """The census writes the codes in either case ('R' and 'r'); a few units have none."""
+    code = (code or "").strip().upper()
+    return Situation(code) if code in {s.value for s in Situation} else Situation.UNKNOWN
+
+
 def vacant_shops(features: Iterable[dict]) -> Iterator[VacantShop]:
     for f in features:
         a, g = f["attributes"], f.get("geometry")
@@ -96,6 +103,6 @@ def vacant_shops(features: Iterable[dict]) -> Iterator[VacantShop]:
             f"{number} {street}".strip(),
             float(g["x"]),
             float(g["y"]),
-            Situation(a["sit"]),
-            Size(a["surf"]),
+            situation_of(a["sit"]),
+            Size(a["surf"]) if a["surf"] in {s.value for s in Size} else None,
         )
