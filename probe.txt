@@ -1,25 +1,36 @@
-== resources
-3ce290bf-07ec-4d63-b12b-d0496193a535	Listes des hébergements collectifs classés en France	csv	2026-10-22T04:00:05+00:00	https://data.classement.atout-france.fr/static/exportHebergementsClasses/hebergements_classes.csv
-== csv https://data.classement.atout-france.fr/static/exportHebergementsClasses/hebergements_classes.csv
-h.csv: Unicode text, UTF-8 text, with very long lines (386)
-21369 h.csv
-DATE DE CLASSEMENT;TYPOLOGIE ÃTABLISSEMENT;CLASSEMENT;CATÃGORIE;MENTION (villages de vacances);NOM COMMERCIAL;ADRESSE;CODE POSTAL;COMMUNE;SITE INTERNET;TYPE DE SÃJOUR;CAPACITÃ D'ACCUEIL (PERSONNES);NOMBRE DE CHAMBRES;NOMBRE D'EMPLACEMENTS;NOMBRE D'UNITES D'HABITATION (rÃ©sidences de tourisme);NOMBRE DE LOGEMENTS (villages de vacances);classement prorogÃ©
-19/06/2023;HÃTEL DE TOURISME;3 Ã©toiles;-;-;1924 HÃTEL;2 Rue Gabriel PÃ©ri;38000;GRENOBLE;https://www.1924hotel.com/;-;62;37;-;-;-;non
-20/10/2021;HÃTEL DE TOURISME;4 Ã©toiles;-;-;25HOURS HÃTEL TERMINUS NORD;12 boulevard de Denain;75010;PARIS 10E ARRONDISSEMENT;https://www.25hours-hotels.com/fr;-;489;237;-;-;-;oui
-20/03/2023;HÃTEL DE TOURISME;5 Ã©toiles;-;-;5 TERRES HÃTEL & SPA MGALLERY BY SOFITEL;11 Place de l'HÃ´tel de ville;67140;BARR;https://5terres-hotel.fr/fr/;-;54;27;-;-;-;non
-18/02/2025;HÃTEL DE TOURISME;4 Ã©toiles;-;-;6 VH HOTEL;6 Avenue Victor Hugo;75116;PARIS 16E ARRONDISSEMENT;https://www.le6vhhotel.com/;-;70;35;-;-;-;non
-24/10/2022;HÃTEL DE TOURISME;4 Ã©toiles;-;-;7HÃTEL&SPA;550 Boulevard SÃ©bastien Brandt;67400;ILLKIRCH-GRAFFENSTADEN;https://7hotel.fr/;-;288;137;-;-;-;non
-23/12/2024;HÃTEL DE TOURISME;3 Ã©toiles;-;-;9 HÃTEL BASTILLE LYON;23 rue de lyon;75012;PARIS;https://www.9-hotel-bastille-lyon.fr;-;88;48;-;-;-;non
-12/10/2026;HÃTEL DE TOURISME;3 Ã©toiles;-;-;9HÃTEL OPÃRA;14 rue Papillon;75009;PARIS 9E ARRONDISSEMENT;https://www.9-hotel-opera-paris.fr/;-;90;48;-;-;-;non
-21/02/2022;HÃTEL DE TOU
-== paris rows
-1665
-20/10/2021;HÔTEL DE TOURISME;4 étoiles;-;-;25HOURS HÔTEL TERMINUS NORD;12 boulevard de Denain;75010;PARIS 10E ARRONDISSEMENT;https://www.25hours-hotels.com/fr;-;489;237;-;-;-;oui
-18/02/2025;HÔTEL DE TOURISME;4 étoiles;-;-;6 VH HOTEL;6 Avenue Victor Hugo;75116;PARIS 16E ARRONDISSEMENT;https://www.le6vhhotel.com/;-;70;35;-;-;-;non
-23/12/2024;HÔTEL DE TOURISME;3 étoiles;-;-;9 HÔTEL BASTILLE LYON;23 rue de lyon;75012;PARIS;https://www.9-hotel-bastille-lyon.fr;-;88;48;-;-;-;non
-12/10/2026;HÔTEL DE TOURISME;3 étoiles;-;-;9HÔTEL OPÉRA;14 rue Papillon;75009;PARIS 9E ARRONDISSEMENT;https://www.9-hotel-opera-paris.fr/;-;90;48;-;-;-;non
-21/02/2022;HÔTEL DE TOURISME;4 étoiles;-;-;9HÔTEL RÉPUBLIQUE;7/9 Rue Pierre Chausson;75010;PARIS 10E ARRONDISSEMENT;https://www.9-hotel-republique-paris.fr/;-;92;48;-;-;-;non
-grep: write error: Broken pipe
-grep: write error: Broken pipe
-== apur zones all
-[["ZTI","Champs Elysées-Montaigne"],["ZTI","Palais des Congrès"],["ZT","Rue d'Arcole"],["ZT","Avenue Daumesnil"],["ZT","Bercy-Saint Emilion"],["ZT","Quartier de la Villette"],["ZC","Italie 2"],["GF","Gare Saint-Lazare"],["GF","Gare de l'Est"],["GF","Gare du Nord"],["GF","Gare de Lyon"],["GF","Gare d'Austerlitz"],["GF","Gare Montparnasse"],["ZTI","Montmartre"],["ZTI","Beaugrenelle"],["ZTI","Saint Honoré\r\nVendôme"],["ZTI","Haussmann"],["ZTI","Les Halles"],["ZTI","Le Marais"],["ZTI","Saint Germain"],["ZTI","Rennes-Saint Sulpice"]]
+== paris hotels by stars
+     52 1 étoile | cat=-
+    146 2 étoiles | cat=-
+    691 3 étoiles | cat=-
+    581 4 étoiles | cat=-
+    122 5 étoiles | cat=-
+== paris 5 stars sample
+- | BULGARI HOTEL PARIS | 30 avenue George V | 75008 | 76
+- | FOUR SEASONS HÔTEL GEORGE V | 31 Avenue George V | 75008 | 244
+- | GRAND HÔTEL DU PALAIS ROYAL | 4 rue de Valois | 75001 | 59
+- | HOTEL CHATEAU DES FLEURS | 19 rue vernet | 75008 | 37
+- | HOTEL LA MAISON CHAMPS ÉLYSÉES | 8 rue Jean Goujon | 75008 | 57
+- | HOTEL MAISON BRÉGUET | 8 rue Bréguet | 75011 | 50
+- | HOTEL SAX PARIS | 55 AVENUE DE SAXE 75007 PARIS | 75007 | 118
+- | HÔTEL ALFRED SOMMIER | 20 rue de l'arcade | 75008 | 80
+- | HÔTEL BALZAC | 6 rue Balzac | 75008 | 58
+- | HÔTEL BARRIÈRE FOUQUET'S PARIS | 46 Avenue George V | 75008 | 101
+- | HÔTEL BEL AMI | 7/11 rue Saint-Benoît | 75006 | 102
+- | HÔTEL BOWMANN | 99 boulevard Haussmann | 75008 | 53
+- | HÔTEL BRACH PARIS | 1-7 Rue de Richepin | 75016 | 59
+- | HÔTEL CASTILLE PARIS | 33/37 rue Cambon | 75001 | 108
+- | HÔTEL CHEVAL BLANC PARIS | 8 quai du Louvre | 75001 | 72
+== category values all
+  15725 -
+   4762 TOURISME
+    881 LOISIRS
+== BAN csv geocode
+id,adresse,postcode,longitude,latitude,result_score,result_score_next,result_label,result_type,result_id,result_banId,result_housenumber,result_name,result_street,result_postcode,result_city,result_context,result_citycode,result_oldcitycode,result_oldcity,result_district,result_status
+1,12 boulevard de Denain,75010,2.354925,48.879649,0.9669245454545454,,12 Boulevard de Denain 75010 Paris,housenumber,75110_2689_00012,0d0b3a90-a0a9-4940-8154-ece6f350dd8b,12,12 Boulevard de Denain,Boulevard de Denain,75010,Paris,"75, Paris, Île-de-France",75110,,,Paris 10e Arrondissement,ok
+2,6 Avenue Victor Hugo,75116,2.292678,48.872914,0.9821772727272726,0.5531760606060605,6 Avenue Victor Hugo 75116 Paris,housenumber,75116_9761_00006,81db2974-a60b-4ff8-a3c6-346de9dd0e35,6,6 Avenue Victor Hugo,Avenue Victor Hugo,75116,Paris,"75, Paris, Île-de-France",75116,,,Paris 16e Arrondissement,ok
+3,7/9 Rue Pierre Chausson,75010,2.360586,48.870834,0.8842799173553718,0.3481987012987013,9 Rue Pierre Chausson 75010 Paris,housenumber,75110_7422_00009,03790d6c-f66b-4a04-abf8-d4eff9573ca1,9,9 Rue Pierre Chausson,Rue Pierre Chausson,75010,Paris,"75, Paris, Île-de-France",75110,,,Paris 10e Arrondissement,ok
+== old BAN
+id,adresse,postcode,longitude,latitude,result_score,result_score_next,result_label,result_type,result_id,result_banId,result_housenumber,result_name,result_street,result_postcode,result_city,result_context,result_citycode,result_oldcitycode,result_oldcity,result_district,result_status
+1,12 boulevard de Denain,75010,2.354925,48.879649,0.9669245454545454,,12 Boulevard de Denain 75010 Paris,housenumber,75110_2689_00012,0d0b3a90-a0a9-4940-8154-ece6f350dd8b,12,12 Boulevard de Denain,Boulevard de Denain,75010,Paris,"75, Paris, Île-de-France",75110,,,Paris 10e Arrondissement,ok
+2,6 Avenue Victor Hugo,75116,2.292678,48.872914,0.9821772727272726,0.5531760606060605,6 Avenue Victor Hugo 75116 Paris,housenumber,75116_9761_00006,81db2974-a60b-4ff8-a3c6-346de9dd0e35,6,6 Avenue Victor Hugo,Avenue Victor Hugo,75116,Paris,"75, Paris, Île-de-France",75116,,,Paris 16e Arrondissement,ok
+3,7/9 Rue Pierre Chausson,75010,2.360586,48.870834,0.8842799173553718,0.3481987012987013,9 Rue Pierre Chausson 75010 Paris,housenumber,75110_7422_00009,03790d6c-f66b-4a04-abf8-d4eff9573ca1,9,9 Rue Pierre Chausson,Rue Pierre Chausson,75010,Paris,"75, Paris, Île-de-France",75110,,,Paris 10e Arrondissement,ok
