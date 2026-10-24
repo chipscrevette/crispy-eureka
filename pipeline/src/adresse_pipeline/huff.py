@@ -109,7 +109,10 @@ def calibrate(
 
 
 def by_profile(boutiques: list[Boutique], profile: Profile) -> list[Boutique]:
-    return [b for b in boutiques if b.profile == profile and not b.osm_only]
+    """Every known boutique of the profile, including those only OpenStreetMap lists: a
+    rival missing from Overture still takes shoppers. Boutiques outside the city limits
+    fall outside the grid and are not modelled."""
+    return [b for b in boutiques if b.profile == profile]
 
 
 def main() -> None:
