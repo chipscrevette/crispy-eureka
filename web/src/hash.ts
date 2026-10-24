@@ -8,6 +8,10 @@ export type View = {
   memo: boolean
   method: boolean
   ask: string | null
+  /** The planner's brand, or null when it is closed. */
+  plan: string | null
+  /** How many new boutiques the planner shows. */
+  k: number
 }
 
 export function readHash(): View {
@@ -21,6 +25,8 @@ export function readHash(): View {
     method: q.get('method') === '1',
     // '1' opens Ask Adresse on its question list, a question id opens that answer
     ask: q.get('ask'),
+    plan: q.get('plan'),
+    k: Math.min(5, Math.max(1, Number(q.get('k')) || 3)),
   }
 }
 
@@ -31,5 +37,9 @@ export function writeHash(v: View) {
   if (v.memo) q.set('memo', '1')
   if (v.method) q.set('method', '1')
   if (v.ask) q.set('ask', v.ask)
+  if (v.plan) {
+    q.set('plan', v.plan)
+    q.set('k', String(v.k))
+  }
   window.history.replaceState(null, '', `#${q}`)
 }

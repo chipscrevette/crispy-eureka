@@ -11,7 +11,7 @@ import {
   type Grid,
   type GridMeta,
 } from './grid'
-import { SCORE_BREAKS, loadScores, ordinal, scoreKey, withScores, type Scores } from './scores'
+import { SCORE_BREAKS, loadScores, ordinal, placeOf, scoreKey, withScores, type Scores } from './scores'
 import { CellScore, Compare } from './CellPanels'
 import { cellIndex, centroid } from './geo'
 import { readHash, writeHash } from './hash'
@@ -21,6 +21,8 @@ import Ask from './Ask'
 import { loadAnswers, type AskAnswer } from './answers'
 import { loadCatchments, reachOf, type Catchments } from './catchments'
 import { demandLayers, loadDemand, withDemand } from './demand'
+import Plan from './Plan'
+import { NEW_BRAND, loadPlanner, type Backtest, type Planner } from './planner'
 
 const PARIS: [number, number] = [2.3325, 48.8665]
 const BASEMAP: string | StyleSpecification =
@@ -77,6 +79,10 @@ export default function App() {
   const [ask, setAsk] = useState<string | null>(initial.ask)
   const [answers, setAnswers] = useState<AskAnswer[] | null>(null)
   const [answerCells, setAnswerCells] = useState<string[]>([])
+  const [plan, setPlan] = useState<string | null>(initial.plan)
+  const [planCount, setPlanCount] = useState(initial.k)
+  const [planner, setPlanner] = useState<[Planner, Backtest] | null>(null)
+  const markers = useRef<maplibregl.Marker[]>([])
   const pickingRef = useRef(picking)
   pickingRef.current = picking
   const [hover, setHover] = useState<Hover | null>(null)
@@ -149,6 +155,13 @@ export default function App() {
         paint: { 'line-color': cssVar('--ink'), 'line-width': 1.5 },
       })
       m.addLayer({
+        id: 'grid-plan',
+        type: 'line',
+        source: 'grid',
+        filter: ['in', ['get', 'cell'], ['literal', []]],
+        paint: { 'line-color': cssVar('--brass'), 'line-width': 2.5 },
+      })
+      m.addLayer({
         id: 'grid-selected',
         type: 'line',
         source: 'grid',
@@ -187,6 +200,18 @@ export default function App() {
           'circle-color': cssVar('--seine'),
           'circle-stroke-color': cssVar('--surface'),
           'circle-stroke-width': 1.5,
+        },
+      })
+      m.addLayer({
+        id: 'stores-brand',
+        type: 'circle',
+        source: 'stores',
+        filter: ['==', ['get', 'brand'], ''],
+        paint: {
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, 4, 16, 9],
+          'circle-color': cssVar('--surface'),
+          'circle-stroke-color': cssVar('--brass'),
+          'circle-stroke-width': 2.5,
         },
       })
       m.addLayer({
@@ -254,9 +279,48 @@ export default function App() {
     loadAnswers().then(setAnswers, (e: Error) => setError(e.message))
   }, [ask, answers])
 
+  useEffect(() => {
+    if (plan === null || planner) return
+    loadPlanner().then(setPlanner, (e: Error) => setError(e.message))
+  }, [plan, planner])
+
+  // the brand's existing boutiques and its next sites, numbered in the order the planner picks them
+  const picks = useMemo(() => {
+    if (plan === null || !planner) return []
+    const plans = planner[0].profiles[profile].plans
+    return (plans[plan] ?? plans[NEW_BRAND]).picks.slice(0, planCount).map((p) => p.cell)
+  }, [plan, planner, profile, planCount])
+
+  useEffect(() => {
+    if (!ready || !data) return
+    const m = map.current!
+    m.setFilter('grid-plan', ['in', ['get', 'cell'], ['literal', picks]])
+    m.setFilter('stores-brand', ['==', ['get', 'brand'], plan && plan !== NEW_BRAND ? plan : ''])
+    markers.current.forEach((mk) => mk.remove())
+    const at = picks.flatMap((c) => {
+      const f = data.grid.features.find((g) => g.properties.cell === c)
+      return f ? [centroid(f.geometry.coordinates[0])] : []
+    })
+    markers.current = at.map((ll, i) => {
+      const el = document.createElement('span')
+      el.className = 'plan-marker'
+      el.textContent = String(i + 1)
+      el.setAttribute('aria-hidden', 'true')
+      return new maplibregl.Marker({ element: el }).setLngLat(ll).addTo(m)
+    })
+    if (at.length) {
+      const bounds = at.reduce((b, p) => b.extend(p), new maplibregl.LngLatBounds(at[0], at[0]))
+      const phone = window.matchMedia('(max-width: 600px)').matches
+      m.fitBounds(bounds, {
+        maxZoom: 14.5,
+        padding: phone ? { top: 60, bottom: 420, left: 40, right: 40 } : { top: 80, bottom: 80, left: 400, right: 470 },
+      })
+    }
+  }, [ready, data, picks, plan])
+
   useEffect(
-    () => writeHash({ profile, a: cellA, b: cellB, memo, method, ask }),
-    [profile, cellA, cellB, memo, method, ask],
+    () => writeHash({ profile, a: cellA, b: cellB, memo, method, ask, plan, k: planCount }),
+    [profile, cellA, cellB, memo, method, ask, plan, planCount],
   )
 
   const cells = useMemo(() => (data ? cellIndex(data.grid) : null), [data])
@@ -265,6 +329,7 @@ export default function App() {
   const closeMemo = useCallback(() => setMemo(false), [])
   const closeMethod = useCallback(() => setMethod(false), [])
   const closeAsk = useCallback(() => setAsk(null), [])
+  const closePlan = useCallback(() => setPlan(null), [])
   const onAsked = useCallback((id: string) => setAsk(id), [])
 
   const showAnswer = (ans: AskAnswer, withMemo = false) => {
@@ -342,7 +407,7 @@ export default function App() {
         : 'Hover or tap a block to read its value.'
 
   return (
-    <div className={`app${ask !== null ? ' asking' : ''}`}>
+    <div className={`app${ask !== null || plan !== null ? ' asking' : ''}${plan !== null ? ' planning' : ''}`}>
       <div ref={container} className="map" aria-label="Map of luxury boutiques in Paris" role="region" />
 
       <aside id="panel" className={`panel${sheetOpen ? '' : ' collapsed'}${a ? ' has-selection' : ''}`}>
@@ -358,8 +423,25 @@ export default function App() {
           <h1>Adresse</h1>
           <p className="tagline">Where should a luxury brand open its next Paris boutique, and why?</p>
           <div className="header-links">
-            <button className="button ask-open" onClick={() => setAsk('1')} disabled={!data}>
+            <button
+              className="button ask-open"
+              onClick={() => {
+                setPlan(null)
+                setAsk('1')
+              }}
+              disabled={!data}
+            >
               Ask Adresse
+            </button>
+            <button
+              className="button secondary"
+              onClick={() => {
+                setAsk(null)
+                setPlan(NEW_BRAND)
+              }}
+              disabled={!data}
+            >
+              Plan a network
             </button>
             <button className="link method-link" onClick={() => setMethod(true)} disabled={!data}>
               How it works
@@ -531,6 +613,36 @@ export default function App() {
           onMemo={(a) => showAnswer(a, true)}
           onMethod={() => setMethod(true)}
           onClose={closeAsk}
+        />
+      )}
+
+      {plan !== null && data && planner && (
+        <Plan
+          planner={planner[0]}
+          backtest={planner[1]}
+          profile={profile}
+          brand={plan}
+          count={planCount}
+          placeOf={(c) => {
+            const p = cells?.get(c)?.properties
+            return p
+              ? placeOf(p)
+                  .replace(/^Paris /, '')
+                  .replace('Arrondissement', 'arrondissement')
+              : c
+          }}
+          onProfile={(p) => {
+            setProfile(p)
+            setPlan(NEW_BRAND)
+          }}
+          onBrand={setPlan}
+          onCount={setPlanCount}
+          onPick={(c) => {
+            setCellA(c)
+            setCellB(null)
+          }}
+          onMethod={() => setMethod(true)}
+          onClose={closePlan}
         />
       )}
 
