@@ -11,6 +11,8 @@ model:
             init_args:
               model_id: OLMOEARTH_V1_2_TINY
               patch_size: 4
+              # Full precision: the embedding writer cannot save bfloat16 arrays.
+              autocast_dtype: null
         decoder:
           - class_path: rslearn.train.tasks.embedding.EmbeddingHead
     optimizer:
