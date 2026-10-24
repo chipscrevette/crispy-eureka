@@ -43,10 +43,7 @@ export type Zone = {
 
 function ZoneCard({ zone, profile }: { zone: Zone; profile: ProfileId }) {
   return (
-    <section className="zone" aria-labelledby="zone-title">
-      <h3 id="zone-title" className="label">
-        Within a {zone.minutes}-minute walk
-      </h3>
+    <section className="zone" aria-label={`Within a ${zone.minutes}-minute walk`}>
       <ul className="tiles">
         <li className="tile" title="Spending demand of every block in the walk; 1 = an average Paris block">
           <span className="tile-value">{zone.demand.toFixed(1)}</span>
@@ -134,6 +131,39 @@ function facts(cell: CellProps) {
   return rows.filter((r) => r.value !== undefined)
 }
 
+/** The score in plain words. The classes follow SCORE_BREAKS. */
+function verdict(score: number) {
+  if (score >= 95) return 'One of the best places in Paris'
+  if (score >= 90) return 'An excellent place'
+  if (score >= 75) return 'A very good place'
+  if (score >= 50) return 'A fair place'
+  return 'Not a natural fit'
+}
+
+const NOUN: Record<ProfileId, string> = {
+  'jewellery-watches': 'a jeweller or watchmaker',
+  'fashion-house': 'a fashion house',
+  beauty: 'a beauty brand',
+}
+
+/** Three facts anyone can read; each comes straight from the block's pipeline values. */
+function keyFacts(cell: CellProps) {
+  const num = (k: string) => (typeof cell[k] === 'number' ? (cell[k] as number) : undefined)
+  const out: string[] = []
+  const lux = num(NEIGHBOURS)
+  if (lux !== undefined) out.push(`${lux} luxury boutique${lux === 1 ? '' : 's'} in the blocks around it`)
+  const demand = num('demand')
+  if (demand !== undefined)
+    out.push(
+      demand >= 100
+        ? `Spending power ${(demand / 100).toFixed(1)}× the Paris average`
+        : `Spending power below the Paris average`,
+    )
+  const entries = num('transit_entries_r2')
+  if (entries !== undefined) out.push(`${compact(entries)} metro and RER entries a day nearby`)
+  return out
+}
+
 export function CellScore({ cell, profile, scores, zone, address, onCompare, onMemo, picking }: CellScoreProps) {
   const entry = cellScore(scores, profile, cell.cell)
   if (!entry) return null
@@ -145,40 +175,58 @@ export function CellScore({ cell, profile, scores, zone, address, onCompare, onM
         <ScoreRing score={score} />
         <div>
           <h2 className="place">{address ?? shortPlaceOf(cell)}</h2>
-          <p className="muted small">
-            {profileLabel(profile)} opportunity: this block {rankText(score)}.
+          <p className="verdict">
+            {verdict(score)} for {NOUN[profile]}.
           </p>
+          <p className="muted small">This block {rankText(score)}.</p>
         </div>
       </div>
-      <ul className="tiles" aria-label="This block in numbers">
-        {facts(cell).map((f) => (
-          <li key={f.label} className="tile" title={f.title}>
-            <span className="tile-value">{f.value}</span>
-            <span className="tile-label">{f.label}</span>
-          </li>
+      <ul className="facts">
+        {keyFacts(cell).map((f) => (
+          <li key={f}>{f}</li>
         ))}
       </ul>
-      {zone && <ZoneCard zone={zone} profile={profile} />}
-      <h3 className="label">What drives the score</h3>
-      <ul className="drivers">
-        {drivers.map(([key, contribution, value]) => {
-          const d = describeValue(scores, key, value)
-          return (
-            <li key={key} title={d.description}>
-              <span className="driver-name">{d.label}</span>
-              <span className="driver-value">{d.text}</span>
-              <Bar contribution={contribution} largest={largest} />
+
+      <details className="more">
+        <summary>Why this score?</summary>
+        <ul className="drivers">
+          {drivers.map(([key, contribution, value]) => {
+            const d = describeValue(scores, key, value)
+            return (
+              <li key={key} title={d.description}>
+                <span className="driver-name">{d.label}</span>
+                <span className="driver-value">{d.text}</span>
+                <Bar contribution={contribution} largest={largest} />
+              </li>
+            )
+          })}
+        </ul>
+        <p className="muted small">Long bars raise the score, grey bars lower it.</p>
+      </details>
+      {zone && (
+        <details className="more">
+          <summary>What is within a {zone.minutes}-minute walk?</summary>
+          <ZoneCard zone={zone} profile={profile} />
+        </details>
+      )}
+      <details className="more">
+        <summary>All the numbers</summary>
+        <ul className="tiles" aria-label="This block in numbers">
+          {facts(cell).map((f) => (
+            <li key={f.label} className="tile" title={f.title}>
+              <span className="tile-value">{f.value}</span>
+              <span className="tile-label">{f.label}</span>
             </li>
-          )
-        })}
-      </ul>
-      <p className="muted small">Green bars raise the score, grey bars lower it.</p>
+          ))}
+        </ul>
+      </details>
+
       <div className="actions">
-        <button className="button" onClick={onMemo}>
-          Site memo
-        </button>
         <button className="button secondary" onClick={onCompare} aria-pressed={picking}>
-          {picking ? 'Tap a second block…' : 'Compare'}
+          {picking ? 'Now tap a second block…' : 'Compare with another block'}
+        </button>
+        <button className="button secondary" onClick={onMemo}>
+          Site memo
         </button>
       </div>
     </div>

@@ -25,8 +25,8 @@ import { demandLayers, loadDemand, withDemand, type Demand } from './demand'
 import Plan from './Plan'
 import { NEW_BRAND, loadPlanner, type Backtest, type Planner } from './planner'
 import Dashboard from './Dashboard'
-import { areaBars, topBlocks, type AreaBar } from './dashboardData'
-import { HEIGHTS, PROFILE_COLOUR, coloursOf, isDark, profileColour, rampFor, stepExpr } from './palette'
+import { areaBars, bestPlaces, topBlocks, type AreaBar } from './dashboardData'
+import { HEIGHTS, coloursOf, profileColour, rampFor, stepExpr } from './palette'
 
 const PARIS: [number, number] = [2.3325, 48.8665]
 const BASEMAP: string | StyleSpecification =
@@ -58,7 +58,6 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'ask', label: 'Ask' },
   { id: 'method', label: 'Method' },
 ]
-const SHORT: Record<ProfileId, string> = { 'jewellery-watches': 'Jewellery', 'fashion-house': 'Fashion', beauty: 'Beauty' }
 
 /** The layers anyone can read at a glance, in plain words. Every other layer sits under "More data". */
 const QUICK: { key: string; label: string; help: string }[] = [
@@ -86,6 +85,12 @@ const QUICK: { key: string; label: string; help: string }[] = [
 ]
 /** Plain names for the score classes (SCORE_BREAKS: top half, quarter, tenth, twentieth). */
 const SCORE_WORDS = ['Below average', 'Good', 'Very good', 'Excellent', 'Best 5%']
+const NOUN: Record<ProfileId, string> = {
+  'jewellery-watches': 'jewellers and watchmakers',
+  'fashion-house': 'fashion houses',
+  beauty: 'beauty brands',
+}
+const HINT_KEY = 'adresse-hint-seen'
 
 function cssVar(name: string) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim()
@@ -136,6 +141,22 @@ export default function App() {
   const [searchNote, setSearchNote] = useState('')
   const pin = useRef<maplibregl.Marker | null>(null)
   const [ready, setReady] = useState(false)
+  // a one-time hint on the map; storage can be blocked, so it falls back to showing once per visit
+  const [hintSeen, setHintSeen] = useState(() => {
+    try {
+      return localStorage.getItem(HINT_KEY) === '1'
+    } catch {
+      return false
+    }
+  })
+  const dismissHint = useCallback(() => {
+    setHintSeen(true)
+    try {
+      localStorage.setItem(HINT_KEY, '1')
+    } catch {
+      // nothing to remember the hint with; it stays closed for this visit
+    }
+  }, [])
 
   useEffect(() => {
     Promise.all([loadStores(), loadGrid(), loadGridMeta(), loadScores(), loadCatchments(), loadDemand()]).then(
@@ -303,6 +324,10 @@ export default function App() {
   }, [ready, profile])
 
   useEffect(() => {
+    if (cellA) dismissHint()
+  }, [cellA, dismissHint])
+
+  useEffect(() => {
     if (ready) map.current!.setFilter('stores-selected', ['==', ['get', 'id'], selected?.id ?? ''])
   }, [ready, selected])
 
@@ -354,6 +379,7 @@ export default function App() {
       return new maplibregl.Marker({ element: el }).setLngLat(ll).addTo(m)
     })
     if (at.length) {
+      m.resize() // the guide column hides while planning, so the map has just grown
       const bounds = at.reduce((b, p) => b.extend(p), new maplibregl.LngLatBounds(at[0], at[0]))
       m.fitBounds(bounds, { maxZoom: 14.5, padding: fitPadding() })
     }
@@ -582,6 +608,7 @@ export default function App() {
   // the dashboard follows the layer, the profile and the selected block
   const bars = useMemo(() => (data && key ? areaBars(data.grid, key, isScore, format) : []), [data, key, isScore, format])
   const top = useMemo(() => (data && key ? topBlocks(data.grid, key, format) : []), [data, key, format])
+  const places = useMemo(() => (data ? bestPlaces(data.grid, scoreKey(profile)) : []), [data, profile])
   // with no block selected, the donut shows the boutiques of each profile in Paris
   const cityMix = useMemo(() => {
     if (!counts) return []
@@ -617,60 +644,82 @@ export default function App() {
       <main className="board">
         <aside className="side" aria-label="Controls and details">
           {!(selected || a) && (
-            <>
-              <section className="card hero">
-                <h1>Where should a luxury brand open next in Paris?</h1>
-                <Search onFound={onFound} />
-                {searchNote && <p className="muted small">{searchNote}</p>}
-                <div className="segmented" role="radiogroup" aria-label="Brand profile">
+            <section className="card guide" aria-labelledby="guide-title">
+              <h1 id="guide-title">Where should a luxury brand open next in Paris?</h1>
+
+              <div className="step">
+                <h2 className="step-title" id="step-1">
+                  <span className="step-n" aria-hidden="true">
+                    1
+                  </span>
+                  Choose a type of brand
+                </h2>
+                <div className="choices" role="radiogroup" aria-labelledby="step-1">
                   {PROFILES.map((p) => (
                     <button
                       key={p.id}
                       id={`profile-${p.id}`}
                       role="radio"
                       aria-checked={profile === p.id}
+                      className="choice"
                       onClick={() => {
                         setProfile(p.id)
                         setSelected(null)
+                        setLayer(SCORE)
                       }}
                     >
-                      <span
-                        className="dot"
-                        aria-hidden="true"
-                        style={{ background: isDark() ? PROFILE_COLOUR[p.id].dark : PROFILE_COLOUR[p.id].light }}
-                      />
-                      {SHORT[p.id]}
+                      <span className="dot" aria-hidden="true" style={{ background: profileColour(p.id) }} />
+                      <span className="choice-label">{p.label}</span>
+                      <span className="choice-count">{counts ? `${counts[p.id]} boutiques` : ''}</span>
                     </button>
                   ))}
                 </div>
+              </div>
+
+              <div className="step">
+                <h2 className="step-title">
+                  <span className="step-n" aria-hidden="true">
+                    2
+                  </span>
+                  Look at the best places
+                </h2>
                 {error ? (
                   <p className="error">{error}</p>
                 ) : (
-                  <ul className="tiles three" aria-label="This profile in numbers">
-                    <li className="tile">
-                      <span className="tile-value">{counts ? counts[profile] : '–'}</span>
-                      <span className="tile-label">boutiques today</span>
-                    </li>
-                    <li className="tile">
-                      <span className="tile-value">{brands || '–'}</span>
-                      <span className="tile-label">brands</span>
-                    </li>
-                    <li
-                      className="tile"
-                      title="We hid whole brands from the model; their real boutiques still landed this high on average"
-                    >
-                      <span className="tile-value">{tested}</span>
-                      <span className="tile-label">percentile in a blind test</span>
-                    </li>
-                  </ul>
+                  <>
+                    <p className="answer">
+                      The darker the block, the more it looks like where {NOUN[profile]} already are.{' '}
+                      {places.length > 0 && <>Start with these:</>}
+                    </p>
+                    <ol className="places">
+                      {places.map((t, i) => (
+                        <li key={t.cell}>
+                          <button onClick={() => focusBlock(t.cell)}>
+                            <span className="top-n">{i + 1}</span>
+                            <span className="top-place">{t.place} arrondissement</span>
+                            <span className="top-value">{t.text} / 100</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ol>
+                  </>
                 )}
-              </section>
+              </div>
 
-              <section className="card" aria-labelledby="layers-title">
-                <h2 id="layers-title" className="card-title">
-                  What the map shows
+              <div className="step">
+                <h2 className="step-title">
+                  <span className="step-n" aria-hidden="true">
+                    3
+                  </span>
+                  Or check an address
                 </h2>
-                <div className="layer-list" role="radiogroup" aria-labelledby="layers-title">
+                <Search onFound={onFound} />
+                {searchNote && <p className="muted small">{searchNote}</p>}
+              </div>
+
+              <details className="more">
+                <summary>Change what the map shows</summary>
+                <div className="layer-list" role="radiogroup" aria-label="Map layer">
                   {QUICK.map((q) => {
                     const sw = coloursOf(rampFor(q.key === SCORE ? scoreKey(profile) : q.key))
                     return (
@@ -711,19 +760,46 @@ export default function App() {
                     ))}
                 </select>
                 <p className="muted small">{quick?.help ?? (info ? `${info.description}. Source: ${info.source}.` : '')}</p>
-                {isScore && validation && (
-                  <p className="muted small">
-                    Fair test: for brands the model never saw, their real boutiques landed at the{' '}
-                    {ordinal(validation.model.mean_percentile)} percentile on average.
-                  </p>
-                )}
-              </section>
-
-              <details className="card sources small">
-                <summary>Data sources</summary>
-                <p className="muted">{data?.meta.sources.join(' · ') ?? 'Loading'}.</p>
               </details>
-            </>
+
+              <details className="more">
+                <summary>Paris in numbers</summary>
+                <ul className="tiles three" aria-label="This profile in numbers">
+                  <li className="tile">
+                    <span className="tile-value">{counts ? counts[profile] : '–'}</span>
+                    <span className="tile-label">boutiques today</span>
+                  </li>
+                  <li className="tile">
+                    <span className="tile-value">{brands || '–'}</span>
+                    <span className="tile-label">brands</span>
+                  </li>
+                  <li
+                    className="tile"
+                    title="We hid whole brands from the model; their real boutiques still landed this high on average"
+                  >
+                    <span className="tile-value">{tested}</span>
+                    <span className="tile-label">percentile in a blind test</span>
+                  </li>
+                </ul>
+                {data && key && (
+                  <Dashboard
+                    title={isScore ? 'Best arrondissements' : `${layerName} by arrondissement`}
+                    bars={bars}
+                    barNote={isScore ? 'Blocks in the top 10% of Paris. Click to zoom.' : 'Average block. Click to zoom.'}
+                    colours={colours}
+                    mix={cityMix}
+                    mixColours={PROFILES.map((p) => profileColour(p.id))}
+                    mixTitle="Luxury boutiques in Paris"
+                    mixNote="Street boutiques of the catalogue brands, by type."
+                    top={top}
+                    topTitle={isScore ? 'Best blocks' : `Highest blocks: ${layerName.toLowerCase()}`}
+                    onArea={onArea}
+                    onBlock={focusBlock}
+                  />
+                )}
+                <p className="muted small">Data: {data?.meta.sources.join(' · ') ?? 'loading'}.</p>
+              </details>
+            </section>
           )}
 
           {(selected || a) && data && (
@@ -801,6 +877,14 @@ export default function App() {
                 </button>
               </div>
             )}
+            {!hintSeen && !a && plan === null && ask === null && (
+              <div className="hint" role="note">
+                <span>Tap a coloured block to see why it scores well.</span>
+                <button onClick={dismissHint} aria-label="Close the hint">
+                  ×
+                </button>
+              </div>
+            )}
             {tip && (
               <div className="tip" style={{ left: tip.x, top: tip.y }} aria-hidden="true">
                 <strong>{tip.title}</strong>
@@ -809,26 +893,6 @@ export default function App() {
             )}
           </div>
 
-          {data && key && (
-            <Dashboard
-              title={isScore ? 'Best arrondissements' : `${layerName} by arrondissement`}
-              bars={bars}
-              barNote={isScore ? 'Blocks in the top 10% of Paris. Click to zoom.' : 'Average block. Click to zoom.'}
-              colours={colours}
-              mix={zone ? zone.split : cityMix}
-              mixColours={zone ? [colours[4], colours[3], colours[1]] : PROFILES.map((p) => profileColour(p.id))}
-              mixTitle={zone ? `Spending within a ${zone.minutes}-minute walk` : 'Luxury boutiques in Paris'}
-              mixNote={
-                zone
-                  ? 'Share of the spending power in the walk. For Paris as a whole it is one third each.'
-                  : 'Street boutiques of the catalogue brands, by profile.'
-              }
-              top={top}
-              topTitle={isScore ? 'Best blocks for this profile' : `Highest blocks: ${layerName.toLowerCase()}`}
-              onArea={onArea}
-              onBlock={focusBlock}
-            />
-          )}
         </section>
       </main>
 

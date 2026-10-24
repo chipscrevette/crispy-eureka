@@ -50,3 +50,16 @@ export function topBlocks(grid: Grid, key: string, format: (v: number) => string
       detail: typeof f.properties.demand === 'number' ? `spending ${Math.round(f.properties.demand)}` : '',
     }))
 }
+
+/** The best block of each of the best arrondissements, so a first look spreads across Paris. */
+export function bestPlaces(grid: Grid, key: string, n = 3): TopBlock[] {
+  const seen = new Set<string>()
+  const out: TopBlock[] = []
+  for (const b of topBlocks(grid, key, (v) => `${Math.round(v)}`, grid.features.length)) {
+    if (seen.has(b.place)) continue
+    seen.add(b.place)
+    out.push(b)
+    if (out.length === n) break
+  }
+  return out
+}

@@ -81,13 +81,13 @@ button, input, select { font-family: var(--ui); }
 
 .board {
   display: grid;
-  grid-template-columns: 360px minmax(0, 1fr);
+  grid-template-columns: 380px minmax(0, 1fr);
   gap: 16px;
   min-height: 0;
   padding: 0 16px 16px;
 }
 .side { display: flex; flex-direction: column; gap: 14px; min-height: 0; overflow: auto; padding-bottom: 2px; }
-.stage { display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 16px; min-height: 0; }
+.stage { display: grid; grid-template-rows: minmax(0, 1fr); min-height: 0; }
 
 .card {
   display: grid;
@@ -717,3 +717,115 @@ optgroup { font-style: normal; }
 .split-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0; padding: 0; list-style: none; color: var(--muted); }
 .split-legend li { display: flex; align-items: center; gap: 6px; }
 .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 3px; }
+
+/* Guided flow: one question at a time, details on demand */
+.guide { gap: 22px; align-content: start; }
+.guide h1 { font-size: 1.45rem; line-height: 1.15; letter-spacing: -0.01em; }
+.step { display: grid; gap: 10px; }
+.step-title { display: flex; align-items: center; gap: 10px; margin: 0; font: var(--weight) 1rem var(--display); }
+.step-n { display: grid; place-items: center; flex: none; width: 24px; height: 24px; border-radius: 50%; font-size: 0.8rem; color: var(--surface); background: var(--ink); }
+.choices { display: grid; gap: 6px; }
+.choice {
+  display: grid;
+  grid-template-columns: 12px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 0.95rem;
+  color: var(--ink);
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-s);
+  cursor: pointer;
+}
+.choice:hover { border-color: var(--muted); }
+.choice[aria-checked='true'] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.choice:focus-visible { outline: 2px solid var(--seine); outline-offset: 2px; }
+.choice .dot { width: 12px; height: 12px; border-radius: 50%; }
+.choice-count { font-size: 0.8rem; color: var(--muted); }
+.answer { margin: 0; color: var(--muted); font-size: 0.9rem; }
+.places { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.places button {
+  display: grid;
+  grid-template-columns: 24px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  font: inherit;
+  color: var(--ink);
+  text-align: left;
+  background: var(--seine-soft);
+  border: 0;
+  border-radius: var(--radius-s);
+  cursor: pointer;
+}
+.places button:hover { box-shadow: inset 0 0 0 1px var(--seine); }
+.places button:focus-visible { outline: 2px solid var(--seine); outline-offset: 2px; }
+
+.more { border-top: 1px solid var(--rule); padding-top: 12px; }
+.more > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  list-style: none;
+  font-size: 0.92rem;
+  color: var(--ink);
+}
+.more > summary::-webkit-details-marker { display: none; }
+.more > summary::after { content: '+'; font: var(--weight) 1.2rem/1 var(--display); color: var(--muted); }
+.more[open] > summary::after { content: '–'; }
+.more > summary:focus-visible { outline: 2px solid var(--seine); outline-offset: 4px; border-radius: 4px; }
+.more[open] { display: grid; gap: 12px; }
+.more .charts { grid-template-columns: 1fr; gap: 10px; }
+.more .charts > :last-child { display: grid; }
+.more .chart { box-shadow: none; background: var(--limestone); }
+.more .chart .bars button:hover, .more .chart .top button:hover { background: var(--surface); }
+
+.verdict { margin: 4px 0 0; font-size: 1rem; }
+.score-head .muted { margin: 2px 0 0; }
+.facts { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.facts li { position: relative; padding: 10px 12px 10px 30px; background: var(--limestone); border-radius: var(--radius-s); font-size: 0.92rem; }
+.facts li::before { content: ''; position: absolute; left: 12px; top: 50%; width: 8px; height: 8px; margin-top: -4px; border-radius: 50%; background: var(--seine); }
+.cell-score .actions { margin-top: 4px; }
+
+.hint {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 10px 10px 16px;
+  font-size: 0.9rem;
+  color: var(--surface);
+  background: var(--ink);
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+  white-space: nowrap;
+}
+.hint button { display: grid; place-items: center; width: 26px; height: 26px; padding: 0; font: var(--weight) 1.1rem/1 var(--ui); color: var(--ink); background: var(--surface); border: 0; border-radius: 50%; cursor: pointer; }
+.hint button:focus-visible { outline: 2px solid var(--seine); outline-offset: 2px; }
+.plan .step { gap: 8px; }
+.plan .plan-form { gap: 18px; }
+.plan-detail-list { margin: 0; padding-left: 0; list-style: none; display: grid; gap: 4px; color: var(--muted); }
+.plan-pick { grid-template-columns: 28px 1fr auto; }
+
+@media (max-width: 760px) {
+  .hint { bottom: auto; top: 10px; left: 10px; transform: none; white-space: normal; max-width: calc(100% - 120px); font-size: 0.82rem; }
+  .guide { gap: 18px; }
+}
+
+/* With Plan or Ask open, the drawer is the guide: the map takes the rest of the screen */
+@media (min-width: 761px) {
+  .app.asking .board { grid-template-columns: minmax(0, 1fr); }
+  .app.asking .side { display: none; }
+}
+@media (max-width: 760px) {
+  .map-legend > .legend-row:last-child { display: none; }
+}
