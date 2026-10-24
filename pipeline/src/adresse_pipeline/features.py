@@ -21,6 +21,7 @@ INSEE = "INSEE Filosofi, 200 m grid"
 DVF = "DVF (DGFiP, Etalab geolocated)"
 IDFM = "Île-de-France Mobilités rail validations"
 SIRENE = "INSEE Sirene establishments"
+HOTELS = "Atout France classified hotels"
 APUR = "APUR BDCOM (census of Paris ground-floor units)"
 
 # Overture `basic_category` values counted for each context feature.
@@ -40,6 +41,13 @@ RING = "in the cell and its six neighbours (about 350 m around)"
 
 FEATURES: list[Feature] = [
     Feature("hotels_r1", "Hotels", "places", OVERTURE, f"Hotels and lodgings {RING}"),
+    Feature(
+        "upscale_rooms_r1",
+        "Upscale hotel rooms",
+        "rooms",
+        HOTELS,
+        f"Rooms in 4- and 5-star hotels {RING}",
+    ),
     Feature(
         "dining_r1",
         "Restaurants & cafés",

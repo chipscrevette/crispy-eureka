@@ -210,7 +210,7 @@ export default function App() {
       attributionControl: {
         compact: true,
         customAttribution:
-          'Places and streets © Overture Maps Foundation, OpenStreetMap contributors · INSEE · DGFiP · Île-de-France Mobilités · Apur, BDCOM 2023 · Addresses: BAN (IGN)',
+          'Places and streets © Overture Maps Foundation, OpenStreetMap contributors · INSEE · DGFiP · Île-de-France Mobilités · Atout France · Apur, BDCOM 2023 · Addresses: BAN (IGN)',
       },
     })
     map.current = m
