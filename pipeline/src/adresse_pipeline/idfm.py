@@ -27,6 +27,8 @@ class Station:
     lon: float
     lat: float
     daily_entries: float
+    # the lines that stop here as passengers name them: "1", "3bis", "RER A"
+    lines: tuple[str, ...] = ()
 
 
 def read_csv(path: Path) -> Iterator[dict[str, str]]:
@@ -65,6 +67,7 @@ def stations(rows: Iterable[dict[str, str]], entries: dict[str, float]) -> list[
     """One station per ZdC with ridership. The source has one row per line served."""
     points: dict[str, list[tuple[float, float]]] = defaultdict(list)
     names: dict[str, str] = {}
+    served: dict[str, set[str]] = defaultdict(set)
     rows = list(rows)
     if not rows or not {"id_ref_zdc", "nom_zdc", "geo point"} <= rows[0].keys():
         raise ValueError(f"unexpected stations file: {len(rows)} rows, columns {_columns(rows)}")
@@ -73,6 +76,8 @@ def stations(rows: Iterable[dict[str, str]], entries: dict[str, float]) -> list[
         lat, lon = (float(v) for v in row["geo point"].split(","))
         points[zdc].append((lon, lat))
         names[zdc] = row["nom_zdc"]
+        if line := line_name(row):
+            served[zdc].add(line)
     joined = [
         Station(
             zdc,
@@ -80,6 +85,7 @@ def stations(rows: Iterable[dict[str, str]], entries: dict[str, float]) -> list[
             sum(lon for lon, _ in pts) / len(pts),
             sum(lat for _, lat in pts) / len(pts),
             entries[zdc],
+            tuple(sorted(served[zdc], key=_line_order)),
         )
         for zdc, pts in points.items()
         if zdc in entries
@@ -88,6 +94,26 @@ def stations(rows: Iterable[dict[str, str]], entries: dict[str, float]) -> list[
         sample = sorted(points)[:3], sorted(entries)[:3]
         raise ValueError(f"no station ids match the validations; samples {sample}")
     return joined
+
+
+def line_name(row: dict[str, str]) -> str:
+    """ "1" for a metro line, "RER A" for an RER line, "" for other modes or when the file lacks the columns."""
+    mode = (row.get("mode") or "").upper()
+    index = row.get("indice_lig") or row.get("indice ligne") or ""
+    if not index:
+        return ""
+    if mode == "METRO":
+        return index
+    if mode == "RER":
+        return f"RER {index}"
+    return ""
+
+
+def _line_order(line: str) -> tuple[int, str]:
+    if line.startswith("RER"):
+        return (1, line)
+    digits = "".join(c for c in line if c.isdigit())
+    return (0, f"{int(digits or 0):03d}{line}")
 
 
 def to_geojson(stations: Iterable[Station]) -> dict:
@@ -99,7 +125,11 @@ def to_geojson(stations: Iterable[Station]) -> dict:
             {
                 "type": "Feature",
                 "geometry": {"type": "Point", "coordinates": [round(s.lon, 5), round(s.lat, 5)]},
-                "properties": {"name": s.name, "entries": round(s.daily_entries)},
+                "properties": {
+                    "name": s.name,
+                    "entries": round(s.daily_entries),
+                    "lines": list(s.lines),
+                },
             }
             for s in sorted(stations, key=lambda s: s.daily_entries)
         ],
