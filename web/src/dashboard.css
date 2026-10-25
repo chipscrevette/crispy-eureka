@@ -386,3 +386,31 @@
   .dash-block-page .dash-subcard { padding-top: 10px; }
   .dash-card { padding: 16px 20px; }
 }
+
+/* under the layer list: how the layer spreads over Paris */
+.dash-spread { margin: 4px 16px 0 0; }
+.dash-spread-key { display: inline-block; width: 6px; height: 10px; vertical-align: -1px; background: var(--ink); border-radius: 1px; }
+.dash-spread-bars { display: flex; align-items: flex-end; gap: 1px; height: 46px; }
+.dash-spread-bars span { flex: 1; min-width: 0; border-radius: 2px 2px 0 0; }
+.dash-spread figcaption { display: flex; justify-content: space-between; padding-top: 4px; font-size: 0.7rem; border-top: 1px solid var(--rule); }
+
+/* the map's own switches, in its bottom corner */
+.dash-map-toggle {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  font: var(--weight) 0.8rem var(--ui);
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.dash-map-toggle[aria-pressed='true'] { color: var(--ink); }
+.dash-map-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.dash-map-toggle-lines { width: 16px; height: 8px; background: linear-gradient(#ffcd00 0 2px, transparent 2px 3px, #003ca6 3px 5px, transparent 5px 6px, #6eca97 6px 8px); border-radius: 2px; opacity: 0.4; }
+.dash-map-toggle[aria-pressed='true'] .dash-map-toggle-lines { opacity: 1; }

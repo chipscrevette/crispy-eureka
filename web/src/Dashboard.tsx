@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { loadData, type Data } from './appData'
-import { ATLAS, atlasKey, cssVar as css, fills, sizeCanvas, useOutline } from './atlasLayers'
+import { ATLAS, atlasKey, cssVar as css, fills, shadeOf, sizeCanvas, useOutline } from './atlasLayers'
+import { loadBorders, type Borders } from './borders'
 import { OPEN_RULE, openKey } from './dashboardData'
 import { cellAt, cellIndex, type LonLat } from './geo'
 import { formatValue, type CellProps } from './grid'
@@ -13,7 +14,7 @@ import LayerStack from './LayerStack'
 import Search, { type Address } from './Search'
 import { bandsOf, fromCatchments, loadWalkZones, type WalkZones } from './walkZones'
 import { loadStations, type Stations } from './stations'
-import { badgeHtml, lineColours, loadNetwork, type LineColours } from './network'
+import { badgeHtml, lineColours, loadNetwork, type LineColours, type Network } from './network'
 
 /** "Paris 8e Arrondissement" → "8e". */
 const short = (p: CellProps) => placeOf(p).replace(/^Paris /, '').replace(/ Arrondissement$/, '')
@@ -68,8 +69,13 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null)
   const [shared, setShared] = useState<Shared>({ profile: 'jewellery-watches', layer: 'score', cell: null, fresh: true })
 
+  // the map's landmarks: arrondissements and metro lines, both small; the map works without them
+  const [borders, setBorders] = useState<Borders | null>(null)
+  const [network, setNetwork] = useState<Network | null>(null)
   useEffect(() => {
     loadData().then(setData, (e: Error) => setError(e.message))
+    loadBorders().then(setBorders, () => setBorders(null))
+    loadNetwork().then(setNetwork, () => setNetwork(null))
   }, [])
 
 
@@ -89,12 +95,11 @@ export default function Dashboard() {
   const [minutes, setMinutes] = useState(10)
   const [zones, setZones] = useState<WalkZones | null>(null)
   const [stations, setStations] = useState<Stations | null>(null)
-  const [colours, setColours] = useState<LineColours | null>(null)
+  const colours = useMemo<LineColours | null>(() => (network ? lineColours(network) : null), [network])
   useEffect(() => {
     if (!cell || zones || !data) return
     loadWalkZones().then(setZones, () => setZones(fromCatchments(data.catchments)))
     loadStations().then(setStations, () => setStations(null))
-    loadNetwork().then((n) => setColours(n ? lineColours(n) : null), () => setColours(null))
   }, [cell, zones, data])
   // until the data build has made every band, the one band there is stands in
   const walkMin = zones && !zones.bands.includes(minutes) ? zones.bands[zones.bands.length - 1] : minutes
@@ -306,6 +311,7 @@ export default function Dashboard() {
                   <h1 className="dash-title">{layerInfo.label}</h1>
                   <p className="muted">{layerInfo.note}</p>
                   {layerPick}
+                  <Spread data={data} layerKey={atlasKey(layer, profile)} isScore={layer === 'score'} block={block} />
                   {fresh ? (
                     <div className="dash-hero-figures">
                       <Figure value={fmt(open.length)} label={tr('places libres', 'free spots')} accent />
@@ -332,6 +338,8 @@ export default function Dashboard() {
                   pin={found?.at ?? null}
                   brand={brand}
                   placed={placed}
+                  borders={borders}
+                  network={network}
                   onBlock={(c) => set({ cell: c })}
                   onAllParis={allParis}
                 />
@@ -489,6 +497,8 @@ export default function Dashboard() {
                   pin={null}
                   brand={brand}
                   placed={placed}
+                  borders={borders}
+                  network={network}
                   onBlock={(c) => set({ cell: c })}
                   onAllParis={() => setBrand(null)}
                 />
@@ -625,10 +635,14 @@ function HeroMap(props: {
   pin: LonLat | null
   brand: string | null
   placed: Map<string, string>
+  borders: Borders | null
+  network: Network | null
   onBlock: (cell: string) => void
   onAllParis?: () => void
 }) {
-  const { data, profile, layer, cell, fresh, open, zone, rings, minutes, focus, pin, brand, placed, onBlock } = props
+  const { data, profile, layer, cell, fresh, open, zone, rings, minutes, focus, pin, brand, placed, borders, network, onBlock } = props
+  // the metro is there on demand: the map first reads as the layer
+  const [metro, setMetro] = useState(false)
   const ref = useRef<HTMLCanvasElement>(null)
   const outline = useOutline(data.grid)
   const key = atlasKey(layer, profile)
@@ -692,6 +706,47 @@ function HeroMap(props: {
         ctx.fill()
       }
       ctx.globalAlpha = 1
+      // landmarks: the arrondissements' edges, then the metro in its own colours, thin and quiet
+      const path = (ring: number[][]) =>
+        ring.forEach((c, i) => {
+          const [x, y] = outline.project(c)
+          if (i) ctx.lineTo(ox + x * s, oy + y * s)
+          else ctx.moveTo(ox + x * s, oy + y * s)
+        })
+      // nothing beyond the city: the landmarks are cut at its edge
+      const city = borders?.features.find((f) => f.properties.city)
+      ctx.save()
+      if (city) {
+        ctx.beginPath()
+        path(city.geometry.coordinates[0])
+        ctx.clip()
+      }
+      if (borders) {
+        ctx.strokeStyle = ink
+        ctx.lineJoin = 'round'
+        for (const f of borders.features) {
+          ctx.globalAlpha = f.properties.city ? 0.25 : 0.1
+          ctx.lineWidth = f.properties.city ? 1 : 0.7
+          ctx.beginPath()
+          path(f.geometry.coordinates[0])
+          ctx.stroke()
+        }
+        ctx.globalAlpha = 1
+      }
+      if (network && metro) {
+        ctx.lineWidth = Math.min(1.2 * Math.sqrt(zoom), 2.6)
+        ctx.lineCap = 'round'
+        ctx.globalAlpha = zone ? 0.3 : 0.45
+        for (const f of network.features) {
+          ctx.strokeStyle = f.properties.colour
+          ctx.beginPath()
+          const g = f.geometry
+          for (const line of g.type === 'LineString' ? [g.coordinates] : g.coordinates) path(line)
+          ctx.stroke()
+        }
+        ctx.globalAlpha = 1
+      }
+      ctx.restore()
       // the walk's rings, the farthest first so the nearest lies on top
       ctx.lineJoin = 'round'
       const thick = Math.min(Math.max(Math.sqrt(zoom), 1), 1.6)
@@ -761,6 +816,17 @@ function HeroMap(props: {
           ctx.fillText(String(n), x, y + 0.5)
         }
       }
+      if (borders) {
+        ctx.font = `500 ${Math.round(Math.min(10 * Math.sqrt(zoom), 16))}px ${css('--display')}`
+        ctx.fillStyle = ink
+        ctx.globalAlpha = 0.3
+        for (const f of borders.features) {
+          if (!f.properties.label || !f.properties.n) continue
+          const [x, y] = outline.project(f.properties.label)
+          ctx.fillText(f.properties.n === 1 ? '1er' : `${f.properties.n}e`, ox + x * s, oy + y * s)
+        }
+        ctx.globalAlpha = 1
+      }
       if (pin) {
         // the searched address: a pin whose point is on the spot
         const [px, py] = outline.project(pin)
@@ -783,7 +849,7 @@ function HeroMap(props: {
     const obs = new ResizeObserver(draw)
     obs.observe(ref.current!)
     return () => obs.disconnect()
-  }, [outline, colours, cell, fresh, profile, data, rank, zone, placed, lines, bandIndex, rings, minutes, pin, brand, target])
+  }, [outline, colours, cell, fresh, profile, data, rank, zone, placed, lines, bandIndex, rings, minutes, pin, brand, target, borders, network, metro])
 
   // the view glides to its new frame
   useEffect(() => {
@@ -894,6 +960,12 @@ function HeroMap(props: {
           </span>
         </span>
       )}
+      {network && (
+        <button className="dash-map-toggle" aria-pressed={metro} onClick={() => setMetro((m) => !m)}>
+          <span className="dash-map-toggle-lines" aria-hidden="true" />
+          {tr('Métro', 'Metro')}
+        </button>
+      )}
       {((focus && props.onAllParis) || moved) && (
         <button
           className="dash-map-reset"
@@ -907,6 +979,57 @@ function HeroMap(props: {
         </button>
       )}
     </div>
+  )
+}
+
+/**
+ * How the layer's values spread over Paris: a histogram whose bars take the map's colours, with
+ * the chosen block marked. The long tail is folded into the last bar so the bulk stays readable.
+ */
+function Spread(props: { data: Data; layerKey: string; isScore: boolean; block: CellProps | null }) {
+  const { data, layerKey, isScore, block } = props
+  const bins = 28
+  const spread = useMemo(() => {
+    const values = data.grid.features
+      .map((f) => f.properties[layerKey])
+      .filter((v): v is number => typeof v === 'number')
+      .sort((a, b) => a - b)
+    const lo = isScore ? 0 : values[0] ?? 0
+    const hi = isScore ? 100 : (values[Math.floor(values.length * 0.97)] ?? 1)
+    const counts = Array.from({ length: bins }, () => 0)
+    const at = (v: number) => Math.min(bins - 1, Math.max(0, Math.floor(((v - lo) / (hi - lo || 1)) * bins)))
+    for (const v of values) counts[at(v)] += 1
+    // each bar in the colour the map gives its middle value
+    const shade = shadeOf(data.grid, layerKey, isScore)
+    const colours = counts.map((_, i) => shade(lo + ((i + 0.5) * (hi - lo)) / bins))
+    return { counts, colours, at, max: Math.max(...counts), total: values.length }
+  }, [data, layerKey, isScore])
+  const v = block ? block[layerKey] : undefined
+  const mark = typeof v === 'number' ? spread.at(v) : null
+  return (
+    <figure className="dash-spread" aria-label={tr('Répartition des blocs de Paris', 'How the Paris blocks spread')}>
+      <div className="dash-spread-bars">
+        {spread.counts.map((n, i) => (
+          <span
+            key={i}
+            className={i === mark ? 'on' : undefined}
+            style={{ height: `${Math.max(3, (Math.sqrt(n) / Math.sqrt(spread.max || 1)) * 100)}%`, background: i === mark ? 'var(--ink)' : (spread.colours[i] ?? 'var(--quiet)') }}
+            title={`${fmt(n)} ${tr('blocs', 'blocks')}`}
+          />
+        ))}
+      </div>
+      <figcaption className="muted">
+        <span>{tr('faible', 'low')}</span>
+        <span>{mark !== null ? (
+            <>
+              <span className="dash-spread-key" aria-hidden="true" /> {tr('le bloc choisi', 'the chosen block')}
+            </>
+          ) : (
+            `${fmt(spread.total)} ${tr('blocs', 'blocks')}`
+          )}</span>
+        <span>{tr('fort', 'high')}</span>
+      </figcaption>
+    </figure>
   )
 }
 

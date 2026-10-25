@@ -27,21 +27,21 @@ export function atlasKey(id: string, profile: ProfileId) {
 
 export const cssVar = (name: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim()
 
-/** Colour of each block on one layer, with the same classes as the big map; empty blocks stay neutral. */
-export function fills(grid: Grid, key: string, isScore: boolean): Map<string, string | null> {
+/** The colour a value takes on one layer, with the same classes as the big map; null for empty blocks. */
+export function shadeOf(grid: Grid, key: string, isScore: boolean): (v: unknown) => string | null {
   const colours = coloursOf(rampFor(key))
   const breaks = isScore ? SCORE_BREAKS : quantileBreaks(grid, key)
-  const out = new Map<string, string | null>()
-  for (const f of grid.features) {
-    const v = f.properties[key]
-    if (typeof v !== 'number' || v <= 0 || (isScore && v < SCORE_BREAKS[0])) {
-      out.set(f.properties.cell, null)
-      continue
-    }
+  return (v) => {
+    if (typeof v !== 'number' || v <= 0 || (isScore && v < SCORE_BREAKS[0])) return null
     const c = breaks.filter((b) => v >= b).length
-    out.set(f.properties.cell, colours[Math.min(c, colours.length - 1)])
+    return colours[Math.min(c, colours.length - 1)]
   }
-  return out
+}
+
+/** Colour of each block on one layer; empty blocks stay neutral. */
+export function fills(grid: Grid, key: string, isScore: boolean): Map<string, string | null> {
+  const shade = shadeOf(grid, key, isScore)
+  return new Map(grid.features.map((f) => [f.properties.cell, shade(f.properties[key])]))
 }
 
 /** Sizes a canvas to its box at the screen's sharpness (at most 2x) and returns a context drawing in CSS pixels. */
