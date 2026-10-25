@@ -11,7 +11,7 @@ import pyarrow.compute as pc
 import pyarrow.dataset as ds
 import pyarrow.fs as fs
 import shapely
-from shapely.geometry import mapping
+from shapely.geometry import Polygon, mapping
 from shapely.geometry.base import BaseGeometry
 
 from adresse_pipeline.brands import Place
@@ -79,12 +79,13 @@ class Area:
 
 
 def arrondissement_number(name: str) -> int:
-    """"Paris 1er Arrondissement" -> 1, "Paris 11e Arrondissement" -> 11."""
+    """ "Paris 1er Arrondissement" -> 1, "Paris 11e Arrondissement" -> 11."""
     return int(re.match(r"Paris (\d+)", name)[1])
 
 
 def arrondissements_geojson(arrondissements: list[Area], tolerance: float = 0.00008) -> dict:
-    """The 20 arrondissements as light map polygons, numbered, with a point to put the number on."""
+    """The 20 arrondissements as light map polygons, numbered, with a point to put the number on,
+    then the city's outline as one more feature with `city: true`, for the edge and the mask."""
     features = []
     for a in sorted(arrondissements, key=lambda a: arrondissement_number(a.name)):
         shape = a.geometry.simplify(tolerance, preserve_topology=True)
@@ -99,6 +100,17 @@ def arrondissements_geojson(arrondissements: list[Area], tolerance: float = 0.00
                 },
             }
         )
+    # snapping to a 1 m grid closes the hairline gaps between neighbours, so the union is one ring
+    city = shapely.union_all([a.geometry for a in arrondissements], grid_size=0.00001)
+    # the outer edge only: slivers left between neighbours would show as holes in the mask
+    city = Polygon(max(getattr(city, "geoms", [city]), key=lambda g: g.area).exterior)
+    features.append(
+        {
+            "type": "Feature",
+            "geometry": mapping(city.simplify(tolerance, preserve_topology=True)),
+            "properties": {"city": True},
+        }
+    )
     return {"type": "FeatureCollection", "features": features}
 
 
