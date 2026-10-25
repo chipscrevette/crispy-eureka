@@ -51,7 +51,12 @@ from adresse_pipeline.grid import (
     ring_weighted_mean,
 )
 from adresse_pipeline.luxury_stores import CATALOGUE, find_stores, to_geojson
-from adresse_pipeline.overture import PARIS_PADDED, read_paris_areas, read_places
+from adresse_pipeline.overture import (
+    PARIS_PADDED,
+    arrondissements_geojson,
+    read_paris_areas,
+    read_places,
+)
 from adresse_pipeline.walk import build_graph, read_segments
 
 SKIPPABLE = ["dvf", "insee", "idfm", "osm", "sirene", "apur", "hotels", "footfall"]
@@ -80,6 +85,10 @@ def main() -> None:
     areas = read_paris_areas(args.overture_release)
     commune = next(a for a in areas if a.subtype == "locality")
     arrondissements = [a for a in areas if a is not commune]
+    (WEB_DATA / "arrondissements.geojson").write_text(
+        json.dumps(arrondissements_geojson(arrondissements), separators=(",", ":"))
+    )
+    print(f"arrondissements: {len(arrondissements)} written for the map")
     cells = cells_covering(commune.geometry)
     print(f"grid: {len(cells)} H3 cells at resolution 9 cover Paris")
 

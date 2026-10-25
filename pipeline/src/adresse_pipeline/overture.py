@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 from collections.abc import Iterator
 from dataclasses import dataclass
 
@@ -10,6 +11,7 @@ import pyarrow.compute as pc
 import pyarrow.dataset as ds
 import pyarrow.fs as fs
 import shapely
+from shapely.geometry import mapping
 from shapely.geometry.base import BaseGeometry
 
 from adresse_pipeline.brands import Place
@@ -74,6 +76,30 @@ class Area:
     name: str
     subtype: str
     geometry: BaseGeometry
+
+
+def arrondissement_number(name: str) -> int:
+    """"Paris 1er Arrondissement" -> 1, "Paris 11e Arrondissement" -> 11."""
+    return int(re.match(r"Paris (\d+)", name)[1])
+
+
+def arrondissements_geojson(arrondissements: list[Area], tolerance: float = 0.00008) -> dict:
+    """The 20 arrondissements as light map polygons, numbered, with a point to put the number on."""
+    features = []
+    for a in sorted(arrondissements, key=lambda a: arrondissement_number(a.name)):
+        shape = a.geometry.simplify(tolerance, preserve_topology=True)
+        label = a.geometry.representative_point()
+        features.append(
+            {
+                "type": "Feature",
+                "geometry": mapping(shapely.set_precision(shape, 0.00001)),
+                "properties": {
+                    "n": arrondissement_number(a.name),
+                    "label": [round(label.x, 5), round(label.y, 5)],
+                },
+            }
+        )
+    return {"type": "FeatureCollection", "features": features}
 
 
 def read_paris_areas(release: str) -> list[Area]:
