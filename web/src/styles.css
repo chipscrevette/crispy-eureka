@@ -879,6 +879,10 @@ optgroup { font-style: normal; }
 .rail .top-place { font-family: var(--display); }
 
 /* numbered places on the map, with a leader to their name */
+/* the arrondissement numbers: printed faintly on the ground, never in the way of a click */
+.arr-label { font: var(--weight) 1.35rem/1 var(--display); letter-spacing: -0.02em; color: var(--ink); opacity: 0.3; pointer-events: none; }
+.arr-label sup { font-size: 0.55em; vertical-align: 0.6em; margin-left: 1px; }
+
 .spot-marker {
   display: flex;
   align-items: center;

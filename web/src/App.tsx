@@ -28,6 +28,7 @@ import Atlas from './Atlas'
 import Figures from './Figures'
 import { ATLAS, atlasKey } from './atlasLayers'
 import { entriesText, loadStations, type Stations } from './stations'
+import { loadBorders, outsideParis, type Borders } from './borders'
 import { footfallText, loadStreets, streetTitle, type StreetProps, type Streets } from './streets'
 import { bestPlaces, countOpen, openKey, openPlaces, withOpenSpaces } from './dashboardData'
 import { HEIGHTS, coloursOf, isDark, profileColour, rampFor, stepExpr } from './palette'
@@ -147,6 +148,7 @@ export default function App() {
   const [ready, setReady] = useState(false)
   const [stations, setStations] = useState<Stations | null>(null)
   const [showStations, setShowStations] = useState(false)
+  const [borders, setBorders] = useState<Borders | null>(null)
   const [streets, setStreets] = useState<Streets | null>(null)
   const [showStreets, setShowStreets] = useState(false)
   // a one-time hint on the map; storage can be blocked, so it falls back to showing once per visit
@@ -169,6 +171,7 @@ export default function App() {
   useEffect(() => {
     // an extra layer: the map works without it
     loadStations().then(setStations, () => setStations(null))
+    loadBorders().then(setBorders, () => setBorders(null))
   }, [])
 
   useEffect(() => {
@@ -568,6 +571,57 @@ export default function App() {
     if (ready) map.current!.easeTo({ pitch: raised ? (phone() ? 40 : 50) : 0, bearing: raised ? -12 : 0, duration: 600 })
   }, [ready, raised])
 
+  // Paris itself: beyond the city the map fades, the edge is drawn firm and the 20 arrondissements fine
+  useEffect(() => {
+    if (!ready || !borders) return
+    const m = map.current!
+    if (m.getSource('borders')) return
+    m.addSource('borders', { type: 'geojson', data: borders })
+    const outside = outsideParis(borders)
+    if (outside) {
+      m.addSource('outside', { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: outside } })
+      m.addLayer(
+        { id: 'outside', type: 'fill', source: 'outside', paint: { 'fill-color': cssVar('--limestone'), 'fill-opacity': 0.6 } },
+        'grid-fill',
+      )
+    }
+    // on the ground, under the raised blocks
+    m.addLayer(
+      {
+        id: 'arrondissements',
+        type: 'line',
+        source: 'borders',
+        filter: ['!', ['has', 'city']],
+        paint: {
+          'line-color': cssVar('--ink'),
+          'line-opacity': 0.35,
+          'line-width': ['interpolate', ['linear'], ['zoom'], 11, 0.6, 15, 1.4],
+          'line-dasharray': [3, 2],
+        },
+      },
+      'grid-3d',
+    )
+    m.addLayer(
+      {
+        id: 'city-edge',
+        type: 'line',
+        source: 'borders',
+        filter: ['has', 'city'],
+        paint: { 'line-color': cssVar('--ink'), 'line-opacity': 0.8, 'line-width': ['interpolate', ['linear'], ['zoom'], 11, 1.4, 15, 2.6] },
+      },
+      'grid-3d',
+    )
+    for (const f of borders.features) {
+      const { n, label } = f.properties
+      if (!n || !label) continue
+      const el = document.createElement('span')
+      el.className = 'arr-label'
+      el.setAttribute('aria-hidden', 'true')
+      el.innerHTML = `${n}<sup>${n === 1 ? 'er' : 'e'}</sup>`
+      new maplibregl.Marker({ element: el }).setLngLat(label).addTo(m)
+    }
+  }, [ready, borders])
+
   // stations sit under the boutiques; the circle grows with the daily entries
   useEffect(() => {
     if (!ready || !stations) return
@@ -769,13 +823,14 @@ export default function App() {
       if (!f) return []
       const el = document.createElement('button')
       el.className = 'spot-marker'
-      el.innerHTML = `<b>${i + 1}</b><span>${t.place}</span>`
+      // the arrondissement is printed on the map, so the marker only carries its rank
+      el.innerHTML = `<b>${i + 1}</b>`
       el.setAttribute('aria-label', `${i + 1} : ${arr(t.place)}, ${t.text} / 100`)
       el.addEventListener('click', (e) => {
         e.stopPropagation()
         focusBlock(t.cell)
       })
-      return [new maplibregl.Marker({ element: el, anchor: 'left', offset: [-11, 0] }).setLngLat(centroid(f.geometry.coordinates[0])).addTo(map.current!)]
+      return [new maplibregl.Marker({ element: el }).setLngLat(centroid(f.geometry.coordinates[0])).addTo(map.current!)]
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, cells, places, plan, ask])
