@@ -30,6 +30,7 @@ import { entriesText, loadStations, type Stations } from './stations'
 import { footfallText, loadStreets, streetTitle, type StreetProps, type Streets } from './streets'
 import { bestPlaces, countOpen, openKey, openPlaces, withOpenSpaces } from './dashboardData'
 import { HEIGHTS, coloursOf, isDark, profileColour, rampFor, stepExpr } from './palette'
+import { featureLabel, lang, localFeatures, switchLang, tr } from './i18n'
 
 const PARIS: [number, number] = [2.3325, 48.8665]
 const BASEMAP: string | StyleSpecification =
@@ -57,20 +58,29 @@ type Tip = { x: number; y: number; title: string; text: string }
 type Tab = 'explore' | 'plan' | 'ask' | 'method'
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: 'explore', label: 'Explore' },
-  { id: 'plan', label: 'Plan' },
-  { id: 'ask', label: 'Ask' },
-  { id: 'method', label: 'Method' },
+  { id: 'explore', label: tr('Explorer', 'Explore') },
+  { id: 'plan', label: tr('Planifier', 'Plan') },
+  { id: 'ask', label: tr('Demander', 'Ask') },
+  { id: 'method', label: tr('Méthode', 'Method') },
 ]
 
 /** Plain names for the score classes (SCORE_BREAKS: top half, quarter, tenth, twentieth). */
-const SCORE_WORDS = ['Below average', 'Good', 'Very good', 'Excellent', 'Best 5%']
+const SCORE_WORDS =
+  lang() === 'en'
+    ? ['Below average', 'Good', 'Very good', 'Excellent', 'Best 5%']
+    : ['Sous la moyenne', 'Bon', 'Très bon', 'Excellent', 'Top 5 %']
 const NOUN: Record<ProfileId, string> = {
-  'jewellery-watches': 'jewellers and watchmakers',
-  'fashion-house': 'fashion houses',
-  beauty: 'beauty brands',
+  'jewellery-watches': tr('les joailliers et horlogers', 'jewellers and watchmakers'),
+  'fashion-house': tr('les maisons de mode', 'fashion houses'),
+  beauty: tr('les marques de beauté', 'beauty brands'),
 }
-const SHORT: Record<ProfileId, string> = { 'jewellery-watches': 'Jewellery', 'fashion-house': 'Fashion', beauty: 'Beauty' }
+const SHORT: Record<ProfileId, string> = {
+  'jewellery-watches': tr('Joaillerie', 'Jewellery'),
+  'fashion-house': tr('Mode', 'Fashion'),
+  beauty: tr('Beauté', 'Beauty'),
+}
+/** "8e" reads "8e arrondissement" in both languages. */
+const arr = (place: string) => `${place} arrondissement`
 const HINT_KEY = 'adresse-hint-seen'
 
 function cssVar(name: string) {
@@ -169,11 +179,11 @@ export default function App() {
             withDemand(withScores(grid, scores), demand),
             PROFILES.map((p) => scoreKey(p.id)),
           ),
-          meta,
-          scores,
+          meta: { ...meta, features: localFeatures(meta.features) },
+          scores: { ...scores, features: localFeatures(scores.features) },
           catchments,
-          demand: demandLayers(demand),
-          groups: demand.groups,
+          demand: localFeatures(demandLayers(demand)),
+          groups: demand.groups.map((g) => ({ ...g, label: featureLabel(`demand_${g.key}`, g.label) })),
         }),
       (e: Error) => setError(e.message),
     )
@@ -198,7 +208,10 @@ export default function App() {
       attributionControl: {
         compact: true,
         customAttribution:
-          'Places and streets © Overture Maps Foundation, OpenStreetMap contributors · INSEE · DGFiP · Île-de-France Mobilités · Atout France · Apur, BDCOM 2023 · Addresses: BAN (IGN)',
+          tr(
+            'Lieux et rues © Overture Maps Foundation, contributeurs OpenStreetMap · INSEE · DGFiP · Île-de-France Mobilités · Atout France · Apur, BDCOM 2023 · Adresses : BAN (IGN)',
+            'Places and streets © Overture Maps Foundation, OpenStreetMap contributors · INSEE · DGFiP · Île-de-France Mobilités · Atout France · Apur, BDCOM 2023 · Addresses: BAN (IGN)',
+          ),
       },
     })
     map.current = m
@@ -461,7 +474,7 @@ export default function App() {
   const onFound = (found: Address) => {
     const cell = data ? cellAt(data.grid, found.at) : null
     if (!cell) {
-      setSearchNote(`${found.label} is outside the blocks we score.`)
+      setSearchNote(tr(`${found.label} est hors des blocs que nous notons.`, `${found.label} is outside the blocks we score.`))
       return
     }
     setSearchNote('')
@@ -504,7 +517,7 @@ export default function App() {
   )
   const allInfo = useMemo(() => [...(data?.demand ?? []), ...(data?.meta.features ?? [])], [data])
   const info = isScore ? undefined : allInfo.find((f) => f.key === layer)
-  const layerName = ATLAS.find((l) => l.id === layer)?.label ?? info?.label ?? 'No colour'
+  const layerName = ATLAS.find((l) => l.id === layer)?.label ?? info?.label ?? tr('Sans couleur', 'No colour')
   const colours = useMemo(() => coloursOf(rampFor(key || SCORE)), [key])
   const format = useCallback(
     (v: number) => (isScore ? `${Math.round(v)}` : formatValue(v, info?.unit ?? '')),
@@ -688,7 +701,7 @@ export default function App() {
       const v = p[k.key]
       const text =
         typeof v !== 'number'
-          ? 'No data here'
+          ? tr('Pas de donnée ici', 'No data here')
           : k.isScore
             ? `${k.name}: ${Math.round(v)} / 100 · ${SCORE_WORDS[SCORE_BREAKS.filter((x) => v >= x).length]}`
             : `${k.name}: ${k.format(v)}`
@@ -741,7 +754,7 @@ export default function App() {
     [data, profile, fresh],
   )
   const openCount = useMemo(() => (data ? countOpen(data.grid, scoreKey(profile)) : 0), [data, profile])
-  const legendWords = isScore ? SCORE_WORDS.slice(1) : ['Lowest', '', '', '', 'Highest']
+  const legendWords = isScore ? SCORE_WORDS.slice(1) : [tr('Plus bas', 'Lowest'), '', '', '', tr('Plus haut', 'Highest')]
   const legendColours = isScore ? colours.slice(1) : colours.slice(0, breaks.length + 1)
 
   // the five best places carry their number on the map, so the list and the map read together
@@ -757,7 +770,7 @@ export default function App() {
       const el = document.createElement('button')
       el.className = 'spot-marker'
       el.innerHTML = `<b>${i + 1}</b><span>${t.place}</span>`
-      el.setAttribute('aria-label', `${i + 1}: ${t.place} arrondissement, ${t.text} out of 100`)
+      el.setAttribute('aria-label', `${i + 1} : ${arr(t.place)}, ${t.text} / 100`)
       el.addEventListener('click', (e) => {
         e.stopPropagation()
         focusBlock(t.cell)
@@ -769,13 +782,13 @@ export default function App() {
 
   return (
     <div className="app">
-      <aside className="rail" aria-label="Controls">
+      <aside className="rail" aria-label={tr('Réglages', 'Controls')}>
         <p className="wordmark">
           <span className="wordmark-dot" aria-hidden="true" />
           Adresse
         </p>
-        <h1>Where should a luxury brand open next in Paris?</h1>
-        <div className="profiles" role="radiogroup" aria-label="Type of brand">
+        <h1>{tr('Où une marque de luxe doit-elle ouvrir sa prochaine boutique à Paris ?', 'Where should a luxury brand open next in Paris?')}</h1>
+        <div className="profiles" role="radiogroup" aria-label={tr('Type de marque', 'Type of brand')}>
           {PROFILES.map((p) => (
             <button
               key={p.id}
@@ -793,12 +806,12 @@ export default function App() {
             </button>
           ))}
         </div>
-        <div className="seg" role="group" aria-label="Which places">
+        <div className="seg" role="group" aria-label={tr('Quels lieux', 'Which places')}>
           <button aria-pressed={fresh} onClick={() => setFresh(true)}>
-            Free spots
+            {tr('Places libres', 'Free spots')}
           </button>
           <button aria-pressed={!fresh} onClick={() => setFresh(false)}>
-            Already there
+            {tr('Déjà présents', 'Already there')}
           </button>
         </div>
         {error ? (
@@ -807,20 +820,27 @@ export default function App() {
           <div className="stat">
             <span className="stat-value">{openCount}</span>
             <p className="answer">
-              blocks look like the streets {NOUN[profile]} choose, with <strong>no luxury boutique yet</strong>.
+              {tr('blocs ressemblent aux rues que choisissent ', 'blocks look like the streets ')}
+              {NOUN[profile]}
+              {tr(', ', ' choose, with ')}
+              <strong>{tr('sans boutique de luxe pour l’instant', 'no luxury boutique yet')}</strong>.
             </p>
             <details className="stat-why">
-              <summary>How are they picked?</summary>
+              <summary>{tr('Comment sont-ils choisis ?', 'How are they picked?')}</summary>
               <p className="answer">
-                Each has an empty shop of 300 m² or more nearby, on a street where few shops stand empty, with shoppers
-                and spending already there.
+                {tr(
+                  'Chacun a une boutique vide de 300 m² ou plus à proximité, dans une rue où peu de vitrines sont vides, avec déjà des clients et du pouvoir d’achat.',
+                  'Each has an empty shop of 300 m² or more nearby, on a street where few shops stand empty, with shoppers and spending already there.',
+                )}
               </p>
             </details>
           </div>
         ) : (
           <p className="answer">
-            The darker the block, the more it looks like where {NOUN[profile]} already are. These streets are proven,
-            but crowded.
+            {tr(
+              `Plus le bloc est foncé, plus il ressemble aux adresses où ${NOUN[profile]} sont déjà. Ces rues ont fait leurs preuves, mais elles sont prises.`,
+              `The darker the block, the more it looks like where ${NOUN[profile]} already are. These streets are proven, but crowded.`,
+            )}
           </p>
         )}
         <ol className="places">
@@ -828,7 +848,7 @@ export default function App() {
             <li key={t.cell}>
               <button onClick={() => focusBlock(t.cell)} aria-current={cellA === t.cell ? 'true' : undefined}>
                 <span className="top-n">{i + 1}</span>
-                <span className="top-place">{t.place} arrondissement</span>
+                <span className="top-place">{arr(t.place)}</span>
                 <span className="top-value">
                   {t.text}
                   <span className="top-max"> / 100</span>
@@ -839,7 +859,7 @@ export default function App() {
         </ol>
         <Search onFound={onFound} />
         {searchNote && <p className="muted small">{searchNote}</p>}
-        <nav className="nav" aria-label="Views">
+        <nav className="nav" aria-label={tr('Vues', 'Views')}>
           {TABS.map((t) => (
             <button
               key={t.id}
@@ -852,22 +872,33 @@ export default function App() {
           ))}
         </nav>
         <p className="rail-foot">
-          <span>Paris, from open data only</span>
+          <span>{tr('Paris, données ouvertes', 'Paris, from open data only')}</span>
+          <button
+            className="lang-toggle"
+            onClick={switchLang}
+            lang={lang() === 'en' ? 'fr' : 'en'}
+            aria-label={tr('Read this site in English', 'Lire le site en français')}
+            title={tr('English', 'Français')}
+          >
+            {lang() === 'en' ? 'FR' : 'EN'}
+          </button>
           <button
             className="theme-toggle"
             onClick={switchTheme}
-            aria-label={isDark() ? 'Switch to the light theme' : 'Switch to the dark theme'}
-            title={isDark() ? 'Light theme' : 'Dark theme'}
+            aria-label={
+              isDark() ? tr('Passer au thème clair', 'Switch to the light theme') : tr('Passer au thème sombre', 'Switch to the dark theme')
+            }
+            title={isDark() ? tr('Thème clair', 'Light theme') : tr('Thème sombre', 'Dark theme')}
           >
             <span aria-hidden="true">{isDark() ? '☀' : '☾'}</span>
           </button>
         </p>
       </aside>
 
-      <main className="stage" aria-label="Map">
+      <main className="stage" aria-label={tr('Carte', 'Map')}>
         <div className="map-card">
-          <div ref={container} className="map" aria-label="Map of luxury boutiques in Paris" role="region" />
-            <div className="map-legend" aria-label={`Map legend: ${layerName}`}>
+          <div ref={container} className="map" aria-label={tr('Carte des boutiques de luxe à Paris', 'Map of luxury boutiques in Paris')} role="region" />
+            <div className="map-legend" aria-label={`${tr('Légende', 'Map legend')} : ${layerName}`}>
               <span className="legend-title">{layerName}</span>
               {key && (
                 <span className="legend-row">
@@ -884,7 +915,9 @@ export default function App() {
                   <span className="legend-step">
                     {!raised && <span className="legend-swatch" style={{ background: 'var(--quiet)' }} aria-hidden="true" />}
                     <span className="legend-word">
-                      {raised ? 'Raised: free spots. Flat: taken or weak streets' : 'Luxury already there, or not a shopping street'}
+                      {raised
+                        ? tr('En relief : places libres. À plat : déjà pris ou rue faible', 'Raised: free spots. Flat: taken or weak streets')
+                        : tr('Luxe déjà là, ou rue peu commerçante', 'Luxury already there, or not a shopping street')}
                     </span>
                   </span>
                 </span>
@@ -893,7 +926,9 @@ export default function App() {
                 <span className="legend-row">
                   <span className="legend-step">
                     <span className="legend-line" aria-hidden="true" />
-                    <span className="legend-word">Busy street: the thicker, the more people walk past</span>
+                    <span className="legend-word">
+                      {tr('Rue passante : plus le trait est épais, plus il y a de passage', 'Busy street: the thicker, the more people walk past')}
+                    </span>
                   </span>
                 </span>
               )}
@@ -901,19 +936,26 @@ export default function App() {
                 <span className="legend-row">
                   <span className="legend-step">
                     <span className="legend-dot legend-station" aria-hidden="true" />
-                    <span className="legend-word">Station: the bigger, the more people a day</span>
+                    <span className="legend-word">
+                      {tr('Gare : plus le rond est gros, plus il y a de monde par jour', 'Station: the bigger, the more people a day')}
+                    </span>
                   </span>
                 </span>
               )}
               <span className="legend-row">
                 <span className="legend-step">
                   <span className="legend-dot" style={{ background: profileColour(profile) }} aria-hidden="true" />
-                  <span className="legend-word">{PROFILES.find((p) => p.id === profile)?.label} boutique</span>
+                  <span className="legend-word">
+                    {tr(
+                      `Boutique ${PROFILES.find((p) => p.id === profile)?.label.toLowerCase()}`,
+                      `${PROFILES.find((p) => p.id === profile)?.label} boutique`,
+                    )}
+                  </span>
                 </span>
               </span>
             </div>
             {plan === null && ask === null && (
-              <div className="view-toggle" role="group" aria-label="Map view">
+              <div className="view-toggle" role="group" aria-label={tr('Vue de la carte', 'Map view')}>
                 <button aria-pressed={!threeD} onClick={() => setThreeD(false)}>
                   2D
                 </button>
@@ -923,25 +965,25 @@ export default function App() {
               </div>
             )}
             {plan === null && ask === null && (
-              <div className="layer-toggles" role="group" aria-label="Extra map layers">
+              <div className="layer-toggles" role="group" aria-label={tr('Couches en plus', 'Extra map layers')}>
                 {stations && (
                   <button className="layer-toggle" aria-pressed={showStations} onClick={() => setShowStations((v) => !v)}>
                     <span className="legend-dot legend-station" aria-hidden="true" />
-                    Stations
+                    {tr('Gares', 'Stations')}
                   </button>
                 )}
                 {hasStreets && (
                   <button className="layer-toggle" aria-pressed={showStreets} onClick={() => setShowStreets((v) => !v)}>
                     <span className="legend-line" aria-hidden="true" />
-                    Busy streets
+                    {tr('Rues passantes', 'Busy streets')}
                   </button>
                 )}
               </div>
             )}
             {!hintSeen && !a && plan === null && ask === null && (
               <div className="hint" role="note">
-                <span>Tap a coloured block to see why it scores well.</span>
-                <button onClick={dismissHint} aria-label="Close the hint">
+                <span>{tr('Cliquez sur un bloc coloré pour voir pourquoi il ressort.', 'Tap a coloured block to see why it scores well.')}</span>
+                <button onClick={dismissHint} aria-label={tr('Fermer l’astuce', 'Close the hint')}>
                   ×
                 </button>
               </div>
@@ -951,27 +993,32 @@ export default function App() {
               <span />
             </div>
           </div>
-        <ul className="figures" aria-label="This type of brand in numbers">
+        <ul className="figures" aria-label={tr('Ce type de marque en chiffres', 'This type of brand in numbers')}>
           <li>
             <span className="figure-value accent">{openCount}</span>
-            <span className="figure-label">free spots</span>
+            <span className="figure-label">{tr('places libres', 'free spots')}</span>
           </li>
           <li>
             <span className="figure-value">{counts ? counts[profile] : '–'}</span>
-            <span className="figure-label">boutiques today</span>
+            <span className="figure-label">{tr('boutiques aujourd’hui', 'boutiques today')}</span>
           </li>
           <li>
             <span className="figure-value">{brands || '–'}</span>
-            <span className="figure-label">brands</span>
+            <span className="figure-label">{tr('marques', 'brands')}</span>
           </li>
-          <li title="We hid whole brands from the model; their real boutiques still landed this high on average">
+          <li
+            title={tr(
+              'Nous avons caché des marques entières au modèle ; leurs vraies boutiques arrivent quand même aussi haut en moyenne',
+              'We hid whole brands from the model; their real boutiques still landed this high on average',
+            )}
+          >
             <span className="figure-value">{tested}</span>
-            <span className="figure-label">percentile in a blind test</span>
+            <span className="figure-label">{tr('centile en test à l’aveugle', 'percentile in a blind test')}</span>
           </li>
         </ul>
       </main>
 
-      <section className="panel" aria-label="Details">
+      <section className="panel" aria-label={tr('Détails', 'Details')}>
         {ask !== null && data && answers ? (
           <Ask
             answers={answers}
@@ -1013,7 +1060,7 @@ export default function App() {
         ) : (selected || a) && data ? (
           <section className="card selected" aria-live="polite">
             <button className="back" onClick={clearSelection}>
-              <span aria-hidden="true">←</span> All of Paris
+              <span aria-hidden="true">←</span> {tr('Tout Paris', 'All of Paris')}
             </button>
             {selected && (
               <div className="store">
@@ -1022,8 +1069,11 @@ export default function App() {
                   {selected.segment}
                   {selected.osm_confirmed !== undefined &&
                     (selected.osm_confirmed
-                      ? '. Also mapped in OpenStreetMap within 75 m.'
-                      : '. Not found in OpenStreetMap, so treat this location with care.')}
+                      ? tr('. Aussi présente dans OpenStreetMap à moins de 75 m.', '. Also mapped in OpenStreetMap within 75 m.')
+                      : tr(
+                          '. Absente d’OpenStreetMap : adresse à prendre avec précaution.',
+                          '. Not found in OpenStreetMap, so treat this location with care.',
+                        ))}
                 </p>
               </div>
             )}
@@ -1063,11 +1113,11 @@ export default function App() {
             />
             <select
               className="more-data"
-              aria-label="Another layer"
+              aria-label={tr('Une autre couche', 'Another layer')}
               value={ATLAS.some((l) => l.id === layer) ? '' : layer}
               onChange={(e) => setLayer(e.target.value || SCORE)}
             >
-              <option value="">Another layer…</option>
+              <option value="">{tr('Une autre couche…', 'Another layer…')}</option>
               {allInfo
                 .filter((f) => !ATLAS.some((l) => atlasKey(l.id, profile) === f.key))
                 .map((f) => (

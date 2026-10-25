@@ -1,9 +1,10 @@
 import type { FeatureCollection, Point } from 'geojson'
+import { tr } from './i18n'
 
 export const PROFILES = [
-  { id: 'jewellery-watches', label: 'Jewellery & watches' },
-  { id: 'fashion-house', label: 'Fashion house' },
-  { id: 'beauty', label: 'Beauty' },
+  { id: 'jewellery-watches', label: tr('Joaillerie et horlogerie', 'Jewellery & watches') },
+  { id: 'fashion-house', label: tr('Maison de mode', 'Fashion house') },
+  { id: 'beauty', label: tr('Beauté', 'Beauty') },
 ] as const
 
 export type ProfileId = (typeof PROFILES)[number]['id']

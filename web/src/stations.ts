@@ -1,4 +1,5 @@
 import type { FeatureCollection, Point } from 'geojson'
+import { fmt, tr } from './i18n'
 
 export type StationProps = { name: string; entries: number }
 export type Stations = FeatureCollection<Point, StationProps> & { period: string }
@@ -10,5 +11,7 @@ export async function loadStations(): Promise<Stations | null> {
   return res.json()
 }
 
-export const entriesText = (n: number) =>
-  n >= 1000 ? `${Math.round(n / 1000)}k entries a day` : `${Math.round(n)} entries a day`
+export const entriesText = (n: number) => {
+  const count = n >= 1000 ? `${Math.round(n / 1000)}k` : fmt(n)
+  return tr(`${count} entrées par jour`, `${count} entries a day`)
+}
