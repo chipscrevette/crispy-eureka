@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useDialog } from './dialog'
 import type { AskAnswer, ToolCall } from './answers'
-import { lang, tr } from './i18n'
+import { tr } from './i18n'
 
 type Props = {
   answers: AskAnswer[]
@@ -52,7 +52,6 @@ export default function Ask({ answers, first, onAsked, onShow, onMemo, onMethod,
           'Les réponses sont enregistrées à l’avance. Chacune vient des requêtes listées dessous, lancées sur les données du site, et chaque chiffre sort d’un résultat de requête.',
           "Answers are pre-recorded. Each one was produced by running the queries listed under it on this site's data, and every figure in it comes from a query result.",
         )}
-        {lang() === 'fr' && ' Questions et réponses en anglais pour l’instant.'}
       </p>
 
       <ol className="ask-thread" aria-live="polite">
