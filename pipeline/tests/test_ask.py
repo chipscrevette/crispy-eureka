@@ -71,7 +71,7 @@ def test_every_number_in_every_french_answer_comes_from_one_of_its_tool_calls(pa
         found = numbers(str([c["result"] for c in out["calls"]]))
         found |= numbers(str([c["args"] for c in out["calls"]]))
         # French writes 12 390 and 85,3: read them back as 12390 and 85.3
-        text = out["answer_fr"].replace("/ 100", "").replace("environ 350 m", "")
+        text = out["answer_fr"].replace("\u00a0/\u00a0100", "").replace("environ 350 m", "")
         text = re.sub(r"(?<=\d)\u202f(?=\d)", "", text)
         text = re.sub(r"(?<=\d),(?=\d)", ".", text)
         missing = numbers(text) - found

@@ -430,7 +430,7 @@ def white_space(profile: Profile) -> Callable[[Tools], Answer]:
         )
         text_fr = (
             f"Le meilleur bloc sans boutique {PROFILE_NAME_FR[profile]} à environ 350 m est dans "
-            f"{place_fr(first['place'])}, avec {first['score']} / 100. La plus proche est "
+            f"{place_fr(first['place'])}, avec {first['score']} / 100. La plus proche est "
             f"{near['brand']}, à {num_fr(near['metres'])} m : {where_fr}. Les blocs suivants, avec "
             f"leur note, sont dans {others_fr}."
         )
@@ -494,7 +494,7 @@ def why_top(profile: Profile) -> Callable[[Tools], Answer]:
         ]
         text_fr = (
             f"Le meilleur bloc pour une marque {PROFILE_NAME_FR[profile]} est dans "
-            f"{place_fr(why['place'])}, à {why['score']} / 100. Ce qui le porte le plus : "
+            f"{place_fr(why['place'])}, à {why['score']} / 100. Ce qui le porte le plus : "
             f"{', '.join(parts_fr)}. Ce sont les explications du modèle (valeurs SHAP) pour ce "
             f"bloc, pas une règle générale."
         )
@@ -524,7 +524,7 @@ def marais_or_saint_germain(t: Tools) -> Answer:
     )
     lead_fr = "Saint-Germain" if cb["score"] > ca["score"] else "le Marais"
     text_fr = (
-        f"Pour une maison de mode, {lead_fr} a la meilleure note : Saint-Germain {cb['score']} / 100 "
+        f"Pour une maison de mode, {lead_fr} a la meilleure note : Saint-Germain {cb['score']} / 100 "
         f"contre {ca['score']} pour le Marais. Saint-Germain compte {cb[NEIGHBOURS]} boutiques de "
         f"luxe à proximité et {cb['fashion_stores_r1']} boutiques de mode ; le Marais "
         f"{ca[NEIGHBOURS]} et {ca['fashion_stores_r1']}. Entrées en gare par jour : "
