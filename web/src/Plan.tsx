@@ -2,6 +2,7 @@ import { useRef } from 'react'
 import { useDialog } from './dialog'
 import { NEW_BRAND, formatBlocks, type Backtest, type Planner } from './planner'
 import { PROFILES, type ProfileId } from './stores'
+import { lang, tr } from './i18n'
 
 type Props = {
   planner: Planner
@@ -19,12 +20,16 @@ type Props = {
   onClose: () => void
 }
 
-const pct = (v: number | undefined) => `${Math.round(v ?? 0)}%`
-const SHORT: Record<ProfileId, string> = { 'jewellery-watches': 'Jewellery', 'fashion-house': 'Fashion', beauty: 'Beauty' }
+const pct = (v: number | undefined) => `${Math.round(v ?? 0)}${lang() === 'en' ? '%' : ' %'}`
+const SHORT: Record<ProfileId, string> = {
+  'jewellery-watches': tr('Joaillerie', 'Jewellery'),
+  'fashion-house': tr('Mode', 'Fashion'),
+  beauty: tr('Beauté', 'Beauty'),
+}
 const NOUN: Record<ProfileId, string> = {
-  'jewellery-watches': 'jeweller and watchmaker',
-  'fashion-house': 'fashion house',
-  beauty: 'beauty brand',
+  'jewellery-watches': tr('joaillier et horloger', 'jeweller and watchmaker'),
+  'fashion-house': tr('maison de mode', 'fashion house'),
+  beauty: tr('marque de beauté', 'beauty brand'),
 }
 
 export default function Plan(props: Props) {
@@ -45,9 +50,9 @@ export default function Plan(props: Props) {
   return (
     <div className="ask plan" role="dialog" aria-modal="false" aria-labelledby="plan-title" tabIndex={-1} ref={drawer}>
       <div className="ask-bar">
-        <h2 id="plan-title">Plan a network</h2>
+        <h2 id="plan-title">{tr('Planifier un réseau', 'Plan a network')}</h2>
         <button className="button secondary" onClick={props.onClose}>
-          Close
+          {tr('Fermer', 'Close')}
         </button>
       </div>
 
@@ -57,9 +62,9 @@ export default function Plan(props: Props) {
             <span className="step-n" aria-hidden="true">
               1
             </span>
-            Which brand?
+            {tr('Quelle marque ?', 'Which brand?')}
           </h3>
-          <div className="seg seg-3" role="group" aria-label="Type of brand">
+          <div className="seg seg-3" role="group" aria-label={tr('Type de marque', 'Type of brand')}>
             {PROFILES.map((p) => (
               <button key={p.id} aria-pressed={p.id === profile} onClick={() => props.onProfile(p.id)}>
                 {SHORT[p.id]}
@@ -72,10 +77,10 @@ export default function Plan(props: Props) {
             value={isNew ? NEW_BRAND : brand}
             onChange={(e) => props.onBrand(e.target.value)}
           >
-            <option value={NEW_BRAND}>A new brand, not yet in Paris</option>
+            <option value={NEW_BRAND}>{tr('Une nouvelle marque, pas encore à Paris', 'A new brand, not yet in Paris')}</option>
             {brands.map((b) => (
               <option key={b} value={b}>
-                {b} ({plans[b].boutiques} in Paris)
+                {b} ({plans[b].boutiques} {tr('à Paris', 'in Paris')})
               </option>
             ))}
           </select>
@@ -85,7 +90,7 @@ export default function Plan(props: Props) {
             <span className="step-n" aria-hidden="true">
               2
             </span>
-            How many new boutiques?
+            {tr('Combien de nouvelles boutiques ?', 'How many new boutiques?')}
           </h3>
           <div className="seg seg-n" role="group" aria-labelledby="plan-count">
             {Array.from({ length: planner.steps }, (_, i) => i + 1).map((n) => (
@@ -102,7 +107,7 @@ export default function Plan(props: Props) {
           <span className="step-n" aria-hidden="true">
             3
           </span>
-          Open {picks.length === 1 ? 'here' : 'here, in this order'}
+          {picks.length === 1 ? tr('Ouvrir ici', 'Open here') : tr('Ouvrir ici, dans cet ordre', 'Open here, in this order')}
         </h3>
         <ol className="plan-picks">
           {picks.map((p, i) => (
@@ -124,47 +129,73 @@ export default function Plan(props: Props) {
           <span className="stat-value" aria-hidden="true">
             +{formatBlocks(gain)}
           </span>
-          <span>
-            {picks.length === 1 ? 'It wins' : 'Together they win'} the spending of about{' '}
-            <strong>{formatBlocks(gain)} average Paris blocks</strong>
-            {isNew || lost < 50 ? '.' : `, after taking ${formatBlocks(lost)} from ${brand}'s own boutiques nearby.`}
-          </span>
+          {lang() === 'en' ? (
+            <span>
+              {picks.length === 1 ? 'It wins' : 'Together they win'} the spending of about{' '}
+              <strong>{formatBlocks(gain)} average Paris blocks</strong>
+              {isNew || lost < 50 ? '.' : `, after taking ${formatBlocks(lost)} from ${brand}'s own boutiques nearby.`}
+            </span>
+          ) : (
+            <span>
+              {picks.length === 1 ? 'Elle capte' : 'Ensemble, elles captent'} le pouvoir d’achat d’environ{' '}
+              <strong>{formatBlocks(gain)} blocs parisiens moyens</strong>
+              {isNew || lost < 50 ? '.' : `, après en avoir pris ${formatBlocks(lost)} aux boutiques de ${brand} à proximité.`}
+            </span>
+          )}
         </p>
       </div>
 
       <details className="more">
-        <summary>What does “+3” mean?</summary>
+        <summary>{tr('Que veut dire « +3 » ?', 'What does “+3” mean?')}</summary>
         <p className="muted small plan-unit">
-          The spending a new boutique wins, counted in average Paris blocks: 1 = all the spending demand of an average
-          block (residents' income, workers and hotel guests). Each pick takes the earlier ones into account
-          {isNew ? '' : `, and what it takes from ${brand}'s own boutiques is already removed`}.
+          {lang() === 'en'
+            ? `The spending a new boutique wins, counted in average Paris blocks: 1 = all the spending demand of an average block (residents' income, workers and hotel guests). Each pick takes the earlier ones into account${isNew ? '' : `, and what it takes from ${brand}'s own boutiques is already removed`}.`
+            : `Le pouvoir d’achat que capte une nouvelle boutique, compté en blocs parisiens moyens : 1 = tout le pouvoir d’achat d’un bloc moyen (revenus des habitants, actifs et clients d’hôtel). Chaque choix tient compte des précédents${isNew ? '' : `, et ce qu’il prend aux boutiques de ${brand} est déjà retiré`}.`}
         </p>
         <ul className="plan-detail-list small">
           {picks.map((p, i) => (
             <li key={p.cell}>
-              {i + 1}. {placeOf(p.cell)}: wins {formatBlocks(p.gross)}
-              {p.cannibalised >= 5 ? `, of which ${formatBlocks(p.cannibalised)} from its own boutiques` : ''}
+              {i + 1}. {placeOf(p.cell)}
+              {tr(' : capte ', ': wins ')}
+              {formatBlocks(p.gross)}
+              {p.cannibalised >= 5
+                ? tr(`, dont ${formatBlocks(p.cannibalised)} pris à ses propres boutiques`, `, of which ${formatBlocks(p.cannibalised)} from its own boutiques`)
+                : ''}
             </li>
           ))}
         </ul>
       </details>
 
       <details className="more">
-        <summary>How reliable is this?</summary>
-        <p className="small">
-          We hid each {NOUN[profile]} in turn and let the planner choose as many sites as it really has. Its picks
-          landed within a {backtest.within_minutes}-minute walk of <strong>{pct(found['planner'])}</strong> of its real
-          boutiques, against {pct(found['random'])} for random sites and {pct(found['lookalike'])} for the top-scoring
-          blocks.{' '}
-          {found['planner'] >= found['lookalike']
-            ? 'So for this profile the planner finds real choices better than the score alone, and it also says what each site wins and takes from the brand.'
-            : 'So for this profile the score alone copies real choices better; the planner adds what each site wins and takes from the brand.'}
-        </p>
+        <summary>{tr('Est-ce fiable ?', 'How reliable is this?')}</summary>
+        {lang() === 'en' ? (
+          <p className="small">
+            We hid each {NOUN[profile]} in turn and let the planner choose as many sites as it really has. Its picks
+            landed within a {backtest.within_minutes}-minute walk of <strong>{pct(found['planner'])}</strong> of its
+            real boutiques, against {pct(found['random'])} for random sites and {pct(found['lookalike'])} for the
+            top-scoring blocks.{' '}
+            {found['planner'] >= found['lookalike']
+              ? 'So for this profile the planner finds real choices better than the score alone, and it also says what each site wins and takes from the brand.'
+              : 'So for this profile the score alone copies real choices better; the planner adds what each site wins and takes from the brand.'}
+          </p>
+        ) : (
+          <p className="small">
+            Nous avons caché chaque {NOUN[profile]} tour à tour, et laissé le planificateur choisir autant d’adresses
+            qu’il en a vraiment. Ses choix tombent à moins de {backtest.within_minutes} minutes à pied de{' '}
+            <strong>{pct(found['planner'])}</strong> de ses vraies boutiques, contre {pct(found['random'])} pour des
+            adresses au hasard et {pct(found['lookalike'])} pour les blocs les mieux notés.{' '}
+            {found['planner'] >= found['lookalike']
+              ? 'Pour ce profil, le planificateur retrouve donc les vrais choix mieux que la note seule, et il dit en plus ce que chaque adresse capte et prend à la marque.'
+              : 'Pour ce profil, la note seule retrouve donc mieux les vrais choix ; le planificateur ajoute ce que chaque adresse capte et prend à la marque.'}
+          </p>
+        )}
         <p className="muted small">
-          Limits: demand is an index from open data, not sales; access is on foot only; a boutique's pull depends only
-          on the luxury around it. Only blocks scoring {planner.suitable} or more are considered.{' '}
+          {tr(
+            `Limites : la demande est un indice issu de données ouvertes, pas des ventes ; l’accès se fait à pied seulement ; l’attrait d’une boutique ne dépend que du luxe autour. Seuls les blocs notés ${planner.suitable} ou plus sont retenus.`,
+            `Limits: demand is an index from open data, not sales; access is on foot only; a boutique's pull depends only on the luxury around it. Only blocks scoring ${planner.suitable} or more are considered.`,
+          )}{' '}
           <button className="link" onClick={props.onMethod}>
-            How it works
+            {tr('Comment ça marche', 'How it works')}
           </button>
         </p>
       </details>

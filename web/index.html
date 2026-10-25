@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="fr">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="description" content="Adresse: where should a luxury brand open its next Paris boutique, and why?" />
+    <meta name="description" content="Adresse : où une marque de luxe doit-elle ouvrir sa prochaine boutique à Paris, et pourquoi ?" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -16,10 +16,16 @@
       try {
         theme = localStorage.getItem('adresse-theme')
       } catch (e) {}
+      var lang
+      try {
+        lang = localStorage.getItem('adresse-lang')
+      } catch (e) {}
+      // French by default: the site is about Paris; English on request
+      document.documentElement.lang = lang === 'en' ? 'en' : 'fr'
       document.documentElement.dataset.theme =
         theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
     </script>
-    <title>Adresse · Luxury retail site selection in Paris</title>
+    <title>Adresse · Choisir l’emplacement d’une boutique de luxe à Paris</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Adresse: where should a luxury brand open in Paris?" />

@@ -1,4 +1,5 @@
 import type { FeatureCollection, Polygon } from 'geojson'
+import { locale, unitLabel } from './i18n'
 
 export type FeatureInfo = {
   key: string
@@ -44,8 +45,8 @@ function equalCount(sorted: number[], classes: number): number[] {
 }
 
 export function formatValue(value: number, unit: string): string {
-  if (unit === 'share') return `${Math.round(value * 100)}%`
+  // French puts a space before the percent sign
+  if (unit === 'share') return `${Math.round(value * 100)}${locale() === 'fr-FR' ? ' %' : '%'}`
   const rounded = value >= 100 ? Math.round(value) : Math.round(value * 10) / 10
-  const text = rounded.toLocaleString('en-GB')
-  return `${text} ${unit}`
+  return `${rounded.toLocaleString(locale())} ${unitLabel(unit)}`
 }

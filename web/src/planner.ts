@@ -1,5 +1,6 @@
 import { getJson } from './grid'
 import type { ProfileId } from './stores'
+import { locale } from './i18n'
 
 /** One more boutique: demand it wins, what the brand's own boutiques lose, and the net. */
 export type Pick = { cell: string; gross: number; cannibalised: number; gain: number }
@@ -28,7 +29,7 @@ export const blocksOf = (points: number) => points / 100
 
 export function formatBlocks(points: number) {
   const v = blocksOf(points)
-  return (v >= 10 ? Math.round(v) : Math.round(v * 10) / 10).toLocaleString('en-GB')
+  return (v >= 10 ? Math.round(v) : Math.round(v * 10) / 10).toLocaleString(locale())
 }
 
 export function profileOfBrand(p: Planner, brand: string): ProfileId | undefined {

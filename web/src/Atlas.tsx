@@ -5,6 +5,7 @@ import { ATLAS, atlasKey, cssVar as css, fills, sizeCanvas } from './atlasLayers
 import { openKey } from './dashboardData'
 import { coloursOf, rampFor } from './palette'
 import type { ProfileId } from './stores'
+import { tr } from './i18n'
 
 type Props = {
   grid: Grid
@@ -118,8 +119,8 @@ function Scatter(props: { grid: Grid; profile: ProfileId; cell: string | null; o
     ctx.fillText('100', pad.l - 6, pad.t + 8)
     ctx.fillText('0', pad.l - 6, height - pad.b)
     ctx.textAlign = 'left'
-    ctx.fillText('Paris average', avg + 4, height - pad.b - 6)
-    ctx.fillText('More spending →', pad.l, height - 6)
+    ctx.fillText(tr('Moyenne de Paris', 'Paris average'), avg + 4, height - pad.b - 6)
+    ctx.fillText(tr('Plus de pouvoir d’achat →', 'More spending →'), pad.l, height - 6)
     for (const d of points) {
       const [x, y] = xy(d.spend, d.score)
       ctx.beginPath()
@@ -156,17 +157,17 @@ function Scatter(props: { grid: Grid; profile: ProfileId; cell: string | null; o
   return (
     <figure className="scatter">
       <figcaption className="atlas-kicker">
-        Spending and potential, one dot per block
+        {tr('Pouvoir d’achat et potentiel, un point par bloc', 'Spending and potential, one dot per block')}
         <span className="scatter-key">
-          <span className="key-dot accent" aria-hidden="true" /> free spot
-          <span className="key-dot ink" aria-hidden="true" /> luxury already there
+          <span className="key-dot accent" aria-hidden="true" /> {tr('place libre', 'free spot')}
+          <span className="key-dot ink" aria-hidden="true" /> {tr('luxe déjà là', 'luxury already there')}
         </span>
       </figcaption>
       <div className="scatter-plot">
         <canvas
           ref={ref}
           role="img"
-          aria-label="Each block of Paris by spending and luxury potential"
+          aria-label={tr('Chaque bloc de Paris selon son pouvoir d’achat et son potentiel luxe', 'Each block of Paris by spending and luxury potential')}
           onMouseMove={(e) => setHover(nearest(e))}
           onMouseLeave={() => setHover(null)}
           onClick={(e) => {
@@ -193,9 +194,14 @@ export default function Atlas(props: Props) {
   const { grid, profile, layer, cell } = props
   const outline = useOutline(grid)
   return (
-    <section className="atlas" aria-label="What the map can show">
-      <p className="atlas-kicker">Why: nine maps of open data. Click one to put it on the big map.</p>
-      <div className="atlas-grid" role="radiogroup" aria-label="Map layer">
+    <section className="atlas" aria-label={tr('Ce que la carte peut montrer', 'What the map can show')}>
+      <p className="atlas-kicker">
+        {tr(
+          'Pourquoi : neuf cartes de données ouvertes. Cliquez-en une pour l’afficher sur la grande carte.',
+          'Why: nine maps of open data. Click one to put it on the big map.',
+        )}
+      </p>
+      <div className="atlas-grid" role="radiogroup" aria-label={tr('Couche de la carte', 'Map layer')}>
         {ATLAS.map((l) => {
           const key = atlasKey(l.id, profile)
           const swatch = coloursOf(rampFor(key))[3]

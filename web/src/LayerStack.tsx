@@ -4,6 +4,7 @@ import { centroid, toMetres, type LonLat } from './geo'
 import { atlasKey, cssVar, fills, sizeCanvas } from './atlasLayers'
 import { coloursOf, rampFor } from './palette'
 import type { ProfileId } from './stores'
+import { fmt, lang, tr } from './i18n'
 
 /** How far around the block each layer shows, in metres: about a 15-minute walk across. */
 const RADIUS_M = 1100
@@ -14,29 +15,48 @@ type Layer = { id: string; label: string; value: (v: number) => string }
 
 /** Top to bottom: what drives a boutique, then where luxury already is, then the answer. */
 const LAYERS: Layer[] = [
-  { id: 'demand', label: 'Spending', value: (v) => `${(v / 100).toFixed(1)}× the Paris average` },
-  { id: 'street_footfall', label: 'Footfall', value: (v) => `${v.toFixed(1)}× a typical street` },
+  {
+    id: 'demand',
+    label: tr('Pouvoir d’achat', 'Spending'),
+    value: (v) => tr(`${fmt(v / 100, 1)}× la moyenne de Paris`, `${(v / 100).toFixed(1)}× the Paris average`),
+  },
+  {
+    id: 'street_footfall',
+    label: tr('Passage', 'Footfall'),
+    value: (v) => tr(`${fmt(v, 1)}× une rue type`, `${v.toFixed(1)}× a typical street`),
+  },
   {
     id: 'transit_entries_r2',
-    label: 'Stations',
-    value: (v) => `${v >= 1000 ? `${Math.round(v / 1000)}k` : Math.round(v)} entries a day nearby`,
+    label: tr('Gares', 'Stations'),
+    value: (v) => {
+      const n = v >= 1000 ? `${Math.round(v / 1000)}k` : Math.round(v)
+      return tr(`${n} entrées par jour`, `${n} entries a day nearby`)
+    },
   },
-  { id: 'fashion_stores_r1', label: 'Fashion shops', value: (v) => `${Math.round(v)} fashion stores around` },
+  {
+    id: 'fashion_stores_r1',
+    label: tr('Mode', 'Fashion shops'),
+    value: (v) => tr(`${Math.round(v)} boutiques de mode`, `${Math.round(v)} fashion stores around`),
+  },
   {
     id: 'luxury',
-    label: 'Luxury already',
-    value: (v) => (v ? `${v} boutique${v === 1 ? '' : 's'} of this type around` : 'None of this type around yet'),
+    label: tr('Luxe déjà là', 'Luxury already'),
+    value: (v) =>
+      v
+        ? tr(`${v} boutique${v === 1 ? '' : 's'} de ce type autour`, `${v} boutique${v === 1 ? '' : 's'} of this type around`)
+        : tr('Aucune de ce type autour', 'None of this type around yet'),
   },
-  { id: 'score', label: 'Potential', value: (v) => `${Math.round(v)} / 100` },
+  { id: 'score', label: tr('Potentiel', 'Potential'), value: (v) => `${Math.round(v)} / 100` },
 ]
 
 /** Where the block stands in Paris on one value, in plain words. */
 function rankWords(grid: Grid, key: string, v: number) {
   const values = grid.features.map((f) => f.properties[key]).filter((x): x is number => typeof x === 'number')
   const above = values.filter((x) => x > v).length / values.length
-  if (above < 0.005) return 'the highest in Paris'
-  if (above <= 0.5) return `top ${Math.max(1, Math.round(above * 100))}% of Paris`
-  return 'below the Paris median'
+  if (above < 0.005) return tr('le plus haut de Paris', 'the highest in Paris')
+  const top = Math.max(1, Math.round(above * 100))
+  if (above <= 0.5) return lang() === 'en' ? `top ${top}% of Paris` : `top ${top} % de Paris`
+  return tr('sous la médiane de Paris', 'below the Paris median')
 }
 
 type Props = { grid: Grid; cell: CellProps; profile: ProfileId }
@@ -116,8 +136,8 @@ export default function LayerStack({ grid, cell, profile }: Props) {
   }, [around, colours, cell.cell])
 
   return (
-    <figure className="stack" aria-label="This block, layer by layer">
-      <figcaption className="atlas-kicker">Why, layer by layer</figcaption>
+    <figure className="stack" aria-label={tr('Ce bloc, couche par couche', 'This block, layer by layer')}>
+      <figcaption className="atlas-kicker">{tr('Pourquoi, couche par couche', 'Why, layer by layer')}</figcaption>
       <div className="stack-body" style={{ height: ROW * LAYERS.length + 28 }}>
         <canvas ref={ref} className="stack-maps" aria-hidden="true" />
         <ol className="stack-rows">
@@ -129,7 +149,7 @@ export default function LayerStack({ grid, cell, profile }: Props) {
                 <span className="stack-label" style={{ color: l.id === 'score' ? 'var(--accent)' : hue }}>
                   {l.label}
                 </span>
-                <span className="stack-value">{typeof v === 'number' ? l.value(v) : 'No data here'}</span>
+                <span className="stack-value">{typeof v === 'number' ? l.value(v) : tr('Pas de donnée ici', 'No data here')}</span>
                 {typeof v === 'number' && l.id !== 'luxury' && (
                   <span className="stack-rank">{rankWords(grid, keys[i], v)}</span>
                 )}
