@@ -5,6 +5,7 @@ Code in this repository is MIT. Data keeps its original licence. Each layer we p
 | Source | Licence | Attribution | Status |
 |--------|---------|-------------|--------|
 | [Overture Maps Places](https://docs.overturemaps.org/) | CDLA-Permissive-2.0; some records ODbL (from OpenStreetMap) | "© Overture Maps Foundation" (and "© OpenStreetMap contributors" where applicable) | In use (`web/public/data/luxury_stores.geojson`) |
+| [Overture Maps divisions](https://docs.overturemaps.org/guides/divisions/), Paris arrondissements | ODbL (derived from OpenStreetMap) | "© OpenStreetMap contributors, Overture Maps Foundation" | In use: arrondissement borders and city edge on the map (`web/public/data/arrondissements.geojson`) |
 | [OpenFreeMap](https://openfreemap.org/) basemap | OpenStreetMap data under ODbL | "© OpenMapTiles © OpenStreetMap contributors" (shown by the style) | In use |
 | DVF, Demandes de valeurs foncières (DGFiP / Etalab) | Licence Ouverte 2.0 | "DGFiP, DVF" | In use, 2021–2025 (`web/public/data/paris_h3.geojson`) |
 | INSEE Filosofi, 200 m grid | Licence Ouverte 2.0 | "INSEE, Filosofi" | In use, Filosofi 2021 (`web/public/data/paris_h3.geojson`) |
