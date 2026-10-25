@@ -29,7 +29,7 @@
 - **Atlas.** Nine small maps of Paris (potential, spending, footfall, stations, fashion shops, luxury already there, hotels, offices, shop prices), each in its own colour family and with the same classes as the big map. A click puts one on the big map. Under them, a scatter of every block (spending against potential) marks the free spots in the accent colour and blocks with luxury already in ink; a click on a dot opens that block.
 - **Map.** The five best places carry numbered labels. In 3D the free spots stand up from a flat coloured city, which is concept C's idea of peaks on a ground.
 - **Colour.** Paper `#f4f3ef`, ink `#16191d`, accent wine-terracotta `#b2432f` (dark: `#101317`, `#eef0f2`, `#ec986b`). Potential runs sand to wine. Every other layer has its own hue (`web/src/palette.ts`).
-- **Next.** Clicking a block will show its layers stacked (concept B).
+- **Block.** Clicking a block stacks its neighbourhood (about 1.1 km around) as six sheets: spending, footfall, stations, fashion shops, luxury already there, and potential at the bottom. A dotted line runs through the block, and each sheet gives the block's value and its rank in Paris in words (concept B).
 
 The v0 to v4 notes below are kept for history; where they differ, the latest version wins.
 

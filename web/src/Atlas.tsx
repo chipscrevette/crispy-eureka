@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { quantileBreaks, type CellProps, type Grid } from './grid'
-import { SCORE_BREAKS, placeOf, scoreKey } from './scores'
-import { ATLAS, atlasKey } from './atlasLayers'
+import type { CellProps, Grid } from './grid'
+import { placeOf, scoreKey } from './scores'
+import { ATLAS, atlasKey, cssVar as css, fills, sizeCanvas } from './atlasLayers'
 import { openKey } from './dashboardData'
 import { coloursOf, rampFor } from './palette'
 import type { ProfileId } from './stores'
@@ -35,35 +35,6 @@ function useOutline(grid: Grid) {
     })
     return { blocks, aspect: (y1 - y0) / w }
   }, [grid])
-}
-
-function sizeCanvas(canvas: HTMLCanvasElement) {
-  const r = Math.min(window.devicePixelRatio || 1, 2)
-  const { width, height } = canvas.getBoundingClientRect()
-  canvas.width = Math.round(width * r)
-  canvas.height = Math.round(height * r)
-  const ctx = canvas.getContext('2d')!
-  ctx.setTransform(r, 0, 0, r, 0, 0)
-  return { ctx, width, height }
-}
-
-const css = (name: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim()
-
-/** Colour of each block on one layer, with the same classes as the big map; empty blocks stay neutral. */
-function fills(grid: Grid, key: string, isScore: boolean): Map<string, string | null> {
-  const colours = coloursOf(rampFor(key))
-  const breaks = isScore ? SCORE_BREAKS : quantileBreaks(grid, key)
-  const out = new Map<string, string | null>()
-  for (const f of grid.features) {
-    const v = f.properties[key]
-    if (typeof v !== 'number' || v <= 0 || (isScore && v < SCORE_BREAKS[0])) {
-      out.set(f.properties.cell, null)
-      continue
-    }
-    const c = breaks.filter((b) => v >= b).length
-    out.set(f.properties.cell, colours[Math.min(c, colours.length - 1)])
-  }
-  return out
 }
 
 function MiniMap(props: { grid: Grid; outline: ReturnType<typeof useOutline>; mapKey: string; isScore: boolean; cell: string | null }) {

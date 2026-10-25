@@ -1,4 +1,5 @@
-import type { CellProps } from './grid'
+import type { CellProps, Grid } from './grid'
+import LayerStack from './LayerStack'
 import { NEIGHBOURS, cellScore, describeValue, rankText, shortPlaceOf, type Driver, type Scores } from './scores'
 import { BIG_EMPTY, EMPTY, LUXURY, VACANCY, WEAK_KEY } from './dashboardData'
 import { PROFILES, type ProfileId } from './stores'
@@ -19,6 +20,7 @@ function Bar({ contribution, largest }: { contribution: number; largest: number 
 
 type CellScoreProps = {
   cell: CellProps
+  grid: Grid
   profile: ProfileId
   scores: Scores
   /** What the block reaches on foot, drawn shaded on the map. */
@@ -189,35 +191,7 @@ function keyFacts(cell: CellProps) {
   return out
 }
 
-/** Three headline figures for the block, each straight from its pipeline values. */
-function headline(cell: CellProps) {
-  const num = (k: string) => (typeof cell[k] === 'number' ? (cell[k] as number) : undefined)
-  const demand = num('demand')
-  const street = num('street_footfall')
-  const entries = num('transit_entries_r2')
-  const out: { value: string; label: string; title: string }[] = []
-  if (demand !== undefined)
-    out.push({
-      value: `${(demand / 100).toFixed(1)}×`,
-      label: 'spending vs Paris average',
-      title: "Residents' income, workers and hotel guests in the block, against the average Paris block",
-    })
-  if (street !== undefined)
-    out.push({
-      value: `${street.toFixed(1)}×`,
-      label: 'walkers on its busiest street',
-      title: 'Walks past the busiest street of the block, against a typical Paris street (estimated from the street network)',
-    })
-  if (entries !== undefined)
-    out.push({
-      value: compact(entries),
-      label: 'station entries a day nearby',
-      title: 'Average daily entries at metro, RER and train stations within about 600 m (Île-de-France Mobilités)',
-    })
-  return out
-}
-
-export function CellScore({ cell, profile, scores, zone, address, onCompare, onMemo, picking }: CellScoreProps) {
+export function CellScore({ cell, grid, profile, scores, zone, address, onCompare, onMemo, picking }: CellScoreProps) {
   const entry = cellScore(scores, profile, cell.cell)
   if (!entry) return null
   const [score, drivers] = entry
@@ -234,14 +208,7 @@ export function CellScore({ cell, profile, scores, zone, address, onCompare, onM
           <p className="muted small">This block {rankText(score)}.</p>
         </div>
       </div>
-      <ul className="kpis" aria-label="This block at a glance">
-        {headline(cell).map((k) => (
-          <li key={k.label} title={k.title}>
-            <span className="kpi-value">{k.value}</span>
-            <span className="kpi-label">{k.label}</span>
-          </li>
-        ))}
-      </ul>
+      <LayerStack grid={grid} cell={cell} profile={profile} />
       <ul className="facts">
         {keyFacts(cell).map((f) => (
           <li key={f}>{f}</li>

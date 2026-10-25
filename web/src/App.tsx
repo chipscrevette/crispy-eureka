@@ -1030,6 +1030,7 @@ export default function App() {
             {a && !b && (
               <CellScore
                 cell={a}
+                grid={data.grid}
                 zone={zone}
                 address={address?.cell === a.cell ? address.label.replace(/ \d{5} Paris$/, '') : undefined}
                 profile={profile}
