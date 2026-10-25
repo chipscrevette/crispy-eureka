@@ -24,19 +24,11 @@ import { loadCatchments, reachOf, type Catchments } from './catchments'
 import { demandLayers, loadDemand, withDemand, type Demand } from './demand'
 import Plan from './Plan'
 import { NEW_BRAND, loadPlanner, type Backtest, type Planner } from './planner'
-import Dashboard from './Dashboard'
+import Atlas from './Atlas'
+import { ATLAS, atlasKey } from './atlasLayers'
 import { entriesText, loadStations, type Stations } from './stations'
 import { footfallText, loadStreets, streetTitle, type StreetProps, type Streets } from './streets'
-import {
-  areaBars,
-  bestPlaces,
-  countOpen,
-  openKey,
-  openPlaces,
-  topBlocks,
-  withOpenSpaces,
-  type AreaBar,
-} from './dashboardData'
+import { bestPlaces, countOpen, openKey, openPlaces, withOpenSpaces } from './dashboardData'
 import { HEIGHTS, coloursOf, isDark, profileColour, rampFor, stepExpr } from './palette'
 
 const PARIS: [number, number] = [2.3325, 48.8665]
@@ -45,7 +37,7 @@ const BASEMAP: string | StyleSpecification =
     ? {
         version: 8,
         sources: {},
-        layers: [{ id: 'bg', type: 'background', paint: { 'background-color': isDark() ? '#0d1218' : '#ecece7' } }],
+        layers: [{ id: 'bg', type: 'background', paint: { 'background-color': isDark() ? '#1d2128' : '#e7e5df' } }],
       }
     : (import.meta.env.VITE_BASEMAP_STYLE ??
       `https://tiles.openfreemap.org/styles/${isDark() ? 'dark' : 'positron'}`)
@@ -71,30 +63,6 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'method', label: 'Method' },
 ]
 
-/** The layers anyone can read at a glance, in plain words. Every other layer sits under "More data". */
-const QUICK: { key: string; label: string; help: string }[] = [
-  {
-    key: SCORE,
-    label: 'Luxury potential',
-    help: 'How much each block looks like the places luxury brands already chose. 100 is the best block of Paris.',
-  },
-  {
-    key: 'demand',
-    label: 'Spending power',
-    help: "Residents' income, people working there and hotel guests, one third each. 100 is an average block.",
-  },
-  {
-    key: 'living_standard_r1',
-    label: 'Residents’ income',
-    help: 'Disposable income per person of the people living around the block.',
-  },
-  {
-    key: 'transit_entries_r2',
-    label: 'Metro & RER traffic',
-    help: 'People entering the stations around the block on an average day.',
-  },
-  { key: 'apartment_price_m2', label: 'Property prices', help: 'Median sale price of apartments around the block.' },
-]
 /** Plain names for the score classes (SCORE_BREAKS: top half, quarter, tenth, twentieth). */
 const SCORE_WORDS = ['Below average', 'Good', 'Very good', 'Excellent', 'Best 5%']
 const NOUN: Record<ProfileId, string> = {
@@ -102,6 +70,7 @@ const NOUN: Record<ProfileId, string> = {
   'fashion-house': 'fashion houses',
   beauty: 'beauty brands',
 }
+const SHORT: Record<ProfileId, string> = { 'jewellery-watches': 'Jewellery', 'fashion-house': 'Fashion', beauty: 'Beauty' }
 const HINT_KEY = 'adresse-hint-seen'
 
 function cssVar(name: string) {
@@ -233,8 +202,6 @@ export default function App() {
       },
     })
     map.current = m
-    // the map runs under the floating top bar and panel, so its centre is shifted into the open part
-    if (!phone()) m.setPadding({ top: 58, left: 400, right: 0, bottom: 0 })
     m.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'bottom-right')
 
     m.on('load', () => {
@@ -401,13 +368,8 @@ export default function App() {
     return (plans[plan] ?? plans[NEW_BRAND]).picks.slice(0, planCount).map((p) => p.cell)
   }, [plan, planner, profile, planCount])
 
-  // the controls panel is hidden while a drawer is open, so the map centre moves back left
-  useEffect(() => {
-    if (ready && !phone()) map.current!.setPadding({ top: 58, left: plan !== null || ask !== null ? 0 : 400, right: 0, bottom: 0 })
-  }, [ready, plan, ask])
-
   const fitPadding = () =>
-    phone() ? { top: 40, bottom: 40, left: 30, right: 30 } : { top: 60, bottom: 60, left: 60, right: plan || ask ? 480 : 60 }
+    phone() ? { top: 40, bottom: 40, left: 30, right: 30 } : { top: 60, bottom: 60, left: 60, right: 60 }
 
   useEffect(() => {
     if (!ready || !data) return
@@ -427,11 +389,9 @@ export default function App() {
       return new maplibregl.Marker({ element: el }).setLngLat(ll).addTo(m)
     })
     if (at.length) {
-      m.resize() // the guide column hides while planning, so the map has just grown
       const bounds = at.reduce((b, p) => b.extend(p), new maplibregl.LngLatBounds(at[0], at[0]))
       m.fitBounds(bounds, { maxZoom: 14.5, padding: fitPadding() })
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, data, picks, plan])
 
   useEffect(
@@ -509,16 +469,6 @@ export default function App() {
     focusBlock(cell)
   }
 
-  const onArea = (bar: AreaBar) => {
-    const points = bar.cells.flatMap((c) => {
-      const f = cells?.get(c)
-      return f ? [centroid(f.geometry.coordinates[0])] : []
-    })
-    if (!points.length || !map.current) return
-    const bounds = points.reduce((bb, p) => bb.extend(p), new maplibregl.LngLatBounds(points[0], points[0]))
-    map.current.fitBounds(bounds, { padding: fitPadding(), maxZoom: 15 })
-  }
-
   const closeMemo = useCallback(() => setMemo(false), [])
   const closeMethod = useCallback(() => setMethod(false), [])
   const closeAsk = useCallback(() => setAsk(null), [])
@@ -547,15 +497,14 @@ export default function App() {
   }
 
   const isScore = layer === SCORE
-  const key = isScore ? scoreKey(profile) : layer
+  const key = atlasKey(layer, profile)
   const breaks = useMemo(
     () => (isScore ? SCORE_BREAKS : data && key ? quantileBreaks(data.grid, key) : []),
     [data, key, isScore],
   )
   const allInfo = useMemo(() => [...(data?.demand ?? []), ...(data?.meta.features ?? [])], [data])
   const info = isScore ? undefined : allInfo.find((f) => f.key === layer)
-  const quick = QUICK.find((q) => q.key === layer)
-  const layerName = quick?.label ?? info?.label ?? 'No colour'
+  const layerName = ATLAS.find((l) => l.id === layer)?.label ?? info?.label ?? 'No colour'
   const colours = useMemo(() => coloursOf(rampFor(key || SCORE)), [key])
   const format = useCallback(
     (v: number) => (isScore ? `${Math.round(v)}` : formatValue(v, info?.unit ?? '')),
@@ -581,7 +530,8 @@ export default function App() {
     // in the open-space view, blocks where luxury already is (or shops or spending are missing) go grey and flat
     const openOnly = isScore && fresh && !reach.length
     const isOpen: ExpressionSpecification = ['==', ['get', openKey(key)], 1]
-    if (openOnly) color = ['case', isOpen, color, cssVar('--quiet')]
+    // flat and faded where luxury already is or the street is weak, so the free spots stand up from the city
+    if (openOnly && !raised) color = ['case', isOpen, color, cssVar('--quiet')]
     // the bottom half of Paris on the potential layer stays clear, so only the opportunities stand out
     const visible: ExpressionSpecification = isScore
       ? ['all', ['has', key], ['>=', ['get', key], SCORE_BREAKS[0]]]
@@ -786,35 +736,113 @@ export default function App() {
   }
   const tested = validation ? ordinal(validation.model.mean_percentile) : '–'
 
-  // the dashboard follows the layer, the profile and the selected block
-  const bars = useMemo(() => (data && key ? areaBars(data.grid, key, isScore, format) : []), [data, key, isScore, format])
-  const top = useMemo(() => (data && key ? topBlocks(data.grid, key, format) : []), [data, key, format])
   const places = useMemo(
-    () => (data ? (fresh ? openPlaces : bestPlaces)(data.grid, scoreKey(profile)) : []),
+    () => (data ? (fresh ? openPlaces : bestPlaces)(data.grid, scoreKey(profile), 5) : []),
     [data, profile, fresh],
   )
   const openCount = useMemo(() => (data ? countOpen(data.grid, scoreKey(profile)) : 0), [data, profile])
-  // with no block selected, the donut shows the boutiques of each profile in Paris
-  const cityMix = useMemo(() => {
-    if (!counts) return []
-    const all = PROFILES.reduce((t, p) => t + counts[p.id], 0) || 1
-    return PROFILES.map((p) => ({ label: `${p.label} (${counts[p.id]})`, share: counts[p.id] / all }))
-  }, [counts])
   const legendWords = isScore ? SCORE_WORDS.slice(1) : ['Lowest', '', '', '', 'Highest']
   const legendColours = isScore ? colours.slice(1) : colours.slice(0, breaks.length + 1)
 
+  // the five best places carry their number on the map, so the list and the map read together
+  const spotMarkers = useRef<maplibregl.Marker[]>([])
+  useEffect(() => {
+    if (!ready || !cells) return
+    spotMarkers.current.forEach((mk) => mk.remove())
+    spotMarkers.current = []
+    if (plan !== null || ask !== null) return
+    spotMarkers.current = places.flatMap((t, i) => {
+      const f = cells.get(t.cell)
+      if (!f) return []
+      const el = document.createElement('button')
+      el.className = 'spot-marker'
+      el.innerHTML = `<b>${i + 1}</b><span>${t.place}</span>`
+      el.setAttribute('aria-label', `${i + 1}: ${t.place} arrondissement, ${t.text} out of 100`)
+      el.addEventListener('click', (e) => {
+        e.stopPropagation()
+        focusBlock(t.cell)
+      })
+      return [new maplibregl.Marker({ element: el, anchor: 'left', offset: [-11, 0] }).setLngLat(centroid(f.geometry.coordinates[0])).addTo(map.current!)]
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, cells, places, plan, ask])
+
   return (
-    <div className={`app${ask !== null || plan !== null ? ' asking' : ''}${plan !== null ? ' planning' : ''}`}>
-      <header className="topbar">
+    <div className="app">
+      <aside className="rail" aria-label="Controls">
         <p className="wordmark">
           <span className="wordmark-dot" aria-hidden="true" />
           Adresse
         </p>
-        <nav className="tabs" aria-label="Views">
+        <h1>Where should a luxury brand open next in Paris?</h1>
+        <div className="profiles" role="radiogroup" aria-label="Type of brand">
+          {PROFILES.map((p) => (
+            <button
+              key={p.id}
+              id={`profile-${p.id}`}
+              role="radio"
+              aria-checked={profile === p.id}
+              onClick={() => {
+                setProfile(p.id)
+                setSelected(null)
+                setLayer(SCORE)
+              }}
+            >
+              {SHORT[p.id]}
+              <span className="profile-count">{counts ? counts[p.id] : ''}</span>
+            </button>
+          ))}
+        </div>
+        <div className="seg" role="group" aria-label="Which places">
+          <button aria-pressed={fresh} onClick={() => setFresh(true)}>
+            Free spots
+          </button>
+          <button aria-pressed={!fresh} onClick={() => setFresh(false)}>
+            Already there
+          </button>
+        </div>
+        {error ? (
+          <p className="error">{error}</p>
+        ) : fresh ? (
+          <div className="stat">
+            <span className="stat-value">{openCount}</span>
+            <p className="answer">
+              blocks look like the streets {NOUN[profile]} choose, with <strong>no luxury boutique yet</strong>.
+            </p>
+            <details className="stat-why">
+              <summary>How are they picked?</summary>
+              <p className="answer">
+                Each has an empty shop of 300 m² or more nearby, on a street where few shops stand empty, with shoppers
+                and spending already there.
+              </p>
+            </details>
+          </div>
+        ) : (
+          <p className="answer">
+            The darker the block, the more it looks like where {NOUN[profile]} already are. These streets are proven,
+            but crowded.
+          </p>
+        )}
+        <ol className="places">
+          {places.map((t, i) => (
+            <li key={t.cell}>
+              <button onClick={() => focusBlock(t.cell)} aria-current={cellA === t.cell ? 'true' : undefined}>
+                <span className="top-n">{i + 1}</span>
+                <span className="top-place">{t.place} arrondissement</span>
+                <span className="top-value">
+                  {t.text}
+                  <span className="top-max"> / 100</span>
+                </span>
+              </button>
+            </li>
+          ))}
+        </ol>
+        <Search onFound={onFound} />
+        {searchNote && <p className="muted small">{searchNote}</p>}
+        <nav className="nav" aria-label="Views">
           {TABS.map((t) => (
             <button
               key={t.id}
-              className="tab"
               aria-current={tab === t.id ? 'page' : undefined}
               onClick={() => openTab(t.id)}
               disabled={!data}
@@ -823,259 +851,22 @@ export default function App() {
             </button>
           ))}
         </nav>
-        <p className="topbar-note">Paris, from open data only</p>
-        <button
-          className="theme-toggle"
-          onClick={switchTheme}
-          aria-label={isDark() ? 'Switch to the light theme' : 'Switch to the dark theme'}
-          title={isDark() ? 'Light theme' : 'Dark theme'}
-        >
-          <span aria-hidden="true">{isDark() ? '☀' : '☾'}</span>
-        </button>
-      </header>
+        <p className="rail-foot">
+          <span>Paris, from open data only</span>
+          <button
+            className="theme-toggle"
+            onClick={switchTheme}
+            aria-label={isDark() ? 'Switch to the light theme' : 'Switch to the dark theme'}
+            title={isDark() ? 'Light theme' : 'Dark theme'}
+          >
+            <span aria-hidden="true">{isDark() ? '☀' : '☾'}</span>
+          </button>
+        </p>
+      </aside>
 
-      <main className="board">
-        <aside className="side" aria-label="Controls and details">
-          {!(selected || a) && (
-            <section className="card guide" aria-labelledby="guide-title">
-              <h1 id="guide-title">Where should a luxury brand open next in Paris?</h1>
-
-              <div className="step">
-                <h2 className="step-title" id="step-1">
-                  <span className="step-n" aria-hidden="true">
-                    1
-                  </span>
-                  Choose a type of brand
-                  <span className="step-note">boutiques in Paris</span>
-                </h2>
-                <div className="choices" role="radiogroup" aria-labelledby="step-1">
-                  {PROFILES.map((p) => (
-                    <button
-                      key={p.id}
-                      id={`profile-${p.id}`}
-                      role="radio"
-                      aria-checked={profile === p.id}
-                      className="choice"
-                      onClick={() => {
-                        setProfile(p.id)
-                        setSelected(null)
-                        setLayer(SCORE)
-                      }}
-                    >
-                      <span className="dot" aria-hidden="true" style={{ background: profileColour(p.id) }} />
-                      <span className="choice-label">{p.label}</span>
-                      <span className="choice-count">
-                        {counts ? counts[p.id] : ''}
-                        <span className="visually-hidden"> boutiques</span>
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="step">
-                <h2 className="step-title">
-                  <span className="step-n" aria-hidden="true">
-                    2
-                  </span>
-                  Look at the best places
-                </h2>
-                <div className="seg" role="group" aria-label="Which places">
-                  <button aria-pressed={fresh} onClick={() => setFresh(true)}>
-                    Free spots
-                  </button>
-                  <button aria-pressed={!fresh} onClick={() => setFresh(false)}>
-                    Where they already are
-                  </button>
-                </div>
-                {error ? (
-                  <p className="error">{error}</p>
-                ) : (
-                  <>
-                    {fresh ? (
-                      <div className="stat">
-                        <span className="stat-value">{openCount}</span>
-                        <p className="answer">
-                          blocks look like the streets {NOUN[profile]} choose, with{' '}
-                          <strong>no luxury boutique yet</strong>.
-                        </p>
-                        <details className="stat-why">
-                          <summary>How are they picked?</summary>
-                          <p className="answer">
-                            Each has an empty shop of 300 m² or more nearby, on a street where few shops stand empty,
-                            with shoppers and spending already there.
-                          </p>
-                        </details>
-                      </div>
-                    ) : (
-                      <p className="answer">
-                        The darker the block, the more it looks like where {NOUN[profile]} already are. These
-                        streets are proven, but crowded. {places.length > 0 && <>The strongest:</>}
-                      </p>
-                    )}
-                    <ol className="places">
-                      {places.map((t, i) => (
-                        <li key={t.cell}>
-                          <button onClick={() => focusBlock(t.cell)}>
-                            <span className="top-n">{i + 1}</span>
-                            <span className="top-place">{t.place} arrondissement</span>
-                            <span className="top-value">
-                              {t.text}
-                              <span className="top-max"> / 100</span>
-                            </span>
-                            <span className="top-bar" aria-hidden="true">
-                              <span style={{ width: `${Number(t.text)}%` }} />
-                            </span>
-                          </button>
-                        </li>
-                      ))}
-                    </ol>
-                  </>
-                )}
-              </div>
-
-              <div className="step">
-                <h2 className="step-title">
-                  <span className="step-n" aria-hidden="true">
-                    3
-                  </span>
-                  Or check an address
-                </h2>
-                <Search onFound={onFound} />
-                {searchNote && <p className="muted small">{searchNote}</p>}
-              </div>
-
-              <details className="more">
-                <summary>Change what the map shows</summary>
-                <div className="layer-list" role="radiogroup" aria-label="Map layer">
-                  {QUICK.map((q) => {
-                    const sw = coloursOf(rampFor(q.key === SCORE ? scoreKey(profile) : q.key))
-                    return (
-                      <button
-                        key={q.key}
-                        role="radio"
-                        aria-checked={layer === q.key}
-                        className="layer"
-                        onClick={() => setLayer(q.key)}
-                        disabled={!data}
-                      >
-                        <span
-                          className="layer-swatch"
-                          aria-hidden="true"
-                          style={{ background: `linear-gradient(135deg, ${sw[1]}, ${sw[4]})` }}
-                        />
-                        <span>{q.label}</span>
-                      </button>
-                    )
-                  })}
-                </div>
-                <label htmlFor="layer" className="label">
-                  More data
-                </label>
-                <select
-                  id="layer"
-                  value={quick ? '' : layer}
-                  onChange={(e) => setLayer(e.target.value || SCORE)}
-                  disabled={!data}
-                >
-                  <option value="">Choose a layer…</option>
-                  {allInfo
-                    .filter((f) => !QUICK.some((q) => q.key === f.key))
-                    .map((f) => (
-                      <option key={f.key} value={f.key}>
-                        {f.label}
-                      </option>
-                    ))}
-                </select>
-                <p className="muted small">{quick?.help ?? (info ? `${info.description}. Source: ${info.source}.` : '')}</p>
-              </details>
-
-              <details className="more">
-                <summary>Paris in numbers</summary>
-                <ul className="tiles three" aria-label="This profile in numbers">
-                  <li className="tile">
-                    <span className="tile-value">{counts ? counts[profile] : '–'}</span>
-                    <span className="tile-label">boutiques today</span>
-                  </li>
-                  <li className="tile">
-                    <span className="tile-value">{brands || '–'}</span>
-                    <span className="tile-label">brands</span>
-                  </li>
-                  <li
-                    className="tile"
-                    title="We hid whole brands from the model; their real boutiques still landed this high on average"
-                  >
-                    <span className="tile-value">{tested}</span>
-                    <span className="tile-label">percentile in a blind test</span>
-                  </li>
-                </ul>
-                {data && key && (
-                  <Dashboard
-                    title={isScore ? 'Best arrondissements' : `${layerName} by arrondissement`}
-                    bars={bars}
-                    barNote={isScore ? 'Blocks in the top 10% of Paris. Click to zoom.' : 'Average block. Click to zoom.'}
-                    colours={colours}
-                    mix={cityMix}
-                    mixColours={PROFILES.map((p) => profileColour(p.id))}
-                    mixTitle="Luxury boutiques in Paris"
-                    mixNote="Street boutiques of the catalogue brands, by type."
-                    top={top}
-                    topTitle={isScore ? 'Best blocks' : `Highest blocks: ${layerName.toLowerCase()}`}
-                    onArea={onArea}
-                    onBlock={focusBlock}
-                  />
-                )}
-                <p className="muted small">Data: {data?.meta.sources.join(' · ') ?? 'loading'}.</p>
-              </details>
-            </section>
-          )}
-
-          {(selected || a) && data && (
-            <section className="card selected" aria-live="polite">
-              <button className="back" onClick={clearSelection}>
-                <span aria-hidden="true">←</span> All of Paris
-              </button>
-              {selected && (
-                <div className="store">
-                  <p className="brand">{selected.brand}</p>
-                  <p className="muted small">
-                    {selected.segment}
-                    {selected.osm_confirmed !== undefined &&
-                      (selected.osm_confirmed
-                        ? '. Also mapped in OpenStreetMap within 75 m.'
-                        : '. Not found in OpenStreetMap, so treat this location with care.')}
-                  </p>
-                </div>
-              )}
-              {a && !b && (
-                <CellScore
-                  cell={a}
-                  zone={zone}
-                  address={address?.cell === a.cell ? address.label.replace(/ \d{5} Paris$/, '') : undefined}
-                  profile={profile}
-                  scores={data.scores}
-                  picking={picking}
-                  onCompare={() => setPicking((x) => !x)}
-                  onMemo={() => setMemo(true)}
-                />
-              )}
-              {a && b && (
-                <Compare
-                  a={a}
-                  b={b}
-                  profile={profile}
-                  scores={data.scores}
-                  onMemo={() => setMemo(true)}
-                  onClear={() => setCellB(null)}
-                />
-              )}
-            </section>
-          )}
-        </aside>
-
-        <section className="stage" aria-label="Map and charts">
-          <div className="map-card">
-            <div ref={container} className="map" aria-label="Map of luxury boutiques in Paris" role="region" />
+      <main className="stage" aria-label="Map">
+        <div className="map-card">
+          <div ref={container} className="map" aria-label="Map of luxury boutiques in Paris" role="region" />
             <div className="map-legend" aria-label={`Map legend: ${layerName}`}>
               <span className="legend-title">{layerName}</span>
               {key && (
@@ -1091,8 +882,10 @@ export default function App() {
               {isScore && fresh && !reach.length && (
                 <span className="legend-row">
                   <span className="legend-step">
-                    <span className="legend-swatch" style={{ background: 'var(--quiet)' }} aria-hidden="true" />
-                    <span className="legend-word">Luxury already there, or not a shopping street</span>
+                    {!raised && <span className="legend-swatch" style={{ background: 'var(--quiet)' }} aria-hidden="true" />}
+                    <span className="legend-word">
+                      {raised ? 'Raised: free spots. Flat: taken or weak streets' : 'Luxury already there, or not a shopping street'}
+                    </span>
                   </span>
                 </span>
               )}
@@ -1158,51 +951,133 @@ export default function App() {
               <span />
             </div>
           </div>
-
-        </section>
+        <ul className="figures" aria-label="This type of brand in numbers">
+          <li>
+            <span className="figure-value accent">{openCount}</span>
+            <span className="figure-label">free spots</span>
+          </li>
+          <li>
+            <span className="figure-value">{counts ? counts[profile] : '–'}</span>
+            <span className="figure-label">boutiques today</span>
+          </li>
+          <li>
+            <span className="figure-value">{brands || '–'}</span>
+            <span className="figure-label">brands</span>
+          </li>
+          <li title="We hid whole brands from the model; their real boutiques still landed this high on average">
+            <span className="figure-value">{tested}</span>
+            <span className="figure-label">percentile in a blind test</span>
+          </li>
+        </ul>
       </main>
 
-      {ask !== null && data && answers && (
-        <Ask
-          answers={answers}
-          first={ask}
-          onAsked={onAsked}
-          onShow={(x) => showAnswer(x)}
-          onMemo={(x) => showAnswer(x, true)}
-          onMethod={() => setMethod(true)}
-          onClose={closeAsk}
-        />
-      )}
-
-      {plan !== null && data && planner && (
-        <Plan
-          planner={planner[0]}
-          backtest={planner[1]}
-          profile={profile}
-          brand={plan}
-          count={planCount}
-          placeOf={(c) => {
-            const p = cells?.get(c)?.properties
-            return p
-              ? placeOf(p)
-                  .replace(/^Paris /, '')
-                  .replace('Arrondissement', 'arrondissement')
-              : c
-          }}
-          onProfile={(p) => {
-            setProfile(p)
-            setPlan(NEW_BRAND)
-          }}
-          onBrand={setPlan}
-          onCount={setPlanCount}
-          onPick={(c) => {
-            setCellA(c)
-            setCellB(null)
-          }}
-          onMethod={() => setMethod(true)}
-          onClose={closePlan}
-        />
-      )}
+      <section className="panel" aria-label="Details">
+        {ask !== null && data && answers ? (
+          <Ask
+            answers={answers}
+            first={ask}
+            onAsked={onAsked}
+            onShow={(x) => showAnswer(x)}
+            onMemo={(x) => showAnswer(x, true)}
+            onMethod={() => setMethod(true)}
+            onClose={closeAsk}
+          />
+        ) : plan !== null && data && planner ? (
+          <Plan
+            planner={planner[0]}
+            backtest={planner[1]}
+            profile={profile}
+            brand={plan}
+            count={planCount}
+            placeOf={(c) => {
+              const p = cells?.get(c)?.properties
+              return p
+                ? placeOf(p)
+                    .replace(/^Paris /, '')
+                    .replace('Arrondissement', 'arrondissement')
+                : c
+            }}
+            onProfile={(p) => {
+              setProfile(p)
+              setPlan(NEW_BRAND)
+            }}
+            onBrand={setPlan}
+            onCount={setPlanCount}
+            onPick={(c) => {
+              setCellA(c)
+              setCellB(null)
+            }}
+            onMethod={() => setMethod(true)}
+            onClose={closePlan}
+          />
+        ) : (selected || a) && data ? (
+          <section className="card selected" aria-live="polite">
+            <button className="back" onClick={clearSelection}>
+              <span aria-hidden="true">←</span> All of Paris
+            </button>
+            {selected && (
+              <div className="store">
+                <p className="brand">{selected.brand}</p>
+                <p className="muted small">
+                  {selected.segment}
+                  {selected.osm_confirmed !== undefined &&
+                    (selected.osm_confirmed
+                      ? '. Also mapped in OpenStreetMap within 75 m.'
+                      : '. Not found in OpenStreetMap, so treat this location with care.')}
+                </p>
+              </div>
+            )}
+            {a && !b && (
+              <CellScore
+                cell={a}
+                zone={zone}
+                address={address?.cell === a.cell ? address.label.replace(/ \d{5} Paris$/, '') : undefined}
+                profile={profile}
+                scores={data.scores}
+                picking={picking}
+                onCompare={() => setPicking((x) => !x)}
+                onMemo={() => setMemo(true)}
+              />
+            )}
+            {a && b && (
+              <Compare
+                a={a}
+                b={b}
+                profile={profile}
+                scores={data.scores}
+                onMemo={() => setMemo(true)}
+                onClear={() => setCellB(null)}
+              />
+            )}
+          </section>
+        ) : data ? (
+          <>
+            <Atlas
+              grid={data.grid}
+              profile={profile}
+              layer={layer}
+              cell={cellA}
+              onLayer={setLayer}
+              onBlock={focusBlock}
+            />
+            <select
+              className="more-data"
+              aria-label="Another layer"
+              value={ATLAS.some((l) => l.id === layer) ? '' : layer}
+              onChange={(e) => setLayer(e.target.value || SCORE)}
+            >
+              <option value="">Another layer…</option>
+              {allInfo
+                .filter((f) => !ATLAS.some((l) => atlasKey(l.id, profile) === f.key))
+                .map((f) => (
+                  <option key={f.key} value={f.key}>
+                    {f.label}
+                  </option>
+                ))}
+            </select>
+          </>
+        ) : null}
+      </section>
 
       {method && data && (
         <Method
