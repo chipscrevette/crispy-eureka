@@ -6,7 +6,7 @@ import { cellAt, cellIndex } from './geo'
 import { formatValue, type CellProps } from './grid'
 import { fmt, lang, switchLang, tr } from './i18n'
 import { coloursOf, isDark, profileColour, rampFor } from './palette'
-import { SCORE_BREAKS, placeOf, rankText, scoreKey } from './scores'
+import { SCORE_BREAKS, ordinal, placeOf, rankText, scoreKey } from './scores'
 import { PROFILES, countByProfile, type ProfileId } from './stores'
 import { connect, sameShared, type Shared } from './sync'
 
@@ -222,15 +222,10 @@ export default function Dashboard() {
               <p className="muted">{layerInfo.note}</p>
               <div className="dash-layer-pick" role="radiogroup" aria-label={tr('Couche de la carte', 'Map layer')}>
                 {ATLAS.map((l) => (
-                  <button
-                    key={l.id}
-                    role="radio"
-                    aria-checked={layer === l.id}
-                    aria-label={l.label}
-                    title={l.label}
-                    onClick={() => set({ layer: l.id })}
-                    style={{ background: coloursOf(rampFor(atlasKey(l.id, profile)))[3] }}
-                  />
+                  <button key={l.id} role="radio" aria-checked={layer === l.id} onClick={() => set({ layer: l.id })}>
+                    <span className="key-dot" style={{ background: coloursOf(rampFor(atlasKey(l.id, profile)))[3] }} aria-hidden="true" />
+                    {l.label}
+                  </button>
                 ))}
               </div>
               <Figure value={fmt(open.length)} label={tr('places libres', 'free spots')} accent />
@@ -265,6 +260,25 @@ export default function Dashboard() {
             <div className="dash-card">
               <p className="dash-kicker">{tr('Le luxe est déjà là où le potentiel est haut', 'Luxury is already where potential is high')}</p>
               <Tenths bins={tenths} mark={block ? num(block, key) : null} colour={coloursOf(rampFor(key))[3]} />
+            </div>
+          </section>
+
+          <section className="dash-deep">
+            <div className="dash-card">
+              <p className="dash-kicker">{block ? tr('Ce qui fait la note du bloc', 'What makes the block’s score') : tr('Ce qui compte le plus pour le modèle', 'What matters most to the model')}</p>
+              <Drivers data={data} profile={profile} block={block} />
+            </div>
+            <div className="dash-card">
+              <p className="dash-kicker">{block ? tr('Le bloc pour chaque type de marque', 'The block for each type of brand') : tr('Le meilleur bloc de chaque type', 'The best block of each type')}</p>
+              <Profiles data={data} block={block} profile={profile} onProfile={(p) => set({ profile: p })} onBlock={(c) => set({ cell: c })} />
+            </div>
+            <div className="dash-card">
+              <p className="dash-kicker">{tr('Les marques déjà à Paris', 'The brands already in Paris')}</p>
+              <Brands data={data} profile={profile} />
+            </div>
+            <div className="dash-card">
+              <p className="dash-kicker">{tr('Test à l’aveugle', 'Blind test')}</p>
+              <BlindTest data={data} profile={profile} />
             </div>
           </section>
         </main>
@@ -623,6 +637,178 @@ function Tenths(props: { bins: { blocks: number; taken: number }[]; mark: number
         {tr(
           `Part des blocs avec déjà une boutique de ce type autour. Places libres : ${OPEN_RULE.score} et plus.`,
           `Share of blocks that already have a boutique of this type around. Free spots: ${OPEN_RULE.score} and up.`,
+        )}
+      </p>
+    </>
+  )
+}
+
+const featureName = (data: Data, k: string) =>
+  data.scores.features.find((f) => f.key === k)?.label ?? data.meta.features.find((f) => f.key === k)?.label ?? k
+
+/**
+ * Why the model scores as it does. For a block: the four layers that moved its score most, up or
+ * down (SHAP contributions in log-odds, from scores.json). With no block: the model's average weight of each layer.
+ */
+function Drivers(props: { data: Data; profile: ProfileId; block: CellProps | null }) {
+  const { data, profile, block } = props
+  const rows: { key: string; v: number }[] = block
+    ? (data.scores.profiles[profile].cells[block.cell]?.[1] ?? []).map(([key, v]) => ({ key, v }))
+    : data.scores.importance[profile].slice(0, 6).map(([key, v]) => ({ key, v }))
+  if (!rows.length) return <p className="muted">{tr('Pas de détail pour ce bloc.', 'No detail for this block.')}</p>
+  const max = Math.max(...rows.map((r) => Math.abs(r.v)))
+  const [up, down] = [coloursOf(rampFor(scoreKey(profile)))[3], 'var(--muted)']
+  return (
+    <>
+      <ul className="dash-drivers">
+        {rows.map((r) => (
+          <li key={r.key}>
+            <span className="dash-driver-name">{featureName(data, r.key)}</span>
+            <span className={block ? 'dash-driver-track diverging' : 'dash-driver-track'}>
+              <span
+                style={{
+                  width: `${(Math.abs(r.v) / max) * (block ? 50 : 100)}%`,
+                  background: r.v >= 0 ? up : down,
+                  ...(block ? (r.v >= 0 ? { left: '50%' } : { right: '50%' }) : { left: 0 }),
+                }}
+              />
+            </span>
+            {block && <span className="dash-driver-sign muted">{r.v >= 0 ? tr('pousse', 'lifts') : tr('freine', 'holds back')}</span>}
+          </li>
+        ))}
+      </ul>
+      <p className="dash-note muted">
+        {block
+          ? tr('Les quatre couches qui ont le plus monté ou baissé la note de ce bloc (valeurs SHAP).', 'The four layers that raised or lowered this block’s score most (SHAP values).')
+          : tr('Poids moyen de chaque couche dans les notes (SHAP). Choisissez un bloc pour voir les siennes.', 'Average weight of each layer in the scores (SHAP). Choose a block to see its own.')}
+      </p>
+    </>
+  )
+}
+
+/** The block's potential for the three types of brand, or each type's best free spot; a click switches the type. */
+function Profiles(props: { data: Data; block: CellProps | null; profile: ProfileId; onProfile: (p: ProfileId) => void; onBlock: (cell: string) => void }) {
+  const { data, block, profile } = props
+  const groups = data.groups
+  return (
+    <>
+      <div className="dash-rings">
+        {PROFILES.map((p) => {
+          const k = scoreKey(p.id)
+          const best = block ? null : data.grid.features.map((f) => f.properties).filter((x) => x[openKey(k)] === 1).sort((a, b) => (num(b, k) ?? 0) - (num(a, k) ?? 0))[0]
+          const s = num(block ?? best ?? { cell: '' }, k)
+          const r = 26
+          const c = 2 * Math.PI * r
+          return (
+            <button
+              key={p.id}
+              aria-pressed={profile === p.id}
+              onClick={() => {
+                props.onProfile(p.id)
+                if (best) props.onBlock(best.cell)
+              }}
+            >
+              <svg viewBox="0 0 64 64" aria-hidden="true">
+                <circle cx="32" cy="32" r={r} className="dash-ring-track" />
+                <circle
+                  cx="32"
+                  cy="32"
+                  r={r}
+                  className="dash-ring-value"
+                  stroke={profileColour(p.id)}
+                  strokeDasharray={`${(c * (s ?? 0)) / 100} ${c}`}
+                  transform="rotate(-90 32 32)"
+                />
+                <text x="32" y="32" dy="0.35em" textAnchor="middle">
+                  {s === null ? '–' : Math.round(s)}
+                </text>
+              </svg>
+              <span>{SHORT[p.id]}</span>
+              {best && <span className="muted">{short(best)}</span>}
+            </button>
+          )
+        })}
+      </div>
+      {block && (
+        <div className="dash-mix">
+          <p className="dash-note muted">{tr('Pouvoir d’achat du bloc, Paris = 100', 'Block spending, Paris = 100')}</p>
+          {groups.map((g, i) => {
+            const v = num(block, `demand_${g.key}`) ?? 0
+            return (
+              <p key={g.key} className="dash-mix-row">
+                <span>{g.label}</span>
+                <span className="dash-mix-track">
+                  <span style={{ width: `${Math.min(v, 400) / 4}%`, background: coloursOf(rampFor('demand'))[2 + i] }} />
+                  <span className="dash-mix-avg" aria-hidden="true" />
+                </span>
+                <span className="muted">{fmt(v)}</span>
+              </p>
+            )
+          })}
+        </div>
+      )}
+    </>
+  )
+}
+
+/** The brands of the type in the catalogue, by number of Paris boutiques (open data, no logos). */
+function Brands(props: { data: Data; profile: ProfileId }) {
+  const counts = new Map<string, number>()
+  for (const f of props.data.stores.features) {
+    if (f.properties.profile !== props.profile) continue
+    counts.set(f.properties.brand, (counts.get(f.properties.brand) ?? 0) + 1)
+  }
+  const top = [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 8)
+  const max = top[0]?.[1] ?? 1
+  return (
+    <>
+      <ul className="dash-brands">
+        {top.map(([brand, n]) => (
+          <li key={brand}>
+            <span className="dash-brand-name">{brand}</span>
+            <span className="dash-brand-track">
+              <span style={{ width: `${(n / max) * 100}%`, background: profileColour(props.profile) }} />
+            </span>
+            <span className="muted">{n}</span>
+          </li>
+        ))}
+      </ul>
+      <p className="dash-note muted">
+        {tr(`${counts.size} marques au total. Lieux : Overture Maps et OpenStreetMap.`, `${counts.size} brands in all. Places: Overture Maps and OpenStreetMap.`)}
+      </p>
+    </>
+  )
+}
+
+/**
+ * The model's hold-out test: boutiques hidden from it, then ranked. Where it placed them, against two
+ * simple rules (luxury nearby, apartment price), from scores.json.
+ */
+function BlindTest(props: { data: Data; profile: ProfileId }) {
+  const v = props.data.scores.validation[props.profile]
+  const setup = props.data.scores.validation_setup
+  const rows: { id: keyof typeof v; label: string }[] = [
+    { id: 'model', label: tr('Notre modèle', 'Our model') },
+    { id: 'luxury neighbours', label: tr('Règle : luxe autour', 'Rule: luxury nearby') },
+    { id: 'apartment price', label: tr('Règle : prix au m²', 'Rule: price per m²') },
+  ]
+  return (
+    <>
+      <ul className="dash-brands dash-test">
+        {rows.map((r) => (
+          <li key={r.id} className={r.id === 'model' ? 'model' : ''}>
+            <span className="dash-brand-name">{r.label}</span>
+            <span className="dash-brand-track">
+              <span style={{ width: `${v[r.id].mean_percentile}%`, background: r.id === 'model' ? 'var(--accent)' : 'var(--muted)' }} />
+            </span>
+            <span className="muted">{ordinal(v[r.id].mean_percentile)}</span>
+          </li>
+        ))}
+      </ul>
+      <p className="dash-note muted">
+        {tr(
+          `Des marques entières sont cachées au modèle (${setup.folds} plis). Centile moyen où tombent leurs ${v.model.held_out_cells} blocs à boutique ; 100 = tout en haut.`,
+          `Whole brands are hidden from the model (${setup.folds} folds). Average percentile of their ${v.model.held_out_cells} boutique blocks; 100 = the very top.`,
         )}
       </p>
     </>
