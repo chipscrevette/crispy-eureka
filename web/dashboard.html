@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="description" content="Adresse, le tableau de bord : les places libres, les arrondissements et le bloc choisi, liés à la carte." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@500&family=Figtree:wght@500&display=swap"
+    />
+    <script>
+      // the theme is set before the first paint: the visitor's choice, else their system's
+      var theme
+      try {
+        theme = localStorage.getItem('adresse-theme')
+      } catch (e) {}
+      var lang
+      try {
+        lang = localStorage.getItem('adresse-lang')
+      } catch (e) {}
+      // French by default: the site is about Paris; English on request
+      document.documentElement.lang = lang === 'en' ? 'en' : 'fr'
+      document.documentElement.dataset.theme =
+        theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+    </script>
+    <title>Adresse · Tableau de bord</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/dashboard-main.tsx"></script>
+  </body>
+</html>
