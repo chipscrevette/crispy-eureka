@@ -121,7 +121,8 @@ button, input, select { font-family: var(--ui); }
 
 .stage { display: flex; flex-direction: column; min-width: 0; min-height: 0; padding: 18px 18px 0; }
 .map-card { position: relative; flex: 1; min-height: 0; overflow: hidden; background: var(--quiet); border-radius: var(--radius); }
-.map { position: absolute; inset: 0; }
+/* more specific than maplibre-gl.css, which sets .maplibregl-map to relative and can load after this file */
+.map-card .map { position: absolute; inset: 0; }
 
 /* the strip under the map: a kicker, a number and a small picture of it, split by thin rules */
 .figures { display: grid; grid-template-columns: repeat(3, 1fr); margin: 0; padding: 16px 0 18px; list-style: none; }
