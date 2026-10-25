@@ -96,5 +96,9 @@ export function stepExpr(key: string, breaks: number[], outputs: (string | numbe
   return ['step', ['get', key], outputs[0], ...steps] as ExpressionSpecification
 }
 
+/** Walking-zone rings, from the nearest to the farthest: neutral, so they read on every layer's colours. */
+const WALK = { light: ['#16191d', '#3d424a', '#646a72', '#8b9098'], dark: ['#f4f6f8', '#cfd4da', '#a8afb8', '#838b96'] }
+export const walkColour = (band: number) => (isDark() ? WALK.dark : WALK.light)[Math.min(band, WALK.light.length - 1)]
+
 /** Block heights in 3D, in metres per class: taller means higher on the layer. */
 export const HEIGHTS = [12, 60, 120, 190, 270]
