@@ -1,7 +1,7 @@
 /* The dashboard: one screen, the same paper, fonts and colours as the map page, no tables */
 .dash {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
   min-height: 100%;
   max-width: 1720px;
   margin: 0 auto;
@@ -38,7 +38,7 @@
 .dash-board {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 400px;
-  grid-template-rows: max(560px, calc(100vh - 330px)) 236px auto;
+  grid-template-rows: max(520px, calc(100vh - 210px)) auto;
   gap: 16px;
   min-height: 0;
 }
@@ -186,3 +186,95 @@
 .dash-mix-row > .muted { text-align: right; }
 .dash-mix-track > span:first-child { left: 0; }
 .dash-mix-avg { position: absolute; top: -3px; bottom: -3px; left: 25%; width: 1px; background: var(--ink); opacity: 0.4; }
+
+/* sections: one menu, one question per page */
+.dash-nav { display: flex; align-items: center; gap: 4px; margin: 0 0 16px; padding-bottom: 12px; border-bottom: 1px solid var(--rule); }
+.dash-nav button, .dash-nav-out {
+  padding: 7px 14px;
+  font: var(--weight) 0.92rem var(--display);
+  color: var(--muted);
+  text-decoration: none;
+  background: none;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.dash-nav button:hover, .dash-nav-out:hover { color: var(--ink); }
+.dash-nav button[aria-current='page'] { color: var(--ink); background: var(--surface); }
+.dash-nav-out { margin-left: auto; }
+.dash-nav button:focus-visible, .dash-nav-out:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.dash-more { align-self: flex-start; margin-top: 12px; padding: 0; font: var(--weight) 0.85rem var(--ui); color: var(--accent); background: none; border: 0; cursor: pointer; }
+
+.dash-section { display: grid; gap: 16px; align-items: start; }
+.dash-section .dash-card { gap: 12px; }
+.dash-section .dash-title { margin-bottom: 0; }
+
+/* the block: the stack, the flower, the reasons */
+.dash-block-page { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1fr); }
+.dash-column { display: grid; gap: 16px; }
+.dash-portrait-card { padding: 22px 24px; }
+.dash-block-head { display: flex; align-items: center; gap: 16px; margin-bottom: 8px; }
+.dash-block-head svg { width: 84px; height: 84px; flex: none; }
+.dash-block-head circle { fill: none; stroke-width: 7; }
+.dash-block-head text { font: var(--weight) 22px var(--display); fill: var(--ink); }
+.dash-block-head .muted { margin: 2px 0 0; font-size: 0.85rem; }
+.dash-pick { grid-column: 1 / -1; max-width: 760px; }
+
+/* arrondissements: the tile map large, the ranking beside it */
+.dash-arr-page { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); }
+.dash-arr-page .dash-tiles { max-height: 560px; }
+.dash-ranking { display: grid; margin: 0; padding: 0; list-style: none; }
+.dash-ranking button {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 28px 70px 190px;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 5px 0;
+  font: var(--weight) 0.85rem var(--ui);
+  color: var(--ink);
+  text-align: left;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  cursor: pointer;
+}
+.dash-ranking li:last-child button { border-bottom: 0; }
+.dash-ranking button:hover .dash-rank-name, .dash-ranking button[aria-current='true'] .dash-rank-name { color: var(--accent); }
+.dash-ranking button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.dash-rank-name { font-family: var(--display); }
+.dash-rank-dots { display: flex; flex-wrap: wrap; align-items: center; gap: 3px; font-size: 0.72rem; }
+.dash-rank-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+
+/* brands: the boutiques on the map, the brands beside */
+.dash-brands-page { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); }
+.dash-brands-page .dash-hero { height: max(520px, calc(100vh - 160px)); }
+
+/* method */
+.dash-method-page { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.dash-method-page .dash-histogram { flex: none; height: 180px; }
+.dash-sources ul { display: grid; gap: 4px; margin: 0; padding-left: 18px; font-size: 0.82rem; }
+.dash-sources a { color: var(--accent); }
+
+/* the walking zone: a switch under the layers, and its box under the map */
+.dash-walk { display: grid; gap: 6px; margin-top: 14px; }
+.dash-walk .dash-seg { justify-self: start; }
+.dash-walk .dash-seg button { padding: 5px 11px; }
+.dash-detail, .dash-start { grid-column: 1 / -1; display: grid; gap: 16px; }
+.dash-detail { grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); align-items: start; }
+.dash-start-note { margin: 0; font-size: 0.85rem; }
+.dash-title-note { font: var(--weight) 0.9rem var(--ui); letter-spacing: 0; }
+.dash-zone { gap: 14px; }
+.dash-zone-figures { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.dash-zone-figures .dash-figure { padding-top: 0; }
+.dash-zone-figures .dash-figure-value { font-size: 2.4rem; }
+.dash-zone-spend { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; font-size: 0.85rem; }
+.dash-zone-lists { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; }
+.dash-zone-lists .dash-note { margin: 0 0 8px; }
+.dash-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.dash-chips li { display: flex; align-items: center; gap: 6px; padding: 4px 10px; font-size: 0.8rem; background: var(--quiet); border-radius: 999px; }
+.dash-chips .key-dot { width: 7px; height: 7px; border-radius: 50%; }
+.dash-stations { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.dash-stations li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; font-size: 0.82rem; }
+.dash-station-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dash-empty { margin: 0; font-size: 0.85rem; color: var(--muted); }

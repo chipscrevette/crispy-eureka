@@ -5,7 +5,7 @@ import './dashboard.css'
 import Dashboard from './Dashboard.tsx'
 import { lang } from './i18n'
 
-if (lang() === 'en') document.title = 'Adresse · Dashboard'
+if (lang() === 'en') document.title = 'Adresse · Luxury retail site selection in Paris'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

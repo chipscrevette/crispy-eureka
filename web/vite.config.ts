@@ -6,7 +6,7 @@ export default defineConfig({
   base: './',
   plugins: [react()],
   build: {
-    // two pages: the map, and the dashboard that opens beside it on a second screen
-    rollupOptions: { input: { main: 'index.html', dashboard: 'dashboard.html' } },
+    // the dashboard is the site; the 3D map is a second page that stays in sync with it
+    rollupOptions: { input: { main: 'index.html', carte: 'carte.html' } },
   },
 })

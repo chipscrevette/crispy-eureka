@@ -29,6 +29,8 @@ from adresse_pipeline.overture import PARIS_PADDED, _inside, dataset
 METRES_PER_MIN = 80.0
 LIMIT_MIN = 20.0
 CATCHMENT_MIN = 10.0
+# the walking zones a visitor can pick on the map, in minutes
+ZONE_BANDS = (5.0, 10.0, 15.0, 20.0)
 # Road classes a pedestrian cannot use: the Périphérique and motorways.
 NOT_WALKABLE = frozenset({"motorway", "trunk"})
 ORIGIN = (2.3470, 48.8590)  # lon, lat near the city centre, for the local metric projection
@@ -134,6 +136,28 @@ def block_times(graph: WalkGraph, cells: list[str], limit: float = LIMIT_MIN) ->
     )
 
 
+def walk_zones(times: pd.DataFrame, cells: list[str], bands=ZONE_BANDS) -> list[list[list[int]]]:
+    """For each block, the blocks first reached within each band: [[<=5 min], [5-10], ...] as indexes.
+
+    The bands nest, so the zone for 15 minutes is the first three lists together. Every block is
+    in its own first band, even when its centre is off the street network.
+    """
+    index = {c: i for i, c in enumerate(cells)}
+    zones = [[[] for _ in bands] for _ in cells]
+    for i in range(len(cells)):
+        zones[i][0].append(i)
+    edges = np.asarray(bands)
+    for origin, dest, minutes in times[["origin", "dest", "minutes"]].itertuples(index=False):
+        if origin == dest or minutes > edges[-1]:
+            continue
+        band = int(np.searchsorted(edges, minutes, side="left"))
+        zones[index[origin]][band].append(index[dest])
+    for z in zones:
+        for b in z:
+            b.sort()
+    return zones
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--overture-release", required=True)
@@ -155,6 +179,14 @@ def main() -> None:
         "reach": [reach.get(c, [index[c]]) for c in cells],
     }
     (WEB_DATA / "catchments.json").write_text(json.dumps(catchments, separators=(",", ":")))
+    zones = {
+        "bands": list(ZONE_BANDS),
+        "speed_m_per_min": METRES_PER_MIN,
+        "source": catchments["source"],
+        "cells": cells,
+        "zones": walk_zones(times, cells),
+    }
+    (WEB_DATA / "walk_zones.json").write_text(json.dumps(zones, separators=(",", ":")))
     sizes = near.groupby("origin").size()
     print(f"{len(graph.xy)} street nodes; {len(times)} block pairs within {LIMIT_MIN:g} min")
     print(f"blocks within {CATCHMENT_MIN:g} min: median {sizes.median():g}, min {sizes.min()}")
