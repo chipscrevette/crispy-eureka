@@ -641,7 +641,8 @@ function HeroMap(props: {
   onAllParis?: () => void
 }) {
   const { data, profile, layer, cell, fresh, open, zone, rings, minutes, focus, pin, brand, placed, borders, network, onBlock } = props
-  const [metro, setMetro] = useState(true)
+  // the metro is there on demand: the map first reads as the layer
+  const [metro, setMetro] = useState(false)
   const ref = useRef<HTMLCanvasElement>(null)
   const outline = useOutline(data.grid)
   const key = atlasKey(layer, profile)
@@ -724,8 +725,8 @@ function HeroMap(props: {
         ctx.strokeStyle = ink
         ctx.lineJoin = 'round'
         for (const f of borders.features) {
-          ctx.globalAlpha = f.properties.city ? 0.35 : 0.16
-          ctx.lineWidth = f.properties.city ? 1.2 : 0.8
+          ctx.globalAlpha = f.properties.city ? 0.25 : 0.1
+          ctx.lineWidth = f.properties.city ? 1 : 0.7
           ctx.beginPath()
           path(f.geometry.coordinates[0])
           ctx.stroke()
@@ -818,7 +819,7 @@ function HeroMap(props: {
       if (borders) {
         ctx.font = `500 ${Math.round(Math.min(10 * Math.sqrt(zoom), 16))}px ${css('--display')}`
         ctx.fillStyle = ink
-        ctx.globalAlpha = 0.45
+        ctx.globalAlpha = 0.3
         for (const f of borders.features) {
           if (!f.properties.label || !f.properties.n) continue
           const [x, y] = outline.project(f.properties.label)
