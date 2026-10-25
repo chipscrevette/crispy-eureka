@@ -1,7 +1,7 @@
 import type { FeatureCollection, Point } from 'geojson'
 import { fmt, tr } from './i18n'
 
-export type StationProps = { name: string; entries: number }
+export type StationProps = { name: string; entries: number; lines?: string[] }
 export type Stations = FeatureCollection<Point, StationProps> & { period: string }
 
 /** Rail stations with their average daily entries (Île-de-France Mobilités); null until the data build has made them. */

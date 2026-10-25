@@ -835,7 +835,14 @@ optgroup { font-style: normal; }
 .layer-toggle[aria-pressed='true'] { color: var(--surface); background: var(--ink); }
 .layer-toggle[aria-pressed='true'] .legend-station { background: var(--surface); box-shadow: none; }
 .layer-toggle:focus-visible { outline: 2px solid var(--seine); outline-offset: 2px; }
-.legend-station { background: var(--ink); opacity: 0.85; }
+.legend-station { background: var(--surface); box-shadow: 0 0 0 2px var(--ink); }
+.layer-toggle svg { flex: none; }
+
+/* a line's badge: a circle for the metro, a rounded square for the RER, in the line's own colour */
+.tip-badges { display: flex; gap: 4px; }
+.tip-badges:empty { display: none; }
+.line-badge { display: grid; place-items: center; min-width: 20px; height: 20px; padding: 0 4px; font: var(--weight) 0.72rem/1 var(--display); border-radius: 999px; }
+.line-badge.rer { border-radius: 5px; }
 .legend-line { display: inline-block; width: 16px; height: 4px; border-radius: 2px; background: #cc3b2e; flex: none; }
 .layer-toggle[aria-pressed='true'] .legend-line { background: var(--surface); }
 :root[data-theme='dark'] .legend-line { background: #f08c7e; }

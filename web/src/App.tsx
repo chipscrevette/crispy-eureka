@@ -27,6 +27,8 @@ import { NEW_BRAND, loadPlanner, type Backtest, type Planner } from './planner'
 import Atlas from './Atlas'
 import { ATLAS, atlasKey } from './atlasLayers'
 import { entriesText, loadStations, type Stations } from './stations'
+import { badgeHtml, lineColours, lineName, loadNetwork, type LineProps, type Network } from './network'
+import { Footprints, TrainFront } from 'lucide-react'
 import { footfallText, loadStreets, streetTitle, type StreetProps, type Streets } from './streets'
 import { bestPlaces, countOpen, openKey, openPlaces, withOpenSpaces } from './dashboardData'
 import { HEIGHTS, coloursOf, isDark, profileColour, rampFor, stepExpr } from './palette'
@@ -54,7 +56,7 @@ type Data = {
   demand: FeatureInfo[]
   groups: Demand['groups']
 }
-type Tip = { x: number; y: number; title: string; text: string }
+type Tip = { x: number; y: number; title: string; text: string; badges?: string }
 type Tab = 'explore' | 'plan' | 'ask' | 'method'
 
 const TABS: { id: Tab; label: string }[] = [
@@ -146,6 +148,7 @@ export default function App() {
   const [ready, setReady] = useState(false)
   const [stations, setStations] = useState<Stations | null>(null)
   const [showStations, setShowStations] = useState(false)
+  const [network, setNetwork] = useState<Network | null>(null)
   const [streets, setStreets] = useState<Streets | null>(null)
   const [showStreets, setShowStreets] = useState(false)
   // a one-time hint on the map; storage can be blocked, so it falls back to showing once per visit
@@ -168,6 +171,7 @@ export default function App() {
   useEffect(() => {
     // an extra layer: the map works without it
     loadStations().then(setStations, () => setStations(null))
+    loadNetwork().then(setNetwork, () => setNetwork(null))
   }, [])
 
   useEffect(() => {
@@ -567,7 +571,46 @@ export default function App() {
     if (ready) map.current!.easeTo({ pitch: raised ? (phone() ? 40 : 50) : 0, bearing: raised ? -12 : 0, duration: 600 })
   }, [ready, raised])
 
-  // stations sit under the boutiques; the circle grows with the daily entries
+  // metro and RER lines in their own colours, shown with the stations, under them
+  useEffect(() => {
+    if (!ready || !network) return
+    const m = map.current!
+    if (!m.getSource('network')) {
+      m.addSource('network', { type: 'geojson', data: network })
+      // under the station circles, whichever loaded first
+      const below = m.getLayer('stations') ? 'stations' : 'stores-halo'
+      const rer: ExpressionSpecification = ['==', ['get', 'mode'], 'rer']
+      m.addLayer(
+        {
+          id: 'network-casing',
+          type: 'line',
+          source: 'network',
+          layout: { visibility: 'none', 'line-cap': 'round', 'line-join': 'round' },
+          paint: {
+            'line-color': cssVar('--surface'),
+            'line-width': ['interpolate', ['linear'], ['zoom'], 11, ['case', rer, 4, 3], 16, ['case', rer, 10, 8]],
+          },
+        },
+        below,
+      )
+      m.addLayer(
+        {
+          id: 'network',
+          type: 'line',
+          source: 'network',
+          layout: { visibility: 'none', 'line-cap': 'round', 'line-join': 'round' },
+          paint: {
+            'line-color': ['get', 'colour'],
+            'line-width': ['interpolate', ['linear'], ['zoom'], 11, ['case', rer, 2.2, 1.6], 16, ['case', rer, 6, 4.5]],
+          },
+        },
+        below,
+      )
+    }
+    for (const id of ['network-casing', 'network']) m.setLayoutProperty(id, 'visibility', showStations ? 'visible' : 'none')
+  }, [ready, network, showStations])
+
+  // stations sit on the lines, under the boutiques; the circle grows with the daily entries
   useEffect(() => {
     if (!ready || !stations) return
     const m = map.current!
@@ -590,10 +633,10 @@ export default function App() {
           layout: { visibility: 'none' },
           paint: {
             'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, size(1.5, 7), 15, size(4, 16)],
-            'circle-color': cssVar('--ink'),
-            'circle-opacity': 0.6,
-            'circle-stroke-color': cssVar('--surface'),
-            'circle-stroke-width': 1.5,
+            // white with a dark ring, the way a metro map draws a station
+            'circle-color': cssVar('--surface'),
+            'circle-stroke-color': cssVar('--ink'),
+            'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 11, 1, 15, 2],
           },
         },
         'stores-halo',
@@ -655,8 +698,9 @@ export default function App() {
   }, [ready, data, profile, fresh])
 
   // a tooltip in plain words follows the pointer
-  const keyRef = useRef({ key, isScore, name: layerName, format })
-  keyRef.current = { key, isScore, name: layerName, format }
+  const colourOfLine = useMemo(() => (network ? lineColours(network) : new Map()), [network])
+  const keyRef = useRef({ key, isScore, name: layerName, format, colourOfLine })
+  keyRef.current = { key, isScore, name: layerName, format, colourOfLine }
   useEffect(() => {
     if (!ready) return
     const m = map.current!
@@ -666,9 +710,15 @@ export default function App() {
       if (!el) return
       el.hidden = !t
       if (!t) return
-      el.style.transform = `translate(${t.x + 14}px, ${t.y}px) translateY(-50%)`
-      el.firstElementChild!.textContent = t.title
-      el.lastElementChild!.textContent = t.text
+      // near the right edge the tooltip opens to the left of the pointer, so it is never cut off
+      el.style.transform =
+        t.x > el.parentElement!.clientWidth - 260
+          ? `translate(${t.x - 14}px, ${t.y}px) translate(-100%, -50%)`
+          : `translate(${t.x + 14}px, ${t.y}px) translateY(-50%)`
+      const [title, badges, text] = el.children
+      title.textContent = t.title
+      badges.innerHTML = t.badges ?? ''
+      text.textContent = t.text
     }
     // at most one lookup per frame, and none while the map moves
     let frame = 0
@@ -686,8 +736,17 @@ export default function App() {
       const onStations = m.getLayer('stations') && m.getLayoutProperty('stations', 'visibility') === 'visible'
       const station = onStations ? m.queryRenderedFeatures(e.point, { layers: ['stations'] })[0] : undefined
       if (station) {
-        const sp = station.properties as { name: string; entries: number }
-        return setTip({ x: e.point.x, y: e.point.y, title: sp.name, text: entriesText(sp.entries) })
+        const sp = station.properties as { name: string; entries: number; lines?: string | string[] }
+        // MapLibre hands back array properties as JSON text
+        const lines: string[] = typeof sp.lines === 'string' ? JSON.parse(sp.lines) : (sp.lines ?? [])
+        const badges = lines.map((l) => badgeHtml(l, k.colourOfLine)).join('')
+        return setTip({ x: e.point.x, y: e.point.y, title: sp.name, text: entriesText(sp.entries), badges })
+      }
+      const line = onStations ? m.queryRenderedFeatures(e.point, { layers: ['network'] })[0] : undefined
+      if (line) {
+        const name = lineName(line.properties as LineProps)
+        const title = name.startsWith('RER') ? name : `${tr('Métro ligne', 'Metro line')} ${name}`
+        return setTip({ x: e.point.x, y: e.point.y, title, text: '', badges: badgeHtml(name, k.colourOfLine) })
       }
       const onStreets = m.getLayer('streets') && m.getLayoutProperty('streets', 'visibility') === 'visible'
       const street = onStreets ? m.queryRenderedFeatures(e.point, { layers: ['streets'] })[0] : undefined
@@ -968,13 +1027,13 @@ export default function App() {
               <div className="layer-toggles" role="group" aria-label={tr('Couches en plus', 'Extra map layers')}>
                 {stations && (
                   <button className="layer-toggle" aria-pressed={showStations} onClick={() => setShowStations((v) => !v)}>
-                    <span className="legend-dot legend-station" aria-hidden="true" />
-                    {tr('Gares', 'Stations')}
+                    <TrainFront size={16} strokeWidth={1.75} aria-hidden="true" />
+                    {tr('Métro et RER', 'Metro & RER')}
                   </button>
                 )}
                 {hasStreets && (
                   <button className="layer-toggle" aria-pressed={showStreets} onClick={() => setShowStreets((v) => !v)}>
-                    <span className="legend-line" aria-hidden="true" />
+                    <Footprints size={16} strokeWidth={1.75} aria-hidden="true" />
                     {tr('Rues passantes', 'Busy streets')}
                   </button>
                 )}
@@ -990,6 +1049,7 @@ export default function App() {
             )}
             <div className="tip" ref={tipEl} hidden aria-hidden="true">
               <strong />
+              <span className="tip-badges" />
               <span />
             </div>
           </div>
