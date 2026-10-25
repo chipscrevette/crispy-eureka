@@ -76,6 +76,11 @@ function cssVar(name: string) {
 
 const phone = () => window.matchMedia('(max-width: 760px)').matches
 
+/** Beyond the city the mask sits over the metro lines and stations too, so only Paris reads clearly. */
+function fadeBeyondParis(m: maplibregl.Map) {
+  if (m.getLayer('outside') && m.getLayer('stores-profile')) m.moveLayer('outside', 'stores-profile')
+}
+
 /** The basemap and every layer colour follow the theme, so a switch reloads the page. */
 function switchTheme() {
   try {
@@ -241,29 +246,16 @@ export default function App() {
         paint: { 'line-color': cssVar('--ink'), 'line-width': 2.5, 'line-dasharray': [2, 1] },
       })
       m.addSource('stores', { type: 'geojson', data: data.stores, promoteId: 'id' })
-      // a soft halo under each boutique of the profile, so the clusters glow
-      m.addLayer({
-        id: 'stores-halo',
-        type: 'circle',
-        source: 'stores',
-        filter: ['==', ['get', 'profile'], 'jewellery-watches'],
-        paint: {
-          'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, 7, 16, 18],
-          'circle-color': cssVar('--surface'),
-          'circle-opacity': 0.5,
-          'circle-blur': 1,
-        },
-      })
       m.addLayer({
         id: 'stores-profile',
         type: 'circle',
         source: 'stores',
         filter: ['==', ['get', 'profile'], 'jewellery-watches'],
         paint: {
-          'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, 3, 16, 8],
+          // flat matte dots, no outline: the data, not decoration
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, 2.5, 16, 7],
           'circle-color': profileColour('jewellery-watches'),
-          'circle-stroke-color': '#ffffff',
-          'circle-stroke-width': 1.5,
+          'circle-opacity': 0.9,
         },
       })
       m.addLayer({
@@ -273,9 +265,7 @@ export default function App() {
         filter: ['==', ['get', 'brand'], ''],
         paint: {
           'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, 4, 16, 9],
-          'circle-color': '#ffffff',
-          'circle-stroke-color': cssVar('--pin'),
-          'circle-stroke-width': 2.5,
+          'circle-color': cssVar('--pin'),
         },
       })
       m.addLayer({
@@ -285,9 +275,7 @@ export default function App() {
         filter: ['==', ['get', 'id'], ''],
         paint: {
           'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, 6, 16, 12],
-          'circle-color': cssVar('--pin'),
-          'circle-stroke-color': '#ffffff',
-          'circle-stroke-width': 2,
+          'circle-color': cssVar('--ink'),
         },
       })
       m.on('click', (e) => {
@@ -318,7 +306,7 @@ export default function App() {
   useEffect(() => {
     if (!ready) return
     const m = map.current!
-    for (const id of ['stores-profile', 'stores-halo']) m.setFilter(id, ['==', ['get', 'profile'], profile])
+    m.setFilter('stores-profile', ['==', ['get', 'profile'], profile])
     m.setPaintProperty('stores-profile', 'circle-color', profileColour(profile))
   }, [ready, profile])
 
@@ -578,21 +566,8 @@ export default function App() {
     if (!m.getSource('network')) {
       m.addSource('network', { type: 'geojson', data: network })
       // under the station circles, whichever loaded first
-      const below = m.getLayer('stations') ? 'stations' : 'stores-halo'
+      const below = m.getLayer('stations') ? 'stations' : 'stores-profile'
       const rer: ExpressionSpecification = ['==', ['get', 'mode'], 'rer']
-      m.addLayer(
-        {
-          id: 'network-casing',
-          type: 'line',
-          source: 'network',
-          layout: { visibility: 'none', 'line-cap': 'round', 'line-join': 'round' },
-          paint: {
-            'line-color': cssVar('--surface'),
-            'line-width': ['interpolate', ['linear'], ['zoom'], 11, ['case', rer, 4, 3], 16, ['case', rer, 10, 8]],
-          },
-        },
-        below,
-      )
       m.addLayer(
         {
           id: 'network',
@@ -601,13 +576,16 @@ export default function App() {
           layout: { visibility: 'none', 'line-cap': 'round', 'line-join': 'round' },
           paint: {
             'line-color': ['get', 'colour'],
-            'line-width': ['interpolate', ['linear'], ['zoom'], 11, ['case', rer, 2.2, 1.6], 16, ['case', rer, 6, 4.5]],
+            // thin and a little see-through: the lines guide the eye, the blocks stay the subject
+            'line-width': ['interpolate', ['linear'], ['zoom'], 11, ['case', rer, 1.4, 1], 16, ['case', rer, 3.5, 2.5]],
+            'line-opacity': 0.75,
           },
         },
         below,
       )
+      fadeBeyondParis(m)
     }
-    for (const id of ['network-casing', 'network']) m.setLayoutProperty(id, 'visibility', showStations ? 'visible' : 'none')
+    m.setLayoutProperty('network', 'visibility', showStations ? 'visible' : 'none')
   }, [ready, network, showStations])
 
   // Paris itself: beyond the city the map fades, the edge is drawn firm and the 20 arrondissements fine
@@ -620,9 +598,10 @@ export default function App() {
     if (outside) {
       m.addSource('outside', { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: outside } })
       m.addLayer(
-        { id: 'outside', type: 'fill', source: 'outside', paint: { 'fill-color': cssVar('--limestone'), 'fill-opacity': 0.6 } },
+        { id: 'outside', type: 'fill', source: 'outside', paint: { 'fill-color': cssVar('--limestone'), 'fill-opacity': 0.75 } },
         'grid-fill',
       )
+      fadeBeyondParis(m)
     }
     // on the ground, under the raised blocks
     m.addLayer(
@@ -683,15 +662,15 @@ export default function App() {
           source: 'stations',
           layout: { visibility: 'none' },
           paint: {
-            'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, size(1.5, 7), 15, size(4, 16)],
-            // white with a dark ring, the way a metro map draws a station
-            'circle-color': cssVar('--surface'),
-            'circle-stroke-color': cssVar('--ink'),
-            'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 11, 1, 15, 2],
+            'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, size(1, 3.5), 15, size(2.5, 9)],
+            // a small solid dot, no ring: the busiest stations are simply bigger
+            'circle-color': cssVar('--ink'),
+            'circle-opacity': 0.55,
           },
         },
-        'stores-halo',
+        'stores-profile',
       )
+      fadeBeyondParis(m)
     }
     m.setLayoutProperty('stations', 'visibility', showStations ? 'visible' : 'none')
   }, [ready, stations, showStations])
@@ -726,7 +705,7 @@ export default function App() {
             'line-opacity': 0.9,
           },
         },
-        'stores-halo',
+        'stores-profile',
       )
     }
     m.setLayoutProperty('streets', 'visibility', showStreets ? 'visible' : 'none')
@@ -795,9 +774,9 @@ export default function App() {
       }
       const line = onStations ? m.queryRenderedFeatures(e.point, { layers: ['network'] })[0] : undefined
       if (line) {
+        // the badge says it all: the line's own symbol, no title repeating it
         const name = lineName(line.properties as LineProps)
-        const title = name.startsWith('RER') ? name : `${tr('Métro ligne', 'Metro line')} ${name}`
-        return setTip({ x: e.point.x, y: e.point.y, title, text: '', badges: badgeHtml(name, k.colourOfLine) })
+        return setTip({ x: e.point.x, y: e.point.y, title: '', text: '', badges: badgeHtml(name, k.colourOfLine) })
       }
       const onStreets = m.getLayer('streets') && m.getLayoutProperty('streets', 'visibility') === 'visible'
       const street = onStreets ? m.queryRenderedFeatures(e.point, { layers: ['streets'] })[0] : undefined

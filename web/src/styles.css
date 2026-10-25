@@ -165,7 +165,7 @@ button, input, select { font-family: var(--ui); }
 .legend-row { display: flex; flex-wrap: wrap; gap: 6px 12px; }
 .legend-step { display: flex; align-items: center; gap: 6px; color: var(--muted); }
 .legend-swatch { width: 18px; height: 10px; border-radius: 3px; }
-.legend-dot { width: 10px; height: 10px; border-radius: 50%; box-shadow: 0 0 0 2px #fff; }
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; }
 
 .view-toggle {
   position: absolute;
@@ -851,14 +851,14 @@ optgroup { font-style: normal; }
   cursor: pointer;
 }
 .layer-toggle[aria-pressed='true'] { color: var(--surface); background: var(--ink); }
-.layer-toggle[aria-pressed='true'] .legend-station { background: var(--surface); box-shadow: none; }
+.layer-toggle[aria-pressed='true'] .legend-station { background: var(--surface); opacity: 1; }
 .layer-toggle:focus-visible { outline: 2px solid var(--seine); outline-offset: 2px; }
-.legend-station { background: var(--surface); box-shadow: 0 0 0 2px var(--ink); }
+.legend-station { background: var(--ink); opacity: 0.55; }
 .layer-toggle svg { flex: none; }
 
 /* a line's badge: a circle for the metro, a rounded square for the RER, in the line's own colour */
 .tip-badges { display: flex; gap: 4px; }
-.tip-badges:empty { display: none; }
+.tip-badges:empty, .tip strong:empty, .tip > span:empty { display: none; }
 .line-badge { display: grid; place-items: center; min-width: 20px; height: 20px; padding: 0 4px; font: var(--weight) 0.72rem/1 var(--display); border-radius: 999px; }
 .line-badge.rer { border-radius: 5px; }
 .legend-line { display: inline-block; width: 16px; height: 4px; border-radius: 2px; background: #cc3b2e; flex: none; }
