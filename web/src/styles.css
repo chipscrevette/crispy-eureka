@@ -266,7 +266,7 @@ select:focus-visible { outline: 2px solid var(--seine); outline-offset: 2px; }
 
 .selected { gap: 16px; }
 .back { justify-self: start; padding: 7px 14px 7px 12px; font-size: 0.85rem; color: var(--ink); background: var(--limestone); border: 0; border-radius: 999px; cursor: pointer; }
-.store { padding: 12px 14px; background: var(--limestone); border-left: 3px solid var(--pin); border-radius: var(--radius-s); }
+.store { padding: 0 0 12px; border-bottom: 1px solid var(--rule); }
 .selected .brand { font: var(--weight) 1.3rem var(--display); margin: 0; color: var(--ink); }
 .selected p { margin: 2px 0; }
 .link { background: none; border: 0; padding: 0; margin-top: 8px; color: var(--seine); font: inherit; cursor: pointer; text-decoration: underline; }
@@ -369,7 +369,7 @@ optgroup { font-style: normal; }
 .memo-grid { display: grid; grid-template-columns: 1fr 260px; gap: 32px; align-items: start; }
 .memo-score .big { font-size: 4rem; }
 .memo-drivers, .memo-nearby { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
-.memo-drivers li { padding-left: 14px; border-left: 2px solid var(--seine); }
+.memo-drivers li { padding: 4px 0; border-bottom: 1px solid var(--rule); }
 .memo-nearby li { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--rule); padding: 4px 0; }
 .memo footer { border-top: 1px solid var(--rule); padding-top: 12px; }
 .minimap { margin: 0; display: grid; gap: 6px; }
@@ -507,7 +507,7 @@ optgroup { font-style: normal; }
 .ask-thread { list-style: none; margin: 0; padding: 0; display: grid; gap: 20px; }
 .ask-thread > li { display: grid; gap: 10px; scroll-margin-top: 72px; }
 .ask-q { justify-self: end; max-width: 85%; margin: 0; padding: 8px 14px; background: var(--seine-soft); border-radius: 16px 16px 4px 16px; font-weight: var(--weight); }
-.ask-a { display: grid; gap: 10px; padding-left: 14px; border-left: 2px solid var(--seine); }
+.ask-a { display: grid; gap: 10px; }
 .ask-a > p { margin: 0; line-height: 1.6; }
 .ask-a summary { cursor: pointer; font: var(--weight) 0.78rem var(--mono); color: var(--seine); }
 .ask-a summary:focus-visible { outline: 2px solid var(--seine); outline-offset: 2px; }
@@ -751,7 +751,7 @@ optgroup { font-style: normal; }
 .facts { list-style: none; margin: 0; padding: 0; display: grid; }
 .facts li { position: relative; padding: 10px 0 10px 22px; border-top: 1px solid var(--rule); font-size: 0.9rem; line-height: 1.4; }
 .facts li:first-child { border-top: 0; }
-.facts li::before { content: ''; position: absolute; left: 2px; top: 50%; width: 8px; height: 8px; margin-top: -4px; border-radius: 50%; background: var(--seine); box-shadow: 0 0 0 4px var(--seine-soft); }
+.facts li::before { content: ''; position: absolute; left: 2px; top: 50%; width: 5px; height: 5px; margin-top: -2.5px; border-radius: 50%; background: var(--ink); }
 .cell-score .actions { margin-top: 4px; }
 
 .hint {
