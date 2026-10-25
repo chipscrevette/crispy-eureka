@@ -11,7 +11,7 @@ import {
   type Grid,
   type GridMeta,
 } from './grid'
-import { SCORE_BREAKS, loadScores, ordinal, placeOf, scoreKey, withScores, type Scores } from './scores'
+import { SCORE_BREAKS, loadScores, placeOf, scoreKey, withScores, type Scores } from './scores'
 import { CellScore, Compare, type Zone } from './CellPanels'
 import { cellAt, cellIndex, centroid, type LonLat } from './geo'
 import Search, { type Address } from './Search'
@@ -25,6 +25,7 @@ import { demandLayers, loadDemand, withDemand, type Demand } from './demand'
 import Plan from './Plan'
 import { NEW_BRAND, loadPlanner, type Backtest, type Planner } from './planner'
 import Atlas from './Atlas'
+import Figures from './Figures'
 import { ATLAS, atlasKey } from './atlasLayers'
 import { entriesText, loadStations, type Stations } from './stations'
 import { footfallText, loadStreets, streetTitle, type StreetProps, type Streets } from './streets'
@@ -747,7 +748,6 @@ export default function App() {
     setPicking(false)
     setAnswerCells([])
   }
-  const tested = validation ? ordinal(validation.model.mean_percentile) : '–'
 
   const places = useMemo(
     () => (data ? (fresh ? openPlaces : bestPlaces)(data.grid, scoreKey(profile), 5) : []),
@@ -993,29 +993,17 @@ export default function App() {
               <span />
             </div>
           </div>
-        <ul className="figures" aria-label={tr('Ce type de marque en chiffres', 'This type of brand in numbers')}>
-          <li>
-            <span className="figure-value accent">{openCount}</span>
-            <span className="figure-label">{tr('places libres', 'free spots')}</span>
-          </li>
-          <li>
-            <span className="figure-value">{counts ? counts[profile] : '–'}</span>
-            <span className="figure-label">{tr('boutiques aujourd’hui', 'boutiques today')}</span>
-          </li>
-          <li>
-            <span className="figure-value">{brands || '–'}</span>
-            <span className="figure-label">{tr('marques', 'brands')}</span>
-          </li>
-          <li
-            title={tr(
-              'Nous avons caché des marques entières au modèle ; leurs vraies boutiques arrivent quand même aussi haut en moyenne',
-              'We hid whole brands from the model; their real boutiques still landed this high on average',
-            )}
-          >
-            <span className="figure-value">{tested}</span>
-            <span className="figure-label">{tr('centile en test à l’aveugle', 'percentile in a blind test')}</span>
-          </li>
-        </ul>
+        <Figures
+          openCount={openCount}
+          counts={counts}
+          profile={profile}
+          brands={brands}
+          tested={
+            validation
+              ? { model: validation.model.mean_percentile, neighbours: validation['luxury neighbours'].mean_percentile }
+              : undefined
+          }
+        />
       </main>
 
       <section className="panel" aria-label={tr('Détails', 'Details')}>
