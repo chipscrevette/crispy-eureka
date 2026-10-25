@@ -1,17 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import maplibregl, { type ExpressionSpecification, type StyleSpecification } from 'maplibre-gl'
-import { PROFILES, countByProfile, loadStores, type ProfileId, type StoreProps, type Stores } from './stores'
-import {
-  formatValue,
-  loadGrid,
-  loadGridMeta,
-  quantileBreaks,
-  type CellProps,
-  type FeatureInfo,
-  type Grid,
-  type GridMeta,
-} from './grid'
-import { SCORE_BREAKS, loadScores, placeOf, scoreKey, withScores, type Scores } from './scores'
+import { PROFILES, countByProfile, type ProfileId, type StoreProps } from './stores'
+import { formatValue, quantileBreaks, type CellProps } from './grid'
+import { SCORE_BREAKS, placeOf, scoreKey } from './scores'
 import { CellScore, Compare, type Zone } from './CellPanels'
 import { cellAt, cellIndex, centroid, type LonLat } from './geo'
 import Search, { type Address } from './Search'
@@ -20,8 +11,7 @@ import Memo from './Memo'
 import Method from './Method'
 import Ask from './Ask'
 import { loadAnswers, type AskAnswer } from './answers'
-import { loadCatchments, reachOf, type Catchments } from './catchments'
-import { demandLayers, loadDemand, withDemand, type Demand } from './demand'
+import { reachOf } from './catchments'
 import Plan from './Plan'
 import { NEW_BRAND, loadPlanner, type Backtest, type Planner } from './planner'
 import Atlas from './Atlas'
@@ -32,9 +22,11 @@ import { badgeHtml, lineColours, lineName, loadNetwork, type LineProps, type Net
 import { Footprints, TrainFront } from 'lucide-react'
 import { loadBorders, outsideParis, type Borders } from './borders'
 import { footfallText, loadStreets, streetTitle, type StreetProps, type Streets } from './streets'
-import { bestPlaces, countOpen, openKey, openPlaces, withOpenSpaces } from './dashboardData'
+import { bestPlaces, countOpen, openKey, openPlaces } from './dashboardData'
 import { HEIGHTS, coloursOf, isDark, profileColour, rampFor, stepExpr } from './palette'
-import { featureLabel, lang, localFeatures, switchLang, tr } from './i18n'
+import { lang, switchLang, tr } from './i18n'
+import { loadData, type Data } from './appData'
+import { DASHBOARD_URL, DASHBOARD_WINDOW, connect, sameShared, type Shared } from './sync'
 
 const PARIS: [number, number] = [2.3325, 48.8665]
 const BASEMAP: string | StyleSpecification =
@@ -49,15 +41,6 @@ const BASEMAP: string | StyleSpecification =
 const SCORE = 'score'
 const FILL_OPACITY = 0.78
 
-type Data = {
-  stores: Stores
-  grid: Grid
-  meta: GridMeta
-  scores: Scores
-  catchments: Catchments
-  demand: FeatureInfo[]
-  groups: Demand['groups']
-}
 type Tip = { x: number; y: number; title: string; text: string; badges?: string }
 type Tab = 'explore' | 'plan' | 'ask' | 'method'
 
@@ -179,22 +162,7 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    Promise.all([loadStores(), loadGrid(), loadGridMeta(), loadScores(), loadCatchments(), loadDemand()]).then(
-      ([stores, grid, meta, scores, catchments, demand]) =>
-        setData({
-          stores,
-          grid: withOpenSpaces(
-            withDemand(withScores(grid, scores), demand),
-            PROFILES.map((p) => scoreKey(p.id)),
-          ),
-          meta: { ...meta, features: localFeatures(meta.features) },
-          scores: { ...scores, features: localFeatures(scores.features) },
-          catchments,
-          demand: localFeatures(demandLayers(demand)),
-          groups: demand.groups.map((g) => ({ ...g, label: featureLabel(`demand_${g.key}`, g.label) })),
-        }),
-      (e: Error) => setError(e.message),
-    )
+    loadData().then(setData, (e: Error) => setError(e.message))
   }, [])
 
   useEffect(() => {
@@ -421,6 +389,33 @@ export default function App() {
   )
 
   const cells = useMemo(() => (data ? cellIndex(data.grid) : null), [data])
+
+  // the dashboard in another tab follows the map, and the map follows the dashboard
+  const shared: Shared = { profile, layer, cell: cellA, fresh }
+  const sharedRef = useRef(shared)
+  sharedRef.current = shared
+  const applied = useRef<Shared | null>(null)
+  const focusRef = useRef<(cell: string) => void>(() => {})
+  const link = useRef<ReturnType<typeof connect> | null>(null)
+  useEffect(() => {
+    const l = connect('map', {
+      onState: (s) => {
+        applied.current = s
+        setProfile(s.profile)
+        setLayer(s.layer)
+        setFresh(s.fresh)
+        if (!s.cell) setCellA(null)
+        else if (s.cell !== sharedRef.current.cell) focusRef.current(s.cell)
+      },
+      onHello: () => l.send(sharedRef.current),
+    })
+    link.current = l
+    return l.close
+  }, [])
+  useEffect(() => {
+    // a change that came from the dashboard is not sent back to it
+    if (!sameShared(sharedRef.current, applied.current)) link.current?.send(sharedRef.current)
+  }, [profile, layer, cellA, fresh])
   // the street layer exists once the data build has estimated street footfall
   const hasStreets = !!data && typeof data.grid.features[0]?.properties.street_footfall === 'number'
   const a = (cellA && cells?.get(cellA)?.properties) || null
@@ -478,6 +473,7 @@ export default function App() {
     setCellB(null)
     if (f) map.current?.flyTo({ center: centroid(f.geometry.coordinates[0]), zoom: raised ? 13.9 : 14.6 })
   }
+  focusRef.current = focusBlock
 
   const onFound = (found: Address) => {
     const cell = data ? cellAt(data.grid, found.at) : null
@@ -984,6 +980,9 @@ export default function App() {
               {t.label}
             </button>
           ))}
+          <a className="nav-out" href={DASHBOARD_URL} target={DASHBOARD_WINDOW}>
+            {tr('Tableau de bord', 'Dashboard')} <span aria-hidden="true">↗</span>
+          </a>
         </nav>
         <p className="rail-foot">
           <span>{tr('Paris, données ouvertes', 'Paris, from open data only')}</span>

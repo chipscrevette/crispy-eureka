@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CellProps, Grid } from './grid'
 import { placeOf, scoreKey } from './scores'
-import { ATLAS, atlasKey, cssVar as css, fills, sizeCanvas } from './atlasLayers'
+import { ATLAS, atlasKey, cssVar as css, fills, sizeCanvas, useOutline } from './atlasLayers'
 import { openKey } from './dashboardData'
 import { coloursOf, rampFor } from './palette'
 import type { ProfileId } from './stores'
@@ -14,28 +14,6 @@ type Props = {
   cell: string | null
   onLayer: (id: string) => void
   onBlock: (cell: string) => void
-}
-
-type Projected = { cell: string; ring: [number, number][]; at: [number, number] }
-
-/** Every block's outline in 0..1 x 0..1/aspect, north up, so each canvas only scales it. */
-function useOutline(grid: Grid) {
-  return useMemo(() => {
-    const all = grid.features.flatMap((f) => f.geometry.coordinates[0])
-    const lons = all.map((c) => c[0])
-    const lats = all.map((c) => c[1])
-    const [x0, x1, y0, y1] = [Math.min(...lons), Math.max(...lons), Math.min(...lats), Math.max(...lats)]
-    const k = Math.cos((((y0 + y1) / 2) * Math.PI) / 180)
-    const w = (x1 - x0) * k
-    const p = (c: number[]): [number, number] => [((c[0] - x0) * k) / w, (y1 - c[1]) / w]
-    const blocks: Projected[] = grid.features.map((f) => {
-      const ring = f.geometry.coordinates[0].map(p)
-      const n = ring.length - 1
-      const at: [number, number] = [ring.slice(0, n).reduce((s, q) => s + q[0], 0) / n, ring.slice(0, n).reduce((s, q) => s + q[1], 0) / n]
-      return { cell: f.properties.cell, ring, at }
-    })
-    return { blocks, aspect: (y1 - y0) / w }
-  }, [grid])
 }
 
 function MiniMap(props: { grid: Grid; outline: ReturnType<typeof useOutline>; mapKey: string; isScore: boolean; cell: string | null }) {

@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { quantileBreaks, type Grid } from './grid'
 import { coloursOf, rampFor } from './palette'
 import { SCORE_BREAKS, scoreKey } from './scores'
@@ -52,4 +53,26 @@ export function sizeCanvas(canvas: HTMLCanvasElement) {
   const ctx = canvas.getContext('2d')!
   ctx.setTransform(r, 0, 0, r, 0, 0)
   return { ctx, width, height }
+}
+
+type Projected = { cell: string; ring: [number, number][]; at: [number, number] }
+
+/** Every block's outline in 0..1 x 0..1/aspect, north up, so each canvas only scales it. */
+export function useOutline(grid: Grid) {
+  return useMemo(() => {
+    const all = grid.features.flatMap((f) => f.geometry.coordinates[0])
+    const lons = all.map((c) => c[0])
+    const lats = all.map((c) => c[1])
+    const [x0, x1, y0, y1] = [Math.min(...lons), Math.max(...lons), Math.min(...lats), Math.max(...lats)]
+    const k = Math.cos((((y0 + y1) / 2) * Math.PI) / 180)
+    const w = (x1 - x0) * k
+    const p = (c: number[]): [number, number] => [((c[0] - x0) * k) / w, (y1 - c[1]) / w]
+    const blocks: Projected[] = grid.features.map((f) => {
+      const ring = f.geometry.coordinates[0].map(p)
+      const n = ring.length - 1
+      const at: [number, number] = [ring.slice(0, n).reduce((s, q) => s + q[0], 0) / n, ring.slice(0, n).reduce((s, q) => s + q[1], 0) / n]
+      return { cell: f.properties.cell, ring, at }
+    })
+    return { blocks, aspect: (y1 - y0) / w, project: p }
+  }, [grid])
 }
