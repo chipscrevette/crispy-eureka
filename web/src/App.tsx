@@ -26,7 +26,7 @@ import { bestPlaces, countOpen, openKey, openPlaces } from './dashboardData'
 import { HEIGHTS, coloursOf, isDark, profileColour, rampFor, stepExpr } from './palette'
 import { lang, switchLang, tr } from './i18n'
 import { loadData, type Data } from './appData'
-import { DASHBOARD_URL, DASHBOARD_WINDOW, connect, sameShared, type Shared } from './sync'
+import { DASHBOARD_URL, connect, sameShared, type Shared } from './sync'
 
 const PARIS: [number, number] = [2.3325, 48.8665]
 const BASEMAP: string | StyleSpecification =
@@ -959,8 +959,8 @@ export default function App() {
               {t.label}
             </button>
           ))}
-          <a className="nav-out" href={DASHBOARD_URL} target={DASHBOARD_WINDOW}>
-            {tr('Tableau de bord', 'Dashboard')} <span aria-hidden="true">↗</span>
+          <a className="nav-out" href={DASHBOARD_URL}>
+            <span aria-hidden="true">←</span> {tr('Tableau de bord', 'Dashboard')}
           </a>
         </nav>
         <p className="rail-foot">

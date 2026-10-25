@@ -8,7 +8,11 @@ import { fmt, lang, switchLang, tr } from './i18n'
 import { coloursOf, isDark, profileColour, rampFor } from './palette'
 import { SCORE_BREAKS, ordinal, placeOf, rankText, scoreKey } from './scores'
 import { PROFILES, countByProfile, type ProfileId } from './stores'
-import { connect, sameShared, type Shared } from './sync'
+import { MAP_URL, MAP_WINDOW, connect, sameShared, type Shared } from './sync'
+import LayerStack from './LayerStack'
+import { fromCatchments, loadWalkZones, zoneOf, type WalkZones } from './walkZones'
+import { loadStations, type Stations } from './stations'
+import { badgeHtml, lineColours, loadNetwork, type LineColours } from './network'
 
 /** "Paris 8e Arrondissement" → "8e". */
 const short = (p: CellProps) => placeOf(p).replace(/^Paris /, '').replace(/ Arrondissement$/, '')
@@ -23,6 +27,16 @@ const SHORT: Record<ProfileId, string> = {
 
 /** The layers that explain the potential: a block's reasons. */
 const REASONS = ATLAS.filter((l) => l.id !== 'score')
+
+const SECTIONS = [
+  { id: 'overview', label: tr('Vue d’ensemble', 'Overview') },
+  { id: 'block', label: tr('Le bloc', 'The block') },
+  { id: 'arrondissements', label: tr('Arrondissements', 'Arrondissements') },
+  { id: 'brands', label: tr('Marques', 'Brands') },
+  { id: 'method', label: tr('Méthode', 'Method') },
+] as const
+type Section = (typeof SECTIONS)[number]['id']
+const readSection = (): Section => SECTIONS.find((x) => `#${x.id}` === window.location.hash)?.id ?? 'overview'
 
 type ArrRow = { scores: number[]; open: number; boutiques: number; best: CellProps | null }
 
@@ -84,10 +98,46 @@ export default function Dashboard() {
   }, [shared])
 
   const set = (patch: Partial<Shared>) => setShared((s) => ({ ...s, ...patch }))
+  // the section is the dashboard's own, kept in the address so a link opens on it
+  const [section, setSection] = useState<Section>(readSection)
+  const go = (id: Section) => {
+    setSection(id)
+    window.history.replaceState(null, '', `#${id}`)
+    window.scrollTo(0, 0)
+  }
   const { profile, layer, cell, fresh } = shared
   const key = scoreKey(profile)
   const cells = useMemo(() => (data ? cellIndex(data.grid) : null), [data])
   const block = (cell && cells?.get(cell)?.properties) || null
+  // the walking zone around the chosen block, loaded the first time a block is chosen
+  const [minutes, setMinutes] = useState(10)
+  const [zones, setZones] = useState<WalkZones | null>(null)
+  const [stations, setStations] = useState<Stations | null>(null)
+  const [colours, setColours] = useState<LineColours | null>(null)
+  useEffect(() => {
+    if (!cell || zones || !data) return
+    loadWalkZones().then(setZones, () => setZones(fromCatchments(data.catchments)))
+    loadStations().then(setStations, () => setStations(null))
+    loadNetwork().then((n) => setColours(n ? lineColours(n) : null), () => setColours(null))
+  }, [cell, zones, data])
+  // until the data build has made every band, the one band there is stands in
+  const walkMin = zones && !zones.bands.includes(minutes) ? zones.bands[zones.bands.length - 1] : minutes
+  const zone = useMemo(() => (block && zones ? zoneOf(zones, block.cell, walkMin) : null), [block, zones, walkMin])
+  // what the map shows stays inside Paris: boutiques and stations are placed in their block, or left out
+  const placed = useMemo(() => {
+    const stores = new Map<string, string>()
+    for (const f of data?.stores.features ?? []) {
+      const c = cellAt(data!.grid, f.geometry.coordinates as [number, number])
+      if (c) stores.set(f.properties.id, c)
+    }
+    return stores
+  }, [data])
+  const stationCells = useMemo(() => {
+    if (!data || !stations) return []
+    return stations.features
+      .map((f) => ({ p: f.properties, cell: cellAt(data.grid, f.geometry.coordinates as [number, number]) }))
+      .filter((x): x is { p: (typeof x)['p']; cell: string } => !!x.cell)
+  }, [data, stations])
 
   // every layer's values in order, to place a block in Paris
   const sorted = useMemo(() => {
@@ -158,6 +208,16 @@ export default function Dashboard() {
 
   const counts = data ? countByProfile(data.stores) : null
   const layerInfo = ATLAS.find((l) => l.id === layer) ?? ATLAS[0]
+  const layerPick = (
+    <div className="dash-layer-pick" role="radiogroup" aria-label={tr('Couche de la carte', 'Map layer')}>
+      {ATLAS.map((l) => (
+        <button key={l.id} role="radio" aria-checked={layer === l.id} onClick={() => set({ layer: l.id })}>
+          <span className="key-dot" style={{ background: coloursOf(rampFor(atlasKey(l.id, profile)))[3] }} aria-hidden="true" />
+          {l.label}
+        </button>
+      ))}
+    </div>
+  )
 
   return (
     <div className="dash">
@@ -183,13 +243,11 @@ export default function Dashboard() {
           </button>
         </div>
         <p className="dash-link" role="status">
-          <span className={linked ? 'dash-live on' : 'dash-live'} aria-hidden="true" />
-          {linked ? (
-            tr('Lié à la carte', 'Linked to the map')
-          ) : (
-            <a href="./" target="_blank" rel="noreferrer">
-              {tr('Ouvrir la carte', 'Open the map')}
-            </a>
+          {linked && (
+            <>
+              <span className="dash-live on" aria-hidden="true" />
+              {tr('Lié à la carte 3D', 'Linked to the 3D map')}
+            </>
           )}
         </p>
         <button
@@ -214,74 +272,200 @@ export default function Dashboard() {
       {!data ? (
         <p className="dash-loading">{tr('Chargement des données…', 'Loading the data…')}</p>
       ) : (
-        <main className="dash-board">
-          <section className="dash-hero" aria-label={tr('Carte', 'Map')}>
-            <div className="dash-hero-head">
-              <p className="dash-kicker">{tr('Sur la carte', 'On the map')}</p>
-              <h1 className="dash-title">{layerInfo.label}</h1>
-              <p className="muted">{layerInfo.note}</p>
-              <div className="dash-layer-pick" role="radiogroup" aria-label={tr('Couche de la carte', 'Map layer')}>
-                {ATLAS.map((l) => (
-                  <button key={l.id} role="radio" aria-checked={layer === l.id} onClick={() => set({ layer: l.id })}>
-                    <span className="key-dot" style={{ background: coloursOf(rampFor(atlasKey(l.id, profile)))[3] }} aria-hidden="true" />
-                    {l.label}
+        <>
+          <nav className="dash-nav" aria-label={tr('Sections', 'Sections')}>
+            {SECTIONS.map((x) => (
+              <button key={x.id} aria-current={section === x.id ? 'page' : undefined} onClick={() => go(x.id)}>
+                {x.label}
+              </button>
+            ))}
+            <a className="dash-nav-out" href={MAP_URL} target={MAP_WINDOW}>
+              {tr('Carte 3D', '3D map')} <span aria-hidden="true">↗</span>
+            </a>
+          </nav>
+
+          {section === 'overview' && (
+            <main className="dash-board">
+              <section className="dash-hero" aria-label={tr('Carte', 'Map')}>
+                <div className="dash-hero-head">
+                  <p className="dash-kicker">{tr('Sur la carte', 'On the map')}</p>
+                  <h1 className="dash-title">{layerInfo.label}</h1>
+                  <p className="muted">{layerInfo.note}</p>
+                  {layerPick}
+                  {block && (
+                    <div className="dash-walk" role="radiogroup" aria-label={tr('Zone à pied', 'Walking zone')}>
+                      <p className="dash-kicker">{tr('Zone à pied', 'Walking zone')}</p>
+                      <div className="dash-seg">
+                        {(zones?.bands ?? [5, 10, 15, 20]).map((m) => (
+                          <button key={m} role="radio" aria-checked={walkMin === m} aria-pressed={walkMin === m} onClick={() => setMinutes(m)}>
+                            {m} min
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <Figure value={fmt(open.length)} label={tr('places libres', 'free spots')} accent />
+                  <Figure value={fmt(counts![profile])} label={tr('boutiques aujourd’hui', 'boutiques today')} />
+                </div>
+                <HeroMap data={data} profile={profile} layer={layer} cell={cell} fresh={fresh} open={open} zone={zone} placed={placed} onBlock={(c) => set({ cell: c })} />
+              </section>
+
+              <section className="dash-portrait" aria-live="polite">
+                <Portrait
+                  block={block}
+                  open={open}
+                  profile={profile}
+                  layer={layer}
+                  sorted={sorted}
+                  onLayer={(id) => set({ layer: id })}
+                  onClear={() => set({ cell: null })}
+                />
+                {block && (
+                  <button className="dash-more" onClick={() => go('block')}>
+                    {tr('Tout sur ce bloc →', 'All about this block →')}
                   </button>
-                ))}
-              </div>
-              <Figure value={fmt(open.length)} label={tr('places libres', 'free spots')} accent />
-              <Figure value={fmt(counts![profile])} label={tr('boutiques aujourd’hui', 'boutiques today')} />
-            </div>
-            <HeroMap data={data} profile={profile} layer={layer} cell={cell} fresh={fresh} open={open} onBlock={(c) => set({ cell: c })} />
-          </section>
+                )}
+              </section>
 
-          <section className="dash-portrait" aria-live="polite">
-            <Portrait
-              block={block}
-              open={open}
-              profile={profile}
-              layer={layer}
-              sorted={sorted}
-              onLayer={(id) => set({ layer: id })}
-              onClear={() => set({ cell: null })}
-            />
-          </section>
+              {block ? (
+                <section className="dash-detail">
+                  <div className="dash-card dash-stack">
+                    <BlockHead block={block} profile={profile} />
+                    <LayerStack grid={data.grid} cell={block} profile={profile} />
+                  </div>
+                  <div className="dash-card dash-zone">
+                    <ZoneBox
+                      data={data}
+                      profile={profile}
+                      minutes={walkMin}
+                      zone={zone}
+                      placed={placed}
+                      stations={stationCells}
+                      colours={colours}
+                    />
+                  </div>
+                </section>
+              ) : (
+                <section className="dash-start">
+                  <div className="dash-card">
+                    <p className="dash-kicker">{tr('Commencez par une place libre', 'Start with a free spot')}</p>
+                    <p className="muted dash-start-note">
+                      {tr('Ou cliquez n’importe quel bloc de la carte : sa zone à pied et ses raisons s’affichent ici.', 'Or click any block on the map: its walking zone and its reasons show here.')}
+                    </p>
+                    <Spots open={open} cell={cell} profile={profile} onBlock={(c) => set({ cell: c })} />
+                  </div>
+                </section>
+              )}
+            </main>
+          )}
 
-          <section className="dash-strip">
-            <div className="dash-card">
-              <p className="dash-kicker">{tr('Les places libres, de la meilleure à la moins bonne', 'The free spots, best first')}</p>
-              <Spots open={open} cell={cell} profile={profile} onBlock={(c) => set({ cell: c })} />
-            </div>
-            <div className="dash-card">
-              <p className="dash-kicker">
-                {fresh ? tr('Places libres par arrondissement', 'Free spots by arrondissement') : tr('Boutiques par arrondissement', 'Boutiques by arrondissement')}
-              </p>
-              <TileMap rows={arrondissements} profile={profile} fresh={fresh} chosen={block ? short(block) : null} onBlock={(c) => set({ cell: c })} />
-            </div>
-            <div className="dash-card">
-              <p className="dash-kicker">{tr('Le luxe est déjà là où le potentiel est haut', 'Luxury is already where potential is high')}</p>
-              <Tenths bins={tenths} mark={block ? num(block, key) : null} colour={coloursOf(rampFor(key))[3]} />
-            </div>
-          </section>
+          {section === 'block' && (
+            <main className="dash-section dash-block-page">
+              {block ? (
+                <>
+                  <section className="dash-card dash-stack">
+                    <BlockHead block={block} profile={profile} />
+                    <LayerStack grid={data.grid} cell={block} profile={profile} />
+                  </section>
+                  <section className="dash-card dash-portrait-card">
+                    <Portrait
+                      block={block}
+                      open={open}
+                      profile={profile}
+                      layer={layer}
+                      sorted={sorted}
+                      onLayer={(id) => set({ layer: id })}
+                      onClear={() => set({ cell: null })}
+                    />
+                  </section>
+                  <section className="dash-column">
+                    <div className="dash-card">
+                      <p className="dash-kicker">{tr('Ce qui fait la note du bloc', 'What makes the block’s score')}</p>
+                      <Drivers data={data} profile={profile} block={block} />
+                    </div>
+                    <div className="dash-card">
+                      <p className="dash-kicker">{tr('Le bloc pour chaque type de marque', 'The block for each type of brand')}</p>
+                      <Profiles data={data} block={block} profile={profile} onProfile={(p) => set({ profile: p })} onBlock={(c) => set({ cell: c })} />
+                    </div>
+                  </section>
+                </>
+              ) : (
+                <section className="dash-card dash-pick">
+                  <p className="dash-kicker">{tr('Choisissez un bloc', 'Choose a block')}</p>
+                  <h1 className="dash-title">{tr('Commencez par une place libre', 'Start with a free spot')}</h1>
+                  <p className="muted">{tr('Ou cliquez un bloc sur la carte, dans l’autre onglet.', 'Or click a block on the map, in the other tab.')}</p>
+                  <Spots open={open} cell={cell} profile={profile} onBlock={(c) => set({ cell: c })} />
+                </section>
+              )}
+            </main>
+          )}
 
-          <section className="dash-deep">
-            <div className="dash-card">
-              <p className="dash-kicker">{block ? tr('Ce qui fait la note du bloc', 'What makes the block’s score') : tr('Ce qui compte le plus pour le modèle', 'What matters most to the model')}</p>
-              <Drivers data={data} profile={profile} block={block} />
-            </div>
-            <div className="dash-card">
-              <p className="dash-kicker">{block ? tr('Le bloc pour chaque type de marque', 'The block for each type of brand') : tr('Le meilleur bloc de chaque type', 'The best block of each type')}</p>
-              <Profiles data={data} block={block} profile={profile} onProfile={(p) => set({ profile: p })} onBlock={(c) => set({ cell: c })} />
-            </div>
-            <div className="dash-card">
-              <p className="dash-kicker">{tr('Les marques déjà à Paris', 'The brands already in Paris')}</p>
-              <Brands data={data} profile={profile} />
-            </div>
-            <div className="dash-card">
-              <p className="dash-kicker">{tr('Test à l’aveugle', 'Blind test')}</p>
-              <BlindTest data={data} profile={profile} />
-            </div>
-          </section>
-        </main>
+          {section === 'arrondissements' && (
+            <main className="dash-section dash-arr-page">
+              <section className="dash-card">
+                <p className="dash-kicker">{tr('Paris en 20 arrondissements', 'Paris in 20 arrondissements')}</p>
+                <h1 className="dash-title">{tr('Où chercher', 'Where to look')}</h1>
+                <p className="muted">
+                  {tr('Couleur : potentiel moyen des blocs. Points : places libres, ou boutiques déjà là.', 'Colour: average potential of the blocks. Dots: free spots, or boutiques already there.')}
+                </p>
+                <TileMap rows={arrondissements} profile={profile} fresh={fresh} chosen={block ? short(block) : null} onBlock={(c) => { set({ cell: c }); go('block') }} />
+              </section>
+              <section className="dash-card">
+                <p className="dash-kicker">{tr('Classement', 'Ranking')}</p>
+                <ArrRanking rows={arrondissements} profile={profile} chosen={block ? short(block) : null} onBlock={(c) => { set({ cell: c }); go('block') }} />
+              </section>
+            </main>
+          )}
+
+          {section === 'brands' && (
+            <main className="dash-section dash-brands-page">
+              <section className="dash-hero" aria-label={tr('Carte', 'Map')}>
+                <div className="dash-hero-head">
+                  <p className="dash-kicker">{tr('Les boutiques déjà là', 'The boutiques already there')}</p>
+                  <h1 className="dash-title">{PROFILES.find((p) => p.id === profile)?.label}</h1>
+                  <p className="muted">{tr('Un point par boutique du catalogue, sur la couche choisie.', 'One dot per catalogue boutique, on the chosen layer.')}</p>
+                  {layerPick}
+                  <Figure value={fmt(counts![profile])} label={tr('boutiques', 'boutiques')} accent />
+                </div>
+                <HeroMap data={data} profile={profile} layer={layer} cell={cell} fresh={false} open={open} zone={null} placed={placed} onBlock={(c) => set({ cell: c })} />
+              </section>
+              <section className="dash-card">
+                <p className="dash-kicker">{tr('Les marques, par nombre de boutiques', 'The brands, by number of boutiques')}</p>
+                <Brands data={data} profile={profile} limit={16} />
+              </section>
+            </main>
+          )}
+
+          {section === 'method' && (
+            <main className="dash-section dash-method-page">
+              <section className="dash-card">
+                <p className="dash-kicker">{tr('Test à l’aveugle', 'Blind test')}</p>
+                <h1 className="dash-title">{tr('Le modèle tient-il ?', 'Does the model hold up?')}</h1>
+                <BlindTest data={data} profile={profile} />
+              </section>
+              <section className="dash-card">
+                <p className="dash-kicker">{tr('Ce qui compte le plus pour le modèle', 'What matters most to the model')}</p>
+                <Drivers data={data} profile={profile} block={null} />
+              </section>
+              <section className="dash-card">
+                <p className="dash-kicker">{tr('Le luxe est déjà là où le potentiel est haut', 'Luxury is already where potential is high')}</p>
+                <Tenths bins={tenths} mark={block ? num(block, key) : null} colour={coloursOf(rampFor(key))[3]} />
+              </section>
+              <section className="dash-card dash-sources">
+                <p className="dash-kicker">{tr('Données ouvertes', 'Open data')}</p>
+                <ul>
+                  {(data.meta.sources ?? []).map((src) => (
+                    <li key={src}>{src}</li>
+                  ))}
+                </ul>
+                <p className="dash-note muted">
+                  {tr('Chaque chiffre vient d’un script du dépôt et d’une publication datée.', 'Every number comes from a script in the repository and a dated data release.')}{' '}
+                  <a href="https://github.com/chipscrevette/crispy-eureka" target="_blank" rel="noreferrer">GitHub ↗</a>
+                </p>
+              </section>
+            </main>
+          )}
+        </>
       )}
     </div>
   )
@@ -304,9 +488,11 @@ function HeroMap(props: {
   cell: string | null
   fresh: boolean
   open: CellProps[]
+  zone: Set<string> | null
+  placed: Map<string, string>
   onBlock: (cell: string) => void
 }) {
-  const { data, profile, layer, cell, fresh, open, onBlock } = props
+  const { data, profile, layer, cell, fresh, open, zone, placed, onBlock } = props
   const ref = useRef<HTMLCanvasElement>(null)
   const outline = useOutline(data.grid)
   const key = atlasKey(layer, profile)
@@ -330,17 +516,23 @@ function HeroMap(props: {
         ctx.beginPath()
         b.ring.forEach(([x, y], i) => (i ? ctx.lineTo(ox + x * s, oy + y * s) : ctx.moveTo(ox + x * s, oy + y * s)))
         ctx.fillStyle = b.cell === cell ? ink : (colours.get(b.cell) ?? quiet)
+        // around a chosen block, what is beyond the walk steps back
+        ctx.globalAlpha = zone && !zone.has(b.cell) ? 0.38 : 1
         ctx.fill()
       }
+      ctx.globalAlpha = 1
       if (!fresh) {
         ctx.fillStyle = profileColour(profile)
         for (const f of data.stores.features) {
-          if (f.properties.profile !== profile) continue
+          const at = placed.get(f.properties.id)
+          if (f.properties.profile !== profile || !at) continue
+          ctx.globalAlpha = zone && !zone.has(at) ? 0.4 : 1
           const [x, y] = outline.project(f.geometry.coordinates)
           ctx.beginPath()
           ctx.arc(ox + x * s, oy + y * s, 3, 0, 2 * Math.PI)
           ctx.fill()
         }
+        ctx.globalAlpha = 1
         return
       }
       // the free spots, numbered as in the list, like the pins of the map page
@@ -350,7 +542,7 @@ function HeroMap(props: {
       const [accent, surface] = [css('--accent'), css('--surface')]
       for (const b of outline.blocks) {
         const n = rank.get(b.cell)
-        if (!n) continue
+        if (!n || (zone && !zone.has(b.cell))) continue
         const [x, y] = [ox + b.at[0] * s, oy + b.at[1] * s]
         ctx.beginPath()
         ctx.arc(x, y, 10, 0, 2 * Math.PI)
@@ -364,7 +556,7 @@ function HeroMap(props: {
     const obs = new ResizeObserver(draw)
     obs.observe(ref.current!)
     return () => obs.disconnect()
-  }, [outline, colours, cell, fresh, profile, data, rank])
+  }, [outline, colours, cell, fresh, profile, data, rank, zone, placed])
 
   const pick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const r = e.currentTarget.getBoundingClientRect()
@@ -566,7 +758,7 @@ function TileMap(props: { rows: Map<string, ArrRow>; profile: ProfileId; fresh: 
   const w = Math.sqrt(3) * R
   const h = 1.5 * R
   return (
-    <svg className="dash-tiles" viewBox={`0 0 ${5 * w + 4} ${4 * h + 2 * R + 4}`} role="img" aria-label={tr('Les 20 arrondissements', 'The 20 arrondissements')}>
+    <svg className="dash-tiles" viewBox={`0 0 ${5.5 * w + 4} ${4 * h + 2 * R + 4}`} role="img" aria-label={tr('Les 20 arrondissements', 'The 20 arrondissements')}>
       {TILES.map(([name, col, row]) => {
         const r = props.rows.get(name)
         const mean = r?.scores.length ? r.scores.reduce((a, b) => a + b, 0) / r.scores.length : 0
@@ -752,13 +944,13 @@ function Profiles(props: { data: Data; block: CellProps | null; profile: Profile
 }
 
 /** The brands of the type in the catalogue, by number of Paris boutiques (open data, no logos). */
-function Brands(props: { data: Data; profile: ProfileId }) {
+function Brands(props: { data: Data; profile: ProfileId; limit?: number }) {
   const counts = new Map<string, number>()
   for (const f of props.data.stores.features) {
     if (f.properties.profile !== props.profile) continue
     counts.set(f.properties.brand, (counts.get(f.properties.brand) ?? 0) + 1)
   }
-  const top = [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 8)
+  const top = [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, props.limit ?? 8)
   const max = top[0]?.[1] ?? 1
   return (
     <>
@@ -811,6 +1003,178 @@ function BlindTest(props: { data: Data; profile: ProfileId }) {
           `Whole brands are hidden from the model (${setup.folds} folds). Average percentile of their ${v.model.held_out_cells} boutique blocks; 100 = the very top.`,
         )}
       </p>
+    </>
+  )
+}
+
+/** The chosen block's score as a ring, with a plain verdict, as on the map page. */
+function BlockHead(props: { block: CellProps; profile: ProfileId }) {
+  const s = num(props.block, scoreKey(props.profile))
+  const r = 30
+  const c = 2 * Math.PI * r
+  const verdict =
+    s === null
+      ? tr('Pas de note pour ce bloc.', 'No score for this block.')
+      : s >= 95
+        ? tr('Une des meilleures adresses de Paris', 'One of the best addresses in Paris')
+        : s >= 75
+          ? tr('Une très bonne adresse', 'A very good address')
+          : s >= 50
+            ? tr('Une adresse correcte', 'A fair address')
+            : tr('Une adresse faible', 'A weak address')
+  return (
+    <div className="dash-block-head">
+      <svg viewBox="0 0 72 72" aria-hidden="true">
+        <circle cx="36" cy="36" r={r} className="dash-ring-track" />
+        <circle
+          cx="36"
+          cy="36"
+          r={r}
+          className="dash-ring-value"
+          stroke={coloursOf(rampFor(scoreKey(props.profile)))[3]}
+          strokeDasharray={`${(c * (s ?? 0)) / 100} ${c}`}
+          transform="rotate(-90 36 36)"
+        />
+        <text x="36" y="36" dy="0.35em" textAnchor="middle">
+          {s === null ? '–' : Math.round(s)}
+        </text>
+      </svg>
+      <div>
+        <h1 className="dash-title">{short(props.block)}</h1>
+        <p className="muted">
+          {verdict}
+          {s !== null && <>. {tr('Ce bloc', 'This block')} {rankText(s)}.</>}
+        </p>
+      </div>
+    </div>
+  )
+}
+
+/** The 20 arrondissements ranked by average potential, with their free spots and boutiques. */
+function ArrRanking(props: { rows: Map<string, ArrRow>; profile: ProfileId; chosen: string | null; onBlock: (cell: string) => void }) {
+  const ramp = coloursOf(rampFor(scoreKey(props.profile)))
+  const rows = [...props.rows]
+    .map(([name, r]) => ({ name, ...r, mean: r.scores.length ? r.scores.reduce((a, b) => a + b, 0) / r.scores.length : 0 }))
+    .sort((a, b) => b.mean - a.mean)
+  return (
+    <ol className="dash-ranking">
+      {rows.map((r) => (
+        <li key={r.name}>
+          <button aria-current={props.chosen === r.name ? 'true' : undefined} onClick={() => r.best && props.onBlock(r.best.cell)}>
+            <span className="dash-rank-name">{r.name}</span>
+            <span className="dash-brand-track">
+              <span style={{ width: `${r.mean}%`, background: ramp[Math.min(4, Math.floor(r.mean / 20))] }} />
+            </span>
+            <span className="muted">{Math.round(r.mean)}</span>
+            <span className="dash-rank-dots" aria-label={`${r.open} ${tr('places libres', 'free spots')}`}>
+              {Array.from({ length: Math.min(r.open, 6) }, (_, i) => (
+                <span key={i} className="dash-rank-dot" />
+              ))}
+            </span>
+            <span className="dash-rank-dots" aria-label={`${r.boutiques} ${tr('boutiques', 'boutiques')}`}>
+              {Array.from({ length: Math.min(r.boutiques, 12) }, (_, i) => (
+                <span key={i} className="dash-rank-dot taken" style={{ background: profileColour(props.profile) }} />
+              ))}
+              {r.boutiques > 12 && <span className="muted"> +{r.boutiques - 12}</span>}
+            </span>
+          </button>
+        </li>
+      ))}
+    </ol>
+  )
+}
+
+/**
+ * What is within the walk of the chosen block: free spots, boutiques of the type and their brands,
+ * stations with their lines and daily entries, spending and the busiest street. Counts come from
+ * points placed in blocks, never from the blocks' own neighbourhood sums, so nothing is counted twice.
+ */
+function ZoneBox(props: {
+  data: Data
+  profile: ProfileId
+  minutes: number
+  zone: Set<string> | null
+  placed: Map<string, string>
+  stations: { p: { name: string; entries: number; lines?: string[] }; cell: string }[]
+  colours: LineColours | null
+}) {
+  const { data, profile, minutes, zone, placed, stations, colours } = props
+  if (!zone) return <p className="muted">{tr('Calcul de la zone à pied…', 'Working out the walking zone…')}</p>
+  const key = scoreKey(profile)
+  const blocks = data.grid.features.map((f) => f.properties).filter((p) => zone.has(p.cell))
+  const free = blocks.filter((p) => p[openKey(key)] === 1).length
+  const brands = new Map<string, number>()
+  for (const f of data.stores.features) {
+    const at = placed.get(f.properties.id)
+    if (f.properties.profile === profile && at && zone.has(at)) brands.set(f.properties.brand, (brands.get(f.properties.brand) ?? 0) + 1)
+  }
+  const boutiques = [...brands.values()].reduce((a, b) => a + b, 0)
+  const near = stations.filter((s) => zone.has(s.cell)).sort((a, b) => b.p.entries - a.p.entries)
+  const entries = near.reduce((a, s) => a + s.p.entries, 0)
+  const spend = blocks.map((p) => num(p, 'demand')).filter((v): v is number => v !== null)
+  const spendAvg = spend.length ? spend.reduce((a, b) => a + b, 0) / spend.length : null
+  const busiest = Math.max(0, ...blocks.map((p) => num(p, 'street_footfall') ?? 0))
+  return (
+    <>
+      <p className="dash-kicker">{tr('Dans la zone à pied', 'Within the walk')}</p>
+      <h2 className="dash-title">
+        {minutes} min <span className="muted dash-title-note">· {fmt(blocks.length)} {tr('blocs, le long des rues', 'blocks, along the streets')}</span>
+      </h2>
+      <div className="dash-zone-figures">
+        <Figure value={fmt(free)} label={tr('places libres', 'free spots')} accent />
+        <Figure value={fmt(boutiques)} label={tr('boutiques de ce type', 'boutiques of this type')} />
+        <Figure value={entries >= 1000 ? `${fmt(entries / 1000)}k` : fmt(entries)} label={tr('entrées en gare par jour', 'station entries a day')} />
+        <Figure value={busiest ? `${fmt(busiest, 1)}×` : '–'} label={tr('la rue la plus passante, en rues types', 'busiest street, in typical streets')} />
+      </div>
+      {spendAvg !== null && (
+        <div className="dash-zone-spend">
+          <span>{tr('Pouvoir d’achat moyen', 'Average spending')}</span>
+          <span className="dash-mix-track">
+            <span style={{ width: `${Math.min(spendAvg, 400) / 4}%`, background: coloursOf(rampFor('demand'))[3] }} />
+            <span className="dash-mix-avg" aria-hidden="true" />
+          </span>
+          <span className="muted">{fmt(spendAvg)} {tr('(Paris = 100)', '(Paris = 100)')}</span>
+        </div>
+      )}
+      <div className="dash-zone-lists">
+        <div>
+          <p className="dash-note muted">{tr('Déjà là', 'Already there')}</p>
+          {brands.size ? (
+            <ul className="dash-chips">
+              {[...brands]
+                .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+                .map(([b, n]) => (
+                  <li key={b}>
+                    <span className="key-dot" style={{ background: profileColour(profile) }} aria-hidden="true" />
+                    {b}
+                    {n > 1 && <span className="muted"> ×{n}</span>}
+                  </li>
+                ))}
+            </ul>
+          ) : (
+            <p className="dash-empty">{tr('Aucune boutique de ce type : la place est libre.', 'No boutique of this type: the field is open.')}</p>
+          )}
+        </div>
+        <div>
+          <p className="dash-note muted">{tr('Gares', 'Stations')}</p>
+          {near.length ? (
+            <ul className="dash-stations">
+              {near.slice(0, 6).map((s) => (
+                <li key={s.p.name}>
+                  <span
+                    className="tip-badges"
+                    dangerouslySetInnerHTML={{ __html: colours ? (s.p.lines ?? []).map((l) => badgeHtml(l, colours)).join('') : '' }}
+                  />
+                  <span className="dash-station-name">{s.p.name}</span>
+                  <span className="muted">{s.p.entries >= 1000 ? `${fmt(s.p.entries / 1000)}k` : fmt(s.p.entries)}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="dash-empty">{tr('Aucune gare dans la zone.', 'No station in the zone.')}</p>
+          )}
+        </div>
+      </div>
     </>
   )
 }

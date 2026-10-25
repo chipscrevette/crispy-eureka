@@ -70,3 +70,23 @@ def test_motorways_and_the_peripherique_are_not_walkable():
         segment([(0, 0), (1, 0)], ["a", "b"], cls) for cls in ("footway", "motorway", "trunk", None)
     ]
     assert walkable(table(rows))["class"].to_pylist() == ["footway", None]
+
+
+def test_walk_zones_put_each_block_in_the_band_it_is_first_reached():
+    import pandas as pd
+
+    from adresse_pipeline.walk import walk_zones
+
+    cells = ["a", "b", "c", "d"]
+    times = pd.DataFrame(
+        {
+            "origin": ["a", "a", "a", "a", "b"],
+            "dest": ["a", "b", "c", "d", "a"],
+            "minutes": [0.0, 4.9, 5.0, 21.0, 12.0],
+        }
+    )
+    zones = walk_zones(times, cells, bands=(5.0, 10.0, 15.0, 20.0))
+    # 5.0 minutes is still within five; beyond the last band a block is left out
+    assert zones[0] == [[0, 1, 2], [], [], []]
+    assert zones[1] == [[1], [], [0], []]
+    assert zones[3] == [[3], [], [], []]

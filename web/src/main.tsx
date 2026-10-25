@@ -5,7 +5,7 @@ import './styles.css'
 import App from './App.tsx'
 import { lang } from './i18n'
 
-if (lang() === 'en') document.title = 'Adresse · Luxury retail site selection in Paris'
+if (lang() === 'en') document.title = 'Adresse · 3D map'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

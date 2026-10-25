@@ -52,6 +52,7 @@ export function connect(side: Side, on: Handlers) {
 export const sameShared = (a: Shared, b: Shared | null) =>
   !!b && a.profile === b.profile && a.layer === b.layer && a.cell === b.cell && a.fresh === b.fresh
 
-/** The dashboard's address next to the map's, so it opens from GitHub Pages and from the dev server alike. */
-export const DASHBOARD_URL = `${import.meta.env.BASE_URL}dashboard.html`
-export const DASHBOARD_WINDOW = 'adresse-dashboard'
+/** The dashboard is the site's home; the 3D map opens beside it in its own tab and stays in sync. */
+export const DASHBOARD_URL = import.meta.env.BASE_URL
+export const MAP_URL = `${import.meta.env.BASE_URL}carte.html`
+export const MAP_WINDOW = 'adresse-map'
