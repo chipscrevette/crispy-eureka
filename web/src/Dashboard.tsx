@@ -164,6 +164,14 @@ export default function Dashboard() {
     [data, key],
   )
 
+  // the first answer on screen is the best free spot, already open; "All of Paris" clears it
+  const seeded = useRef(false)
+  useEffect(() => {
+    if (seeded.current || !open.length) return
+    seeded.current = true
+    setShared((s) => (s.cell ? s : { ...s, cell: open[0].cell }))
+  }, [open])
+
   // the arrondissements: average potential, free spots, boutiques of the type, best block
   const arrondissements = useMemo(() => {
     const rows = new Map<string, ArrRow>()
@@ -285,87 +293,66 @@ export default function Dashboard() {
           </nav>
 
           {section === 'overview' && (
-            <main className="dash-board">
+            <main className="dash-page dash-overview">
               <section className="dash-hero" aria-label={tr('Carte', 'Map')}>
                 <div className="dash-hero-head">
                   <p className="dash-kicker">{tr('Sur la carte', 'On the map')}</p>
                   <h1 className="dash-title">{layerInfo.label}</h1>
                   <p className="muted">{layerInfo.note}</p>
                   {layerPick}
-                  {block && (
-                    <div className="dash-walk" role="radiogroup" aria-label={tr('Zone à pied', 'Walking zone')}>
-                      <p className="dash-kicker">{tr('Zone à pied', 'Walking zone')}</p>
-                      <div className="dash-seg">
-                        {(zones?.bands ?? [5, 10, 15, 20]).map((m) => (
-                          <button key={m} role="radio" aria-checked={walkMin === m} aria-pressed={walkMin === m} onClick={() => setMinutes(m)}>
-                            {m} min
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  <Figure value={fmt(open.length)} label={tr('places libres', 'free spots')} accent />
-                  <Figure value={fmt(counts![profile])} label={tr('boutiques aujourd’hui', 'boutiques today')} />
+                  <div className="dash-hero-figures">
+                    <Figure value={fmt(open.length)} label={tr('places libres', 'free spots')} accent />
+                    <Figure value={fmt(counts![profile])} label={tr('boutiques aujourd’hui', 'boutiques today')} />
+                  </div>
                 </div>
                 <HeroMap data={data} profile={profile} layer={layer} cell={cell} fresh={fresh} open={open} zone={zone} placed={placed} onBlock={(c) => set({ cell: c })} />
-              </section>
-
-              <section className="dash-portrait" aria-live="polite">
-                <Portrait
-                  block={block}
-                  open={open}
+                <ZoneBar
+                  data={data}
                   profile={profile}
-                  layer={layer}
-                  sorted={sorted}
-                  onLayer={(id) => set({ layer: id })}
-                  onClear={() => set({ cell: null })}
+                  bands={zones?.bands ?? [5, 10, 15, 20]}
+                  minutes={walkMin}
+                  onMinutes={setMinutes}
+                  zone={block ? zone : null}
+                  placed={placed}
+                  stations={stationCells}
                 />
-                {block && (
-                  <button className="dash-more" onClick={() => go('block')}>
-                    {tr('Tout sur ce bloc →', 'All about this block →')}
-                  </button>
-                )}
               </section>
 
-              {block ? (
-                <section className="dash-detail">
-                  <div className="dash-card dash-stack">
+              <section className="dash-card dash-why" aria-live="polite">
+                {block ? (
+                  <>
                     <BlockHead block={block} profile={profile} />
-                    <LayerStack grid={data.grid} cell={block} profile={profile} />
-                  </div>
-                  <div className="dash-card dash-zone">
-                    <ZoneBox
-                      data={data}
-                      profile={profile}
-                      minutes={walkMin}
-                      zone={zone}
-                      placed={placed}
-                      stations={stationCells}
-                      colours={colours}
-                    />
-                  </div>
-                </section>
-              ) : (
-                <section className="dash-start">
-                  <div className="dash-card">
-                    <p className="dash-kicker">{tr('Commencez par une place libre', 'Start with a free spot')}</p>
+                    <LayerStack grid={data.grid} cell={block} profile={profile} fill />
+                    <div className="dash-why-foot">
+                      <button className="dash-clear" onClick={() => set({ cell: null })}>
+                        {tr('← Tout Paris', '← All of Paris')}
+                      </button>
+                      <button className="dash-more" onClick={() => go('block')}>
+                        {tr('Tout sur ce bloc →', 'All about this block →')}
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="dash-kicker">{tr('Par où commencer', 'Where to start')}</p>
+                    <h2 className="dash-title">{tr('Les places libres', 'The free spots')}</h2>
                     <p className="muted dash-start-note">
-                      {tr('Ou cliquez n’importe quel bloc de la carte : sa zone à pied et ses raisons s’affichent ici.', 'Or click any block on the map: its walking zone and its reasons show here.')}
+                      {tr('Les blocs au fort potentiel sans boutique de ce type autour. Choisissez-en un, ou cliquez la carte.', 'High-potential blocks with no boutique of this type around. Pick one, or click the map.')}
                     </p>
                     <Spots open={open} cell={cell} profile={profile} onBlock={(c) => set({ cell: c })} />
-                  </div>
-                </section>
-              )}
+                  </>
+                )}
+              </section>
             </main>
           )}
 
           {section === 'block' && (
-            <main className="dash-section dash-block-page">
+            <main className="dash-page dash-block-page">
               {block ? (
                 <>
-                  <section className="dash-card dash-stack">
+                  <section className="dash-card dash-why">
                     <BlockHead block={block} profile={profile} />
-                    <LayerStack grid={data.grid} cell={block} profile={profile} />
+                    <LayerStack grid={data.grid} cell={block} profile={profile} fill />
                   </section>
                   <section className="dash-card dash-portrait-card">
                     <Portrait
@@ -376,14 +363,26 @@ export default function Dashboard() {
                       sorted={sorted}
                       onLayer={(id) => set({ layer: id })}
                       onClear={() => set({ cell: null })}
+                      head={false}
                     />
-                  </section>
-                  <section className="dash-column">
-                    <div className="dash-card">
+                    <div className="dash-subcard">
                       <p className="dash-kicker">{tr('Ce qui fait la note du bloc', 'What makes the block’s score')}</p>
                       <Drivers data={data} profile={profile} block={block} />
                     </div>
-                    <div className="dash-card">
+                  </section>
+                  <section className="dash-card dash-zone">
+                    <ZoneBox
+                      data={data}
+                      profile={profile}
+                      bands={zones?.bands ?? [5, 10, 15, 20]}
+                      minutes={walkMin}
+                      onMinutes={setMinutes}
+                      zone={zone}
+                      placed={placed}
+                      stations={stationCells}
+                      colours={colours}
+                    />
+                    <div className="dash-subcard">
                       <p className="dash-kicker">{tr('Le bloc pour chaque type de marque', 'The block for each type of brand')}</p>
                       <Profiles data={data} block={block} profile={profile} onProfile={(p) => set({ profile: p })} onBlock={(c) => set({ cell: c })} />
                     </div>
@@ -393,7 +392,7 @@ export default function Dashboard() {
                 <section className="dash-card dash-pick">
                   <p className="dash-kicker">{tr('Choisissez un bloc', 'Choose a block')}</p>
                   <h1 className="dash-title">{tr('Commencez par une place libre', 'Start with a free spot')}</h1>
-                  <p className="muted">{tr('Ou cliquez un bloc sur la carte, dans l’autre onglet.', 'Or click a block on the map, in the other tab.')}</p>
+                  <p className="muted">{tr('Ou cliquez un bloc sur la carte de la vue d’ensemble.', 'Or click a block on the overview map.')}</p>
                   <Spots open={open} cell={cell} profile={profile} onBlock={(c) => set({ cell: c })} />
                 </section>
               )}
@@ -401,7 +400,7 @@ export default function Dashboard() {
           )}
 
           {section === 'arrondissements' && (
-            <main className="dash-section dash-arr-page">
+            <main className="dash-page dash-arr-page">
               <section className="dash-card">
                 <p className="dash-kicker">{tr('Paris en 20 arrondissements', 'Paris in 20 arrondissements')}</p>
                 <h1 className="dash-title">{tr('Où chercher', 'Where to look')}</h1>
@@ -412,13 +411,23 @@ export default function Dashboard() {
               </section>
               <section className="dash-card">
                 <p className="dash-kicker">{tr('Classement', 'Ranking')}</p>
+                <p className="dash-rank-legend muted">
+                  <span>
+                    <span className="dash-rank-dot" aria-hidden="true" />
+                    {tr('places libres', 'free spots')}
+                  </span>
+                  <span>
+                    <span className="dash-rank-dot" style={{ background: profileColour(profile) }} aria-hidden="true" />
+                    {tr('boutiques déjà là', 'boutiques already there')}
+                  </span>
+                </p>
                 <ArrRanking rows={arrondissements} profile={profile} chosen={block ? short(block) : null} onBlock={(c) => { set({ cell: c }); go('block') }} />
               </section>
             </main>
           )}
 
           {section === 'brands' && (
-            <main className="dash-section dash-brands-page">
+            <main className="dash-page dash-brands-page">
               <section className="dash-hero" aria-label={tr('Carte', 'Map')}>
                 <div className="dash-hero-head">
                   <p className="dash-kicker">{tr('Les boutiques déjà là', 'The boutiques already there')}</p>
@@ -437,7 +446,7 @@ export default function Dashboard() {
           )}
 
           {section === 'method' && (
-            <main className="dash-section dash-method-page">
+            <main className="dash-page dash-method-page">
               <section className="dash-card">
                 <p className="dash-kicker">{tr('Test à l’aveugle', 'Blind test')}</p>
                 <h1 className="dash-title">{tr('Le modèle tient-il ?', 'Does the model hold up?')}</h1>
@@ -615,8 +624,10 @@ function Portrait(props: {
   sorted: Map<string, number[]>
   onLayer: (id: string) => void
   onClear: () => void
+  /** false where the block's name and verdict are already on screen */
+  head?: boolean
 }) {
-  const { block, open, profile, layer, sorted } = props
+  const { block, open, profile, layer, sorted, head = true } = props
   const key = scoreKey(profile)
   const at = (k: string, p: CellProps) => {
     const v = num(p, k)
@@ -655,6 +666,9 @@ function Portrait(props: {
 
   return (
     <>
+      {!head && <p className="dash-kicker">{tr('Chaque couche face à Paris', 'Each layer against Paris')}</p>}
+      {head && (
+        <>
       <p className="dash-kicker">{block ? tr('Le bloc choisi', 'The chosen block') : tr('La place libre type', 'The typical free spot')}</p>
       <h2 className="dash-title">{block ? short(block) : tr('Pourquoi ces places', 'Why these spots')}</h2>
       <p className="muted dash-portrait-note">
@@ -664,6 +678,8 @@ function Portrait(props: {
             : `${tr('Son potentiel', 'Its potential')} ${rankText(score)}.`
           : tr('Un pétale par couche : plus il est long, plus la place libre médiane dépasse Paris.', 'One petal per layer: the longer, the more the median free spot beats Paris.')}
       </p>
+        </>
+      )}
       <svg className="dash-flower" viewBox={`0 0 ${size} ${size}`} role="img" aria-label={tr('Les raisons, couche par couche', 'The reasons, layer by layer')}>
         {petals.map((p, i) => (
           <g key={p.id} className="dash-petal" onClick={() => props.onLayer(p.id)}>
@@ -1084,97 +1100,156 @@ function ArrRanking(props: { rows: Map<string, ArrRow>; profile: ProfileId; chos
   )
 }
 
+type Placed = { p: { name: string; entries: number; lines?: string[] }; cell: string }
+
 /**
  * What is within the walk of the chosen block: free spots, boutiques of the type and their brands,
- * stations with their lines and daily entries, spending and the busiest street. Counts come from
- * points placed in blocks, never from the blocks' own neighbourhood sums, so nothing is counted twice.
+ * stations with their daily entries, spending and the busiest street. Counts come from points placed
+ * in blocks, never from the blocks' own neighbourhood sums, so nothing is counted twice.
  */
-function ZoneBox(props: {
-  data: Data
-  profile: ProfileId
-  minutes: number
-  zone: Set<string> | null
-  placed: Map<string, string>
-  stations: { p: { name: string; entries: number; lines?: string[] }; cell: string }[]
-  colours: LineColours | null
-}) {
-  const { data, profile, minutes, zone, placed, stations, colours } = props
-  if (!zone) return <p className="muted">{tr('Calcul de la zone à pied…', 'Working out the walking zone…')}</p>
+function zoneStats(data: Data, profile: ProfileId, zone: Set<string>, placed: Map<string, string>, stations: Placed[]) {
   const key = scoreKey(profile)
   const blocks = data.grid.features.map((f) => f.properties).filter((p) => zone.has(p.cell))
-  const free = blocks.filter((p) => p[openKey(key)] === 1).length
   const brands = new Map<string, number>()
   for (const f of data.stores.features) {
     const at = placed.get(f.properties.id)
     if (f.properties.profile === profile && at && zone.has(at)) brands.set(f.properties.brand, (brands.get(f.properties.brand) ?? 0) + 1)
   }
-  const boutiques = [...brands.values()].reduce((a, b) => a + b, 0)
   const near = stations.filter((s) => zone.has(s.cell)).sort((a, b) => b.p.entries - a.p.entries)
-  const entries = near.reduce((a, s) => a + s.p.entries, 0)
   const spend = blocks.map((p) => num(p, 'demand')).filter((v): v is number => v !== null)
-  const spendAvg = spend.length ? spend.reduce((a, b) => a + b, 0) / spend.length : null
-  const busiest = Math.max(0, ...blocks.map((p) => num(p, 'street_footfall') ?? 0))
+  return {
+    blocks: blocks.length,
+    free: blocks.filter((p) => p[openKey(key)] === 1).length,
+    brands,
+    boutiques: [...brands.values()].reduce((a, b) => a + b, 0),
+    near,
+    entries: near.reduce((a, s) => a + s.p.entries, 0),
+    spendAvg: spend.length ? spend.reduce((a, b) => a + b, 0) / spend.length : null,
+    busiest: Math.max(0, ...blocks.map((p) => num(p, 'street_footfall') ?? 0)),
+  }
+}
+
+const kilo = (n: number) => (n >= 1000 ? `${fmt(n / 1000)}k` : fmt(n))
+
+function WalkSwitch(props: { bands: number[]; minutes: number; onMinutes: (m: number) => void }) {
+  return (
+    <div className="dash-seg dash-walk" role="radiogroup" aria-label={tr('Zone à pied', 'Walking zone')}>
+      {props.bands.map((m) => (
+        <button key={m} role="radio" aria-checked={props.minutes === m} aria-pressed={props.minutes === m} onClick={() => props.onMinutes(m)}>
+          {m} min
+        </button>
+      ))}
+    </div>
+  )
+}
+
+/** Under the big map: the walk around the chosen block, its length to choose, and what it holds in four numbers. */
+function ZoneBar(props: {
+  data: Data
+  profile: ProfileId
+  bands: number[]
+  minutes: number
+  onMinutes: (m: number) => void
+  zone: Set<string> | null
+  placed: Map<string, string>
+  stations: Placed[]
+}) {
+  const { zone } = props
+  if (!zone)
+    return (
+      <div className="dash-zonebar idle">
+        <p className="dash-kicker">{tr('Zone à pied', 'Walking zone')}</p>
+        <p className="muted">{tr('Cliquez un bloc : sa zone à 5, 10, 15 ou 20 minutes à pied s’affiche sur la carte.', 'Click a block: its 5, 10, 15 or 20 minute walk shows on the map.')}</p>
+      </div>
+    )
+  const z = zoneStats(props.data, props.profile, zone, props.placed, props.stations)
+  return (
+    <div className="dash-zonebar">
+      <div className="dash-zonebar-head">
+        <p className="dash-kicker">{tr('À pied, le long des rues', 'On foot, along the streets')}</p>
+        <WalkSwitch bands={props.bands} minutes={props.minutes} onMinutes={props.onMinutes} />
+      </div>
+      <Figure value={fmt(z.free)} label={tr('places libres', 'free spots')} accent />
+      <Figure value={fmt(z.boutiques)} label={tr('boutiques de ce type', 'boutiques of this type')} />
+      <Figure value={kilo(z.entries)} label={tr('entrées en gare / jour', 'station entries / day')} />
+      <Figure value={z.spendAvg === null ? '–' : `${fmt(z.spendAvg / 100, 1)}×`} label={tr('pouvoir d’achat vs Paris', 'spending vs Paris')} />
+    </div>
+  )
+}
+
+/** The walk in full: the four numbers, spending, the brands already there and the stations with their lines. */
+function ZoneBox(props: {
+  data: Data
+  profile: ProfileId
+  bands: number[]
+  minutes: number
+  onMinutes: (m: number) => void
+  zone: Set<string> | null
+  placed: Map<string, string>
+  stations: Placed[]
+  colours: LineColours | null
+}) {
+  const { profile, minutes, zone, colours } = props
+  if (!zone) return <p className="muted">{tr('Calcul de la zone à pied…', 'Working out the walking zone…')}</p>
+  const z = zoneStats(props.data, profile, zone, props.placed, props.stations)
   return (
     <>
       <p className="dash-kicker">{tr('Dans la zone à pied', 'Within the walk')}</p>
-      <h2 className="dash-title">
-        {minutes} min <span className="muted dash-title-note">· {fmt(blocks.length)} {tr('blocs, le long des rues', 'blocks, along the streets')}</span>
-      </h2>
-      <div className="dash-zone-figures">
-        <Figure value={fmt(free)} label={tr('places libres', 'free spots')} accent />
-        <Figure value={fmt(boutiques)} label={tr('boutiques de ce type', 'boutiques of this type')} />
-        <Figure value={entries >= 1000 ? `${fmt(entries / 1000)}k` : fmt(entries)} label={tr('entrées en gare par jour', 'station entries a day')} />
-        <Figure value={busiest ? `${fmt(busiest, 1)}×` : '–'} label={tr('la rue la plus passante, en rues types', 'busiest street, in typical streets')} />
+      <div className="dash-zone-head">
+        <h2 className="dash-title">
+          {minutes} min <span className="muted dash-title-note">· {fmt(z.blocks)} {tr('blocs', 'blocks')}</span>
+        </h2>
+        <WalkSwitch bands={props.bands} minutes={minutes} onMinutes={props.onMinutes} />
       </div>
-      {spendAvg !== null && (
+      <div className="dash-zone-figures">
+        <Figure value={fmt(z.free)} label={tr('places libres', 'free spots')} accent />
+        <Figure value={fmt(z.boutiques)} label={tr('boutiques de ce type', 'boutiques of this type')} />
+        <Figure value={kilo(z.entries)} label={tr('entrées en gare / jour', 'station entries / day')} />
+        <Figure value={z.busiest ? `${fmt(z.busiest, 1)}×` : '–'} label={tr('rue la plus passante', 'busiest street')} />
+      </div>
+      {z.spendAvg !== null && (
         <div className="dash-zone-spend">
-          <span>{tr('Pouvoir d’achat moyen', 'Average spending')}</span>
+          <span>{tr('Pouvoir d’achat', 'Spending')}</span>
           <span className="dash-mix-track">
-            <span style={{ width: `${Math.min(spendAvg, 400) / 4}%`, background: coloursOf(rampFor('demand'))[3] }} />
+            <span style={{ width: `${Math.min(z.spendAvg, 400) / 4}%`, background: coloursOf(rampFor('demand'))[3] }} />
             <span className="dash-mix-avg" aria-hidden="true" />
           </span>
-          <span className="muted">{fmt(spendAvg)} {tr('(Paris = 100)', '(Paris = 100)')}</span>
+          <span className="muted">{fmt(z.spendAvg)}</span>
         </div>
       )}
-      <div className="dash-zone-lists">
-        <div>
-          <p className="dash-note muted">{tr('Déjà là', 'Already there')}</p>
-          {brands.size ? (
-            <ul className="dash-chips">
-              {[...brands]
-                .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-                .map(([b, n]) => (
-                  <li key={b}>
-                    <span className="key-dot" style={{ background: profileColour(profile) }} aria-hidden="true" />
-                    {b}
-                    {n > 1 && <span className="muted"> ×{n}</span>}
-                  </li>
-                ))}
-            </ul>
-          ) : (
-            <p className="dash-empty">{tr('Aucune boutique de ce type : la place est libre.', 'No boutique of this type: the field is open.')}</p>
-          )}
-        </div>
-        <div>
-          <p className="dash-note muted">{tr('Gares', 'Stations')}</p>
-          {near.length ? (
-            <ul className="dash-stations">
-              {near.slice(0, 6).map((s) => (
-                <li key={s.p.name}>
-                  <span
-                    className="tip-badges"
-                    dangerouslySetInnerHTML={{ __html: colours ? (s.p.lines ?? []).map((l) => badgeHtml(l, colours)).join('') : '' }}
-                  />
-                  <span className="dash-station-name">{s.p.name}</span>
-                  <span className="muted">{s.p.entries >= 1000 ? `${fmt(s.p.entries / 1000)}k` : fmt(s.p.entries)}</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="dash-empty">{tr('Aucune gare dans la zone.', 'No station in the zone.')}</p>
-          )}
-        </div>
-      </div>
+      <p className="dash-note muted">{tr('Déjà là', 'Already there')}</p>
+      {z.brands.size ? (
+        <ul className="dash-chips">
+          {[...z.brands]
+            .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+            .map(([b, n]) => (
+              <li key={b}>
+                <span className="key-dot" style={{ background: profileColour(profile) }} aria-hidden="true" />
+                {b}
+                {n > 1 && <span className="muted"> ×{n}</span>}
+              </li>
+            ))}
+        </ul>
+      ) : (
+        <p className="dash-empty">{tr('Aucune boutique de ce type : la place est libre.', 'No boutique of this type: the field is open.')}</p>
+      )}
+      <p className="dash-note muted">{tr('Gares', 'Stations')}</p>
+      {z.near.length ? (
+        <ul className="dash-stations">
+          {z.near.slice(0, 4).map((s) => (
+            <li key={s.p.name}>
+              <span
+                className="tip-badges"
+                dangerouslySetInnerHTML={{ __html: colours ? (s.p.lines ?? []).map((l) => badgeHtml(l, colours)).join('') : '' }}
+              />
+              <span className="dash-station-name">{s.p.name}</span>
+              <span className="muted">{kilo(s.p.entries)}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="dash-empty">{tr('Aucune gare dans la zone.', 'No station in the zone.')}</p>
+      )}
     </>
   )
 }
