@@ -29,13 +29,7 @@
   cursor: pointer;
 }
 .dash-seg button[aria-pressed='true'] { color: var(--surface); background: var(--ink); }
-.dash-link { display: flex; align-items: center; gap: 8px; margin: 0 0 0 auto; font-size: 0.82rem; color: var(--muted); }
-.dash-link a { color: var(--accent); }
-.dash-live { width: 8px; height: 8px; border-radius: 50%; background: var(--rule); }
-.dash-live.on { background: #3c9357; animation: dash-pulse 2.4s ease-in-out infinite; }
-@keyframes dash-pulse { 50% { opacity: 0.35; } }
-@media (prefers-reduced-motion: reduce) { .dash-live.on { animation: none; } }
-.dash-head .lang-toggle { margin-left: 0; }
+.dash-head .lang-toggle { margin-left: auto; }
 .dash-head .lang-toggle + .theme-toggle { margin-left: -20px; }
 
 .dash-loading, .dash-error { padding: 80px 0; text-align: center; color: var(--muted); }
@@ -210,7 +204,7 @@
 
 /* sections: one menu, one question per page */
 .dash-nav { display: flex; align-items: center; gap: 4px; margin: 0 0 16px; padding-bottom: 12px; border-bottom: 1px solid var(--rule); }
-.dash-nav button, .dash-nav-out {
+.dash-nav button {
   padding: 7px 14px;
   font: var(--weight) 0.92rem var(--display);
   color: var(--muted);
@@ -220,10 +214,9 @@
   border-radius: 999px;
   cursor: pointer;
 }
-.dash-nav button:hover, .dash-nav-out:hover { color: var(--ink); }
+.dash-nav button:hover { color: var(--ink); }
 .dash-nav button[aria-current='page'] { color: var(--ink); background: var(--surface); }
-.dash-nav-out { margin-left: auto; }
-.dash-nav button:focus-visible, .dash-nav-out:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.dash-nav button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .dash-more { align-self: flex-start; margin-top: 12px; padding: 0; font: var(--weight) 0.85rem var(--ui); color: var(--accent); background: none; border: 0; cursor: pointer; }
 
 /* the block: the stack, the flower and its reasons, the walk */
@@ -284,7 +277,6 @@
 .dash-walk button { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; }
 .dash-walk button[aria-pressed='true'] { color: var(--ink); background: var(--surface); box-shadow: 0 1px 3px rgb(0 0 0 / 0.12); }
 .dash-walk-key { width: 12px; height: 12px; flex: none; border: 2px solid; border-radius: 50%; }
-.dash-walk-key.dashed { border-style: dashed; }
 
 /* the address search in the header; the map's way back to all of Paris */
 .dash-search { position: relative; width: clamp(220px, 22vw, 340px); }
@@ -371,10 +363,9 @@
   .dash { padding: 10px 14px 16px; }
   .dash-head { flex-wrap: wrap; gap: 10px 16px; }
   .dash-head .dash-seg { order: 5; }
-  .dash-link { display: none; }
   .dash-search { order: 6; width: 100%; }
   .dash-nav { overflow-x: auto; scrollbar-width: none; }
-  .dash-nav button, .dash-nav-out { flex: none; padding: 6px 10px; font-size: 0.85rem; }
+  .dash-nav button { flex: none; padding: 6px 10px; font-size: 0.85rem; }
   .dash-hero { padding: 16px; }
   .dash-map { aspect-ratio: 1.35; }
   .dash-zonebar { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }

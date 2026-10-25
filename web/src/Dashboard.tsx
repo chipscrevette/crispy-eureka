@@ -8,7 +8,7 @@ import { fmt, lang, switchLang, tr } from './i18n'
 import { coloursOf, isDark, profileColour, rampFor, walkColour } from './palette'
 import { SCORE_BREAKS, ordinal, placeOf, rankText, scoreKey } from './scores'
 import { PROFILES, countByProfile, type ProfileId } from './stores'
-import { MAP_URL, MAP_WINDOW, connect, sameShared, type Shared } from './sync'
+import type { Shared } from './sync'
 import LayerStack from './LayerStack'
 import Search, { type Address } from './Search'
 import { bandsOf, fromCatchments, loadWalkZones, type WalkZones } from './walkZones'
@@ -67,36 +67,11 @@ export default function Dashboard() {
   const [data, setData] = useState<Data | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [shared, setShared] = useState<Shared>({ profile: 'jewellery-watches', layer: 'score', cell: null, fresh: true })
-  const [linked, setLinked] = useState(false)
-  const applied = useRef<Shared | null>(null)
-  const sharedRef = useRef(shared)
-  sharedRef.current = shared
-  const link = useRef<ReturnType<typeof connect> | null>(null)
 
   useEffect(() => {
     loadData().then(setData, (e: Error) => setError(e.message))
   }, [])
 
-  useEffect(() => {
-    const l = connect('dashboard', {
-      onState: (s) => {
-        applied.current = s
-        setLinked(true)
-        setShared(s)
-      },
-      onHello: () => {
-        setLinked(true)
-        l.send(sharedRef.current)
-      },
-      onBye: () => setLinked(false),
-    })
-    link.current = l
-    return l.close
-  }, [])
-  useEffect(() => {
-    // what came from the map is not sent back to it
-    if (!sameShared(shared, applied.current)) link.current?.send(shared)
-  }, [shared])
 
   const set = (patch: Partial<Shared>) => setShared((s) => ({ ...s, ...patch }))
   // the section is the dashboard's own, kept in the address so a link opens on it
@@ -292,14 +267,6 @@ export default function Dashboard() {
             {searchNote && <p className="dash-search-note">{searchNote}</p>}
           </div>
         )}
-        <p className="dash-link" role="status">
-          {linked && (
-            <>
-              <span className="dash-live on" aria-hidden="true" />
-              {tr('Lié à la carte 3D', 'Linked to the 3D map')}
-            </>
-          )}
-        </p>
         <button
           className="lang-toggle"
           onClick={switchLang}
@@ -329,9 +296,6 @@ export default function Dashboard() {
                 {x.label}
               </button>
             ))}
-            <a className="dash-nav-out" href={MAP_URL} target={MAP_WINDOW}>
-              {tr('Carte 3D', '3D map')} <span aria-hidden="true">↗</span>
-            </a>
           </nav>
 
           {section === 'overview' && (
@@ -584,10 +548,12 @@ type View = { x: number; y: number; w: number; h: number }
 const lerp = (a: View, b: View, k: number): View => ({ x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k, w: a.w + (b.w - a.w) * k, h: a.h + (b.h - a.h) * k })
 const sameView = (a: View, b: View) => a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h
 
-/** The outer edges of a set of blocks: the edges no two of its blocks share. */
-function edgesOf(blocks: { ring: [number, number][] }[]) {
-  const edges = new Map<string, [[number, number], [number, number]]>()
-  const at = (q: [number, number]) => `${q[0].toFixed(6)},${q[1].toFixed(6)}`
+type Pt = [number, number]
+
+/** The outline of a set of blocks as closed loops: the edges no two of its blocks share, chained end to end. */
+function loopsOf(blocks: { ring: Pt[] }[]): Pt[][] {
+  const at = (q: Pt) => `${q[0].toFixed(6)},${q[1].toFixed(6)}`
+  const edges = new Map<string, [Pt, Pt]>()
   for (const b of blocks)
     for (let i = 0; i + 1 < b.ring.length; i++) {
       const [p, q] = [b.ring[i], b.ring[i + 1]]
@@ -595,7 +561,48 @@ function edgesOf(blocks: { ring: [number, number][] }[]) {
       if (edges.has(k)) edges.delete(k)
       else edges.set(k, [p, q])
     }
-  return [...edges.values()]
+  const from = new Map<string, [Pt, Pt][]>()
+  for (const e of edges.values()) for (const q of e) from.set(at(q), [...(from.get(at(q)) ?? []), e])
+  const used = new Set<[Pt, Pt]>()
+  const loops: Pt[][] = []
+  for (const first of edges.values()) {
+    if (used.has(first)) continue
+    used.add(first)
+    const loop = [first[0]]
+    let end = first[1]
+    while (at(end) !== at(loop[0])) {
+      const next = (from.get(at(end)) ?? []).find((e) => !used.has(e))
+      if (!next) break
+      used.add(next)
+      loop.push(end)
+      end = at(next[0]) === at(end) ? next[1] : next[0]
+    }
+    loops.push(loop)
+  }
+  return loops
+}
+
+/**
+ * Turns a loop of hexagon edges into one soft line: the edges' midpoints, averaged with their
+ * neighbours to iron out the hexagon steps, then rounded by cutting corners (Chaikin).
+ */
+function smooth(loop: Pt[]): Pt[] {
+  const n = loop.length
+  let pts: Pt[] = loop.map((p, i) => [(p[0] + loop[(i + 1) % n][0]) / 2, (p[1] + loop[(i + 1) % n][1]) / 2])
+  for (let r = 0; r < 3; r++)
+    pts = pts.map((_, i) => {
+      const near = [-2, -1, 0, 1, 2].map((d) => pts[(i + d + n) % n])
+      return [near.reduce((t, q) => t + q[0], 0) / 5, near.reduce((t, q) => t + q[1], 0) / 5]
+    })
+  for (let r = 0; r < 2; r++)
+    pts = pts.flatMap((p, i) => {
+      const q = pts[(i + 1) % pts.length]
+      return [
+        [p[0] * 0.75 + q[0] * 0.25, p[1] * 0.75 + q[1] * 0.25],
+        [p[0] * 0.25 + q[0] * 0.75, p[1] * 0.25 + q[1] * 0.75],
+      ] as Pt[]
+    })
+  return pts
 }
 
 /**
@@ -631,15 +638,15 @@ function HeroMap(props: {
   const byCell = useMemo(() => cellIndex(data.grid), [data])
   const rank = useMemo(() => new Map(open.map((p, i) => [p.cell, i + 1])), [open])
 
-  // each band's ring: the outer edges of every block reached within its minutes, nearest first
+  // each band's ring: the soft outline of every block reached within its minutes, nearest first
   const lines = useMemo(() => {
     if (!rings) return []
     const bands = [...new Set(rings.values())].sort((a, b) => a - b)
     return bands.map((m, i) => {
-      const edges = edgesOf(outline.blocks.filter((b) => (rings.get(b.cell) ?? Infinity) <= m))
+      const loops = loopsOf(outline.blocks.filter((b) => (rings.get(b.cell) ?? Infinity) <= m)).map((l) => smooth(l))
       // the label sits on the ring's northernmost point
-      const top = edges.flat().reduce((t, q) => (q[1] < t[1] ? q : t), [0, Infinity] as [number, number])
-      return { minutes: m, band: i, edges, top }
+      const top = loops.flat().reduce((t, q) => (q[1] < t[1] ? q : t), [0, Infinity] as Pt)
+      return { minutes: m, band: i, loops, top }
     })
   }, [rings, outline])
   const bandIndex = useMemo(() => new Map(lines.map((r) => [r.minutes, r.band])), [lines])
@@ -659,6 +666,8 @@ function HeroMap(props: {
     return { x: cx - w / 2, y: cy - h / 2, w, h }
   }, [focus, outline])
   const view = useRef<View | null>(null)
+  // bumped to send the view back to its frame after the visitor zoomed or moved it
+  const [home, setHome] = useState(0)
   const drawRef = useRef<() => void>(() => {})
 
   useEffect(() => {
@@ -685,20 +694,18 @@ function HeroMap(props: {
       ctx.globalAlpha = 1
       // the walk's rings, the farthest first so the nearest lies on top
       ctx.lineJoin = 'round'
-      const thick = Math.min(Math.max(Math.sqrt(zoom), 1), 1.8)
+      const thick = Math.min(Math.max(Math.sqrt(zoom), 1), 1.6)
       for (const r of [...lines].reverse()) {
         if (r.minutes > minutes) continue
         ctx.strokeStyle = walkColour(r.band)
-        ctx.lineWidth = (r.band === 0 ? 2.4 : r.band === 1 ? 2 : 1.6) * thick
-        ctx.setLineDash(r.band >= 2 ? [5, 4] : [])
+        ctx.lineWidth = (r.band === 0 ? 2 : 1.5) * thick
         ctx.beginPath()
-        for (const [p, q] of r.edges) {
-          ctx.moveTo(ox + p[0] * s, oy + p[1] * s)
-          ctx.lineTo(ox + q[0] * s, oy + q[1] * s)
+        for (const loop of r.loops) {
+          loop.forEach(([x, y], i) => (i ? ctx.lineTo(ox + x * s, oy + y * s) : ctx.moveTo(ox + x * s, oy + y * s)))
+          ctx.closePath()
         }
         ctx.stroke()
       }
-      ctx.setLineDash([])
       ctx.font = `500 10px ${css('--ui')}`
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
@@ -706,7 +713,7 @@ function HeroMap(props: {
       // labels from the outermost ring in, each only where it clears the ones already placed
       const labelled: [number, number][] = []
       for (const r of [...lines].reverse()) {
-        if (r.minutes > minutes || !r.edges.length) continue
+        if (r.minutes > minutes || !r.loops.length) continue
         const [x, y] = [ox + r.top[0] * s, oy + r.top[1] * s]
         // on all of Paris the rings are small: only the outermost is named
         if (labelled.length && zoom < 1.5) break
@@ -796,6 +803,27 @@ function HeroMap(props: {
     }
     raf = requestAnimationFrame(step)
     return () => cancelAnimationFrame(raf)
+  }, [target, home])
+
+  // the wheel zooms around the pointer, a drag moves the map, like any web map
+  const [moved, setMoved] = useState(false)
+  const drag = useRef<{ x: number; y: number; far: boolean } | null>(null)
+  useEffect(() => {
+    const canvas = ref.current!
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      const v = view.current ?? target
+      const r = canvas.getBoundingClientRect()
+      const { s, ox, oy } = geo.current
+      const [px, py] = [(e.clientX - r.left - ox) / s, (e.clientY - r.top - oy) / s]
+      // never wider than Paris, never closer than a few blocks
+      const k = Math.min(Math.max(Math.exp(e.deltaY * 0.001), 0.02 / v.w), 1.4 / v.w)
+      view.current = { x: px - (px - v.x) * k, y: py - (py - v.y) * k, w: v.w * k, h: v.h * k }
+      setMoved(true)
+      drawRef.current()
+    }
+    canvas.addEventListener('wheel', onWheel, { passive: false })
+    return () => canvas.removeEventListener('wheel', onWheel)
   }, [target])
 
   const pick = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -821,17 +849,40 @@ function HeroMap(props: {
         ref={ref}
         role="img"
         aria-label={tr('Carte de Paris par bloc', 'Map of Paris by block')}
+        onPointerDown={(e) => {
+          drag.current = { x: e.clientX, y: e.clientY, far: false }
+          e.currentTarget.setPointerCapture(e.pointerId)
+        }}
+        onPointerUp={() => {
+          // a click stays a click; the end of a drag does not choose a block
+          window.setTimeout(() => (drag.current = null))
+        }}
         onMouseMove={(e) => {
+          const d = drag.current
+          if (d && e.buttons === 1) {
+            const [dx, dy] = [e.clientX - d.x, e.clientY - d.y]
+            if (d.far || Math.hypot(dx, dy) > 4) {
+              const v = view.current ?? target
+              const { s } = geo.current
+              view.current = { ...v, x: v.x - dx / s, y: v.y - dy / s }
+              drag.current = { x: e.clientX, y: e.clientY, far: true }
+              setMoved(true)
+              setHover(null)
+              drawRef.current()
+              return
+            }
+          }
           const hit = pick(e)
           const p = hit && byCell.get(hit.cell)?.properties
           setHover(hit && p ? { x: hit.x, y: hit.y, p } : null)
         }}
         onMouseLeave={() => setHover(null)}
         onClick={(e) => {
+          if (drag.current?.far) return
           const hit = pick(e)
           if (hit) onBlock(hit.cell)
         }}
-        style={{ cursor: hover ? 'pointer' : 'default' }}
+        style={{ cursor: drag.current?.far ? 'grabbing' : hover ? 'pointer' : 'grab' }}
       />
       {hover && (
         <span className="dash-tip" style={{ left: hover.x, top: hover.y }}>
@@ -843,8 +894,15 @@ function HeroMap(props: {
           </span>
         </span>
       )}
-      {focus && props.onAllParis && (
-        <button className="dash-map-reset" onClick={props.onAllParis}>
+      {((focus && props.onAllParis) || moved) && (
+        <button
+          className="dash-map-reset"
+          onClick={() => {
+            setMoved(false)
+            if (focus && props.onAllParis) props.onAllParis()
+            else setHome((n) => n + 1)
+          }}
+        >
           {tr('Tout Paris', 'All of Paris')}
         </button>
       )}
@@ -1387,7 +1445,7 @@ function WalkSwitch(props: { bands: number[]; minutes: number; onMinutes: (m: nu
     <div className="dash-seg dash-walk" role="radiogroup" aria-label={tr('Zone à pied', 'Walking zone')}>
       {props.bands.map((m, i) => (
         <button key={m} role="radio" aria-checked={props.minutes === m} aria-pressed={props.minutes === m} onClick={() => props.onMinutes(m)}>
-          <span className={i >= 2 ? 'dash-walk-key dashed' : 'dash-walk-key'} style={{ borderColor: walkColour(i) }} aria-hidden="true" />
+          <span className="dash-walk-key" style={{ borderColor: walkColour(i) }} aria-hidden="true" />
           {m} min
         </button>
       ))}
