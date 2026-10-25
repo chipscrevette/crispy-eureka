@@ -11,6 +11,7 @@ from adresse_pipeline.ask import (
     Tools,
     Trace,
     ordinal,
+    place_fr,
     places,
     run,
     short_place,
@@ -61,6 +62,27 @@ def test_white_space_blocks_really_have_no_boutique_of_the_profile_nearby(paris)
 def test_the_landmarks_fall_on_paris_blocks(paris):
     for lat, lon in (MARAIS, SAINT_GERMAIN):
         assert h3.latlng_to_cell(lat, lon, 9) in paris.blocks
+
+
+@needs_data
+def test_every_number_in_every_french_answer_comes_from_one_of_its_tool_calls(paris):
+    for q in QUESTIONS:
+        out = run(q, paris)
+        found = numbers(str([c["result"] for c in out["calls"]]))
+        found |= numbers(str([c["args"] for c in out["calls"]]))
+        # French writes 12 390 and 85,3: read them back as 12390 and 85.3
+        text = out["answer_fr"].replace("\u00a0/\u00a0100", "").replace("environ 350 m", "")
+        text = re.sub(r"(?<=\d)\u202f(?=\d)", "", text)
+        text = re.sub(r"(?<=\d),(?=\d)", ".", text)
+        missing = numbers(text) - found
+        assert not missing, f"{q.id}: {missing} not in any tool result"
+        assert out["question_fr"] and out["answer_fr"] != out["answer"], q.id
+
+
+def test_arrondissement_names_read_as_french_ordinals():
+    assert place_fr("the 1st arrondissement") == "le 1er arrondissement"
+    assert place_fr("the 16th arrondissement") == "le 16e arrondissement"
+    assert place_fr("Paris") == "Paris"
 
 
 def test_arrondissement_names_read_as_english_ordinals():
