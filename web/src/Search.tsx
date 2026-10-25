@@ -1,5 +1,6 @@
 import { useEffect, useId, useState } from 'react'
 import type { LonLat } from './geo'
+import { tr } from './i18n'
 
 /** France's national address search (Base Adresse Nationale, served by IGN's Géoplateforme). */
 const GEOCODER = 'https://data.geopf.fr/geocodage/search'
@@ -39,9 +40,15 @@ export default function Search({ onFound }: { onFound: (a: Address) => void }) {
         (found) => {
           setHits(found)
           setActive(-1)
-          setStatus(found.length ? `${found.length} addresses in Paris` : 'No address found in Paris')
+          setStatus(
+            found.length
+              ? tr(`${found.length} adresses à Paris`, `${found.length} addresses in Paris`)
+              : tr('Aucune adresse trouvée à Paris', 'No address found in Paris'),
+          )
         },
-        (e: Error) => e.name !== 'AbortError' && setStatus('Address search is unavailable right now'),
+        (e: Error) =>
+          e.name !== 'AbortError' &&
+          setStatus(tr('La recherche d’adresse est indisponible pour le moment', 'Address search is unavailable right now')),
       )
     }, 250)
     return () => {
@@ -60,12 +67,12 @@ export default function Search({ onFound }: { onFound: (a: Address) => void }) {
   return (
     <div className="search">
       <label htmlFor={`${id}-q`} className="visually-hidden">
-        Search a Paris address
+        {tr('Chercher une adresse à Paris', 'Search a Paris address')}
       </label>
       <input
         id={`${id}-q`}
         type="search"
-        placeholder="Search a Paris address"
+        placeholder={tr('Chercher une adresse à Paris', 'Search a Paris address')}
         autoComplete="off"
         role="combobox"
         aria-expanded={hits.length > 0}

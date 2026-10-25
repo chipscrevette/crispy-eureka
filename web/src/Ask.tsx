@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useDialog } from './dialog'
 import type { AskAnswer, ToolCall } from './answers'
+import { lang, tr } from './i18n'
 
 type Props = {
   answers: AskAnswer[]
@@ -41,14 +42,17 @@ export default function Ask({ answers, first, onAsked, onShow, onMemo, onMethod,
   return (
     <div className="ask" role="dialog" aria-modal="false" aria-labelledby="ask-title" tabIndex={-1} ref={drawer}>
       <div className="ask-bar">
-        <h2 id="ask-title">Ask Adresse</h2>
+        <h2 id="ask-title">{tr('Demander à Adresse', 'Ask Adresse')}</h2>
         <button className="button secondary" onClick={onClose}>
-          Close
+          {tr('Fermer', 'Close')}
         </button>
       </div>
       <p className="muted small ask-note">
-        Answers are pre-recorded. Each one was produced by running the queries listed under it on this site's data, and
-        every figure in it comes from a query result.
+        {tr(
+          'Les réponses sont enregistrées à l’avance. Chacune vient des requêtes listées dessous, lancées sur les données du site, et chaque chiffre sort d’un résultat de requête.',
+          "Answers are pre-recorded. Each one was produced by running the queries listed under it on this site's data, and every figure in it comes from a query result.",
+        )}
+        {lang() === 'fr' && ' Questions et réponses en anglais pour l’instant.'}
       </p>
 
       <ol className="ask-thread" aria-live="polite">
@@ -61,7 +65,8 @@ export default function Ask({ answers, first, onAsked, onShow, onMemo, onMethod,
                 <p>{a.answer}</p>
                 <details>
                   <summary>
-                    {a.calls.length} {a.calls.length === 1 ? 'query' : 'queries'} run
+                    {a.calls.length}{' '}
+                    {a.calls.length === 1 ? tr('requête lancée', 'query run') : tr('requêtes lancées', 'queries run')}
                   </summary>
                   <ol className="ask-calls">
                     {a.calls.map((c, j) => (
@@ -75,17 +80,17 @@ export default function Ask({ answers, first, onAsked, onShow, onMemo, onMethod,
                 <div className="ask-actions">
                   {a.cells.length > 0 && (
                     <button className="button" onClick={() => onShow(a)}>
-                      {a.compare ? 'Compare on the map' : 'Show on the map'}
+                      {a.compare ? tr('Comparer sur la carte', 'Compare on the map') : tr('Voir sur la carte', 'Show on the map')}
                     </button>
                   )}
                   {a.cells.length > 0 && !a.compare && (
                     <button className="button secondary" onClick={() => onMemo(a)}>
-                      Site memo
+                      {tr('Fiche du site', 'Site memo')}
                     </button>
                   )}
                   {a.cells.length === 0 && (
                     <button className="button secondary" onClick={onMethod}>
-                      How it works
+                      {tr('Comment ça marche', 'How it works')}
                     </button>
                   )}
                 </div>
@@ -98,7 +103,7 @@ export default function Ask({ answers, first, onAsked, onShow, onMemo, onMethod,
       {remaining.length > 0 && (
         <section aria-labelledby="ask-more">
           <h3 id="ask-more" className="label">
-            {asked.length ? 'Ask another' : 'Pick a question'}
+            {asked.length ? tr('Une autre question', 'Ask another') : tr('Choisissez une question', 'Pick a question')}
           </h3>
           <ul className="ask-questions">
             {remaining.map((a) => (

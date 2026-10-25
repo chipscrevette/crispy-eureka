@@ -1,5 +1,6 @@
 import { formatValue, type CellProps, type FeatureInfo, type Grid } from './grid'
 import type { ProfileId } from './stores'
+import { lang, tr } from './i18n'
 
 /** [feature key, SHAP contribution in log-odds, the cell's value] */
 export type Driver = [string, number, number | null]
@@ -44,8 +45,10 @@ export function withScores(grid: Grid, scores: Scores): Grid {
   }
 }
 
+/** 1st, 2nd… in English; 1er, 2e… in French. */
 export function ordinal(n: number) {
   const r = Math.round(n)
+  if (lang() === 'fr') return r === 1 ? '1er' : `${r}e`
   const suffixes: Record<number, string> = { 1: 'st', 2: 'nd', 3: 'rd' }
   const suffix = r % 100 >= 11 && r % 100 <= 13 ? 'th' : (suffixes[r % 10] ?? 'th')
   return `${r}${suffix}`
@@ -67,10 +70,12 @@ export function describeValue(scores: Scores, key: string, value: number | strin
   return {
     label: f?.label ?? key,
     description: f?.description,
-    text: typeof value === 'number' ? formatValue(value, f?.unit ?? '') : 'no data',
+    text: typeof value === 'number' ? formatValue(value, f?.unit ?? '') : tr('pas de donnée', 'no data'),
   }
 }
 
 /** Plain-English rank: a percentile score of 100 is the top block, not "higher than 100%". */
 export const rankText = (score: number) =>
-  score >= 99.5 ? 'is in the top 1% of Paris' : `scores higher than ${Math.round(score)}% of Paris`
+  score >= 99.5
+    ? tr('est dans le top 1 % de Paris', 'is in the top 1% of Paris')
+    : tr(`fait mieux que ${Math.round(score)} % de Paris`, `scores higher than ${Math.round(score)}% of Paris`)

@@ -109,9 +109,11 @@ button, input, select { font-family: var(--ui); }
 .nav button[aria-current='page']::before { content: '●'; margin-right: 8px; font-size: 0.7em; vertical-align: 0.15em; }
 .nav button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .rail-foot { display: flex; align-items: center; justify-content: space-between; margin: 0; font-size: 0.78rem; color: var(--muted); }
-.theme-toggle { display: grid; place-items: center; width: 34px; height: 34px; padding: 0; font-size: 1rem; color: var(--ink); background: none; border: 1px solid var(--rule); border-radius: 50%; cursor: pointer; }
-.theme-toggle:hover { border-color: var(--muted); }
-.theme-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.theme-toggle, .lang-toggle { display: grid; place-items: center; width: 34px; height: 34px; padding: 0; font-size: 1rem; color: var(--ink); background: none; border: 1px solid var(--rule); border-radius: 50%; cursor: pointer; }
+.lang-toggle { margin-left: auto; font: var(--weight) 0.72rem/1 var(--ui); letter-spacing: 0.04em; }
+.lang-toggle + .theme-toggle { margin-left: 6px; }
+.theme-toggle:hover, .lang-toggle:hover { border-color: var(--muted); }
+.theme-toggle:focus-visible, .lang-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .stage { display: flex; flex-direction: column; min-width: 0; min-height: 0; padding: 18px 18px 0; }
 .map-card { position: relative; flex: 1; min-height: 0; overflow: hidden; background: var(--quiet); border-radius: var(--radius); }
