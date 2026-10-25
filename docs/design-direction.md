@@ -24,7 +24,14 @@
 - **Fonts.** Outfit for titles and figures, Figtree for text, both at weight 500.
 - **Phone.** No longer a target (Kevin, 2026-10-24); it must only not break.
 
-The v0 and v1 notes below are kept for history; where they differ, the latest version wins.
+**v5 (2026-10-25), the atlas.** Kevin asked to rethink the UI from scratch: hyper-visual, minimalist, simple but complete. He sent ten references: a 3×3 site-analysis board, an exploded layer stack, hex-bin maps, a 3D spike map and a map linked to a scatter plot. Three concepts were drawn from real data (`/mnt/project-files/geoai/screens/v5-concepts/`). Kevin chose to combine them:
+- **Layout.** Three columns on paper, no floating cards. The **rail** on the left asks the question and answers it: brand type, free spots or already there, the big count, the five best places and the address search, then the views (Explore, Plan, Ask, Method). The **map** sits in the middle with four key figures under it. The **panel** on the right explains: the atlas by default, the block when one is clicked, and Plan or Ask when open.
+- **Atlas.** Nine small maps of Paris (potential, spending, footfall, stations, fashion shops, luxury already there, hotels, offices, shop prices), each in its own colour family and with the same classes as the big map. A click puts one on the big map. Under them, a scatter of every block (spending against potential) marks the free spots in the accent colour and blocks with luxury already in ink; a click on a dot opens that block.
+- **Map.** The five best places carry numbered labels. In 3D the free spots stand up from a flat coloured city, which is concept C's idea of peaks on a ground.
+- **Colour.** Paper `#f4f3ef`, ink `#16191d`, accent wine-terracotta `#b2432f` (dark: `#101317`, `#eef0f2`, `#ec986b`). Potential runs sand to wine. Every other layer has its own hue (`web/src/palette.ts`).
+- **Next.** Clicking a block will show its layers stacked (concept B).
+
+The v0 to v4 notes below are kept for history; where they differ, the latest version wins.
 
 ## Principles
 
