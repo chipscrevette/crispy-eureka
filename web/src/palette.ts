@@ -82,11 +82,11 @@ function rampNameFor(key: string): RampName {
 export const isDark = () => document.documentElement.dataset.theme === 'dark'
 export const coloursOf = (r: Ramp) => (isDark() ? r.dark : r.light)
 
-/** Profile colours, for boutique dots and the profile switch. */
+/** Profile colours, for boutique dots and the profile switch: muted, so the dots read as data, not jewels. */
 export const PROFILE_COLOUR: Record<ProfileId, { light: string; dark: string }> = {
-  'jewellery-watches': { light: '#b8860b', dark: '#e6c065' },
-  'fashion-house': { light: '#7c4dbc', dark: '#b897ec' },
-  beauty: { light: '#d0496b', dark: '#f28aa3' },
+  'jewellery-watches': { light: '#9a7a3c', dark: '#b8a06e' },
+  'fashion-house': { light: '#6e5a9c', dark: '#9d8fc2' },
+  beauty: { light: '#a85870', dark: '#c48c9b' },
 }
 export const profileColour = (p: ProfileId) => (isDark() ? PROFILE_COLOUR[p].dark : PROFILE_COLOUR[p].light)
 
