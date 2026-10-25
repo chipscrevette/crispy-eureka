@@ -925,3 +925,13 @@ optgroup { font-style: normal; }
 .panel > .ask { position: static; width: auto; min-height: 100%; overflow: visible; border: 0; border-radius: 0; box-shadow: none; background: none; }
 .panel > .ask .ask-bar { background: var(--limestone); }
 .panel > .selected { padding: 24px; }
+
+/* the block's layers stacked like sheets, with its value on each */
+.stack { display: grid; gap: 10px; margin: 4px 0 0; }
+.stack-body { position: relative; }
+.stack-maps { position: absolute; top: 0; left: 0; width: 200px; height: 100%; }
+.stack-rows { position: relative; list-style: none; margin: 0; padding: 0 0 0 212px; }
+.stack-rows li { display: flex; flex-direction: column; justify-content: center; gap: 1px; padding-top: 14px; }
+.stack-label { font: var(--weight) 1.35rem/1.1 var(--display); letter-spacing: -0.02em; }
+.stack-value { font-size: 0.86rem; color: var(--ink); }
+.stack-rank { font-size: 0.75rem; color: var(--muted); }
