@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CellProps, Grid } from './grid'
 import { centroid, toMetres, type LonLat } from './geo'
 import { atlasKey, cssVar, fills, sizeCanvas } from './atlasLayers'
@@ -8,8 +8,11 @@ import { fmt, lang, tr } from './i18n'
 
 /** How far around the block each layer shows, in metres: about a 15-minute walk across. */
 const RADIUS_M = 1100
-const ROW = 78
-const MAP_W = 190
+/** Each sheet takes this share of its row; the rest is air between sheets, so each one reads alone. */
+const SHEET = 0.64
+/** Row height and sheet width when the stack does not fill a box. */
+const ROW = 104
+const MAP_W = 2 * SHEET * ROW
 
 type Layer = { id: string; label: string; value: (v: number) => string }
 
@@ -59,14 +62,27 @@ function rankWords(grid: Grid, key: string, v: number) {
   return tr('sous la médiane de Paris', 'below the Paris median')
 }
 
-type Props = { grid: Grid; cell: CellProps; profile: ProfileId }
+type Props = { grid: Grid; cell: CellProps; profile: ProfileId; fill?: boolean }
 
 /**
  * The block's neighbourhood drawn once per layer and stacked like sheets of paper,
  * with a dotted line that runs through the block from the first sheet to the answer.
  */
-export default function LayerStack({ grid, cell, profile }: Props) {
+export default function LayerStack({ grid, cell, profile, fill = false }: Props) {
   const ref = useRef<HTMLCanvasElement>(null)
+  const body = useRef<HTMLDivElement>(null)
+  // filling a box, the rows share its height and the sheets grow with them
+  const [box, setBox] = useState<{ w: number; h: number } | null>(null)
+  useEffect(() => {
+    if (!fill) return
+    const el = body.current!
+    const obs = new ResizeObserver(() => setBox({ w: el.clientWidth, h: el.clientHeight }))
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [fill])
+  const row = fill && box ? Math.max(56, box.h / LAYERS.length) : ROW
+  // a sheet is half as tall as it is wide, seen at this angle
+  const mapW = fill && box ? Math.min(2 * SHEET * row, box.w * 0.48, 300) : MAP_W
   const around = useMemo(() => {
     const home = grid.features.find((f) => f.properties.cell === cell.cell)
     if (!home) return []
@@ -86,20 +102,20 @@ export default function LayerStack({ grid, cell, profile }: Props) {
 
   useEffect(() => {
     const { ctx, width } = sizeCanvas(ref.current!)
-    const s = MAP_W / 2 / RADIUS_M
+    const s = mapW / 2 / RADIUS_M
     const cx = width / 2
     // a quarter turn and a flattening: the sheet lies on a table seen from above and to the side
-    const iso = ([x, y]: number[], row: number): [number, number] => [
+    const iso = ([x, y]: number[], i: number): [number, number] => [
       cx + (x - y) * 0.707 * s,
-      ROW / 2 + 14 + row * ROW - (x + y) * 0.707 * 0.5 * s,
+      row / 2 + i * row - (x + y) * 0.707 * 0.5 * s,
     ]
     const [quiet, ink, surface] = [cssVar('--quiet'), cssVar('--ink'), cssVar('--surface')]
-    ctx.clearRect(0, 0, width, ROW * LAYERS.length + 40)
-    LAYERS.forEach((_, row) => {
+    ctx.clearRect(0, 0, width, row * LAYERS.length)
+    LAYERS.forEach((_, i) => {
       for (const b of around) {
         ctx.beginPath()
-        b.ring.forEach((p, i) => (i ? ctx.lineTo(...iso(p, row)) : ctx.moveTo(...iso(p, row))))
-        ctx.fillStyle = colours[row].get(b.cell) ?? quiet
+        b.ring.forEach((p, j) => (j ? ctx.lineTo(...iso(p, i)) : ctx.moveTo(...iso(p, i))))
+        ctx.fillStyle = colours[i].get(b.cell) ?? quiet
         ctx.fill()
         ctx.strokeStyle = surface
         ctx.lineWidth = 0.5
@@ -108,7 +124,7 @@ export default function LayerStack({ grid, cell, profile }: Props) {
       const home = around.find((b) => b.cell === cell.cell)
       if (home) {
         ctx.beginPath()
-        home.ring.forEach((p, i) => (i ? ctx.lineTo(...iso(p, row)) : ctx.moveTo(...iso(p, row))))
+        home.ring.forEach((p, j) => (j ? ctx.lineTo(...iso(p, i)) : ctx.moveTo(...iso(p, i))))
         ctx.closePath()
         ctx.strokeStyle = ink
         ctx.lineWidth = 1.6
@@ -123,8 +139,8 @@ export default function LayerStack({ grid, cell, profile }: Props) {
     ctx.lineWidth = 1
     ctx.stroke()
     ctx.setLineDash([])
-    LAYERS.forEach((_, row) => {
-      const [x, y] = iso([0, 0], row)
+    LAYERS.forEach((_, i) => {
+      const [x, y] = iso([0, 0], i)
       ctx.beginPath()
       ctx.arc(x, y, 3.5, 0, 2 * Math.PI)
       ctx.fillStyle = surface
@@ -133,19 +149,19 @@ export default function LayerStack({ grid, cell, profile }: Props) {
       ctx.lineWidth = 1.4
       ctx.stroke()
     })
-  }, [around, colours, cell.cell])
+  }, [around, colours, cell.cell, row, mapW])
 
   return (
-    <figure className="stack" aria-label={tr('Ce bloc, couche par couche', 'This block, layer by layer')}>
+    <figure className={fill ? 'stack fill' : 'stack'} aria-label={tr('Ce bloc, couche par couche', 'This block, layer by layer')}>
       <figcaption className="atlas-kicker">{tr('Pourquoi, couche par couche', 'Why, layer by layer')}</figcaption>
-      <div className="stack-body" style={{ height: ROW * LAYERS.length + 28 }}>
-        <canvas ref={ref} className="stack-maps" aria-hidden="true" />
-        <ol className="stack-rows">
+      <div ref={body} className="stack-body" style={fill ? undefined : { height: row * LAYERS.length }}>
+        <canvas ref={ref} className="stack-maps" style={{ width: mapW + 12 }} aria-hidden="true" />
+        <ol className="stack-rows" style={{ paddingLeft: mapW + 28 }}>
           {LAYERS.map((l, i) => {
             const v = cell[keys[i]]
             const hue = coloursOf(rampFor(keys[i]))[3]
             return (
-              <li key={l.id} style={{ height: ROW }}>
+              <li key={l.id} style={{ height: row }}>
                 <span className="stack-label" style={{ color: l.id === 'score' ? 'var(--accent)' : hue }}>
                   {l.label}
                 </span>
