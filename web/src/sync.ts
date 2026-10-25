@@ -1,7 +1,10 @@
 import type { ProfileId } from './stores'
 
-/** What the map and the dashboard share: the brand type, the layer on the map and the selected block. */
-export type Shared = { profile: ProfileId; layer: string; cell: string | null }
+/**
+ * What the map and the dashboard share: the brand type, the layer on the map, the selected block,
+ * and whether the map shows the free spots or the boutiques already there.
+ */
+export type Shared = { profile: ProfileId; layer: string; cell: string | null; fresh: boolean }
 
 type Side = 'map' | 'dashboard'
 type Message = { kind: 'state'; from: Side; state: Shared } | { kind: 'hello' | 'bye'; from: Side }
@@ -47,7 +50,7 @@ export function connect(side: Side, on: Handlers) {
 }
 
 export const sameShared = (a: Shared, b: Shared | null) =>
-  !!b && a.profile === b.profile && a.layer === b.layer && a.cell === b.cell
+  !!b && a.profile === b.profile && a.layer === b.layer && a.cell === b.cell && a.fresh === b.fresh
 
 /** The dashboard's address next to the map's, so it opens from GitHub Pages and from the dev server alike. */
 export const DASHBOARD_URL = `${import.meta.env.BASE_URL}dashboard.html`

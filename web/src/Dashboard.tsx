@@ -1,18 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { loadData, type Data } from './appData'
-import { ATLAS, atlasKey } from './atlasLayers'
+import { ATLAS, atlasKey, cssVar as css, fills, sizeCanvas, useOutline } from './atlasLayers'
 import { OPEN_RULE, openKey } from './dashboardData'
 import { cellAt, cellIndex } from './geo'
 import { formatValue, type CellProps } from './grid'
 import { fmt, lang, switchLang, tr } from './i18n'
-import { coloursOf, isDark, rampFor } from './palette'
-import { placeOf, rankText, scoreKey } from './scores'
+import { coloursOf, isDark, profileColour, rampFor } from './palette'
+import { SCORE_BREAKS, placeOf, rankText, scoreKey } from './scores'
 import { PROFILES, countByProfile, type ProfileId } from './stores'
 import { connect, sameShared, type Shared } from './sync'
 
 /** "Paris 8e Arrondissement" → "8e". */
 const short = (p: CellProps) => placeOf(p).replace(/^Paris /, '').replace(/ Arrondissement$/, '')
 const num = (p: CellProps, k: string) => (typeof p[k] === 'number' ? (p[k] as number) : null)
+const pc = () => (lang() === 'fr' ? ' %' : '%')
 
 const SHORT: Record<ProfileId, string> = {
   'jewellery-watches': tr('Joaillerie', 'Jewellery'),
@@ -20,13 +21,10 @@ const SHORT: Record<ProfileId, string> = {
   beauty: tr('Beauté', 'Beauty'),
 }
 
-/** Columns of the free-spot table: the reasons a block stands out, beside its potential. */
-const COLUMNS = [
-  { key: 'demand', label: tr('Pouvoir d’achat', 'Spending') },
-  { key: 'street_footfall', label: tr('Passage', 'Footfall') },
-  { key: 'transit_entries_r2', label: tr('Gares, entrées / jour', 'Stations, entries / day') },
-  { key: 'commercial_price_m2', label: tr('Prix boutique / m²', 'Shop price / m²') },
-]
+/** The layers that explain the potential: a block's reasons. */
+const REASONS = ATLAS.filter((l) => l.id !== 'score')
+
+type ArrRow = { scores: number[]; open: number; boutiques: number; best: CellProps | null }
 
 function switchTheme() {
   try {
@@ -37,25 +35,7 @@ function switchTheme() {
   window.location.reload()
 }
 
-/** Share of scored blocks with a lower value, 0 to 100: where a block stands in Paris on one layer. */
-function usePercentiles(data: Data | null, profile: ProfileId) {
-  return useMemo(() => {
-    const out = new Map<string, number[]>()
-    if (!data) return out
-    for (const l of ATLAS) {
-      const key = atlasKey(l.id, profile)
-      out.set(
-        key,
-        data.grid.features
-          .map((f) => num(f.properties, key))
-          .filter((v): v is number => v !== null)
-          .sort((a, b) => a - b),
-      )
-    }
-    return out
-  }, [data, profile])
-}
-
+/** Share of blocks with a lower value, 0 to 100: where a value stands in Paris. */
 function percentile(sorted: number[] | undefined, v: number) {
   if (!sorted?.length) return 0
   let lo = 0
@@ -71,7 +51,7 @@ function percentile(sorted: number[] | undefined, v: number) {
 export default function Dashboard() {
   const [data, setData] = useState<Data | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [shared, setShared] = useState<Shared>({ profile: 'jewellery-watches', layer: 'score', cell: null })
+  const [shared, setShared] = useState<Shared>({ profile: 'jewellery-watches', layer: 'score', cell: null, fresh: true })
   const [linked, setLinked] = useState(false)
   const applied = useRef<Shared | null>(null)
   const sharedRef = useRef(shared)
@@ -104,53 +84,49 @@ export default function Dashboard() {
   }, [shared])
 
   const set = (patch: Partial<Shared>) => setShared((s) => ({ ...s, ...patch }))
-  const { profile, layer, cell } = shared
+  const { profile, layer, cell, fresh } = shared
   const key = scoreKey(profile)
-  const pct = usePercentiles(data, profile)
   const cells = useMemo(() => (data ? cellIndex(data.grid) : null), [data])
   const block = (cell && cells?.get(cell)?.properties) || null
 
-  // units of each layer, from the pipeline's feature list
-  const units = useMemo(() => {
-    const m = new Map<string, string>()
-    for (const f of [...(data?.meta.features ?? []), ...(data?.demand ?? [])]) m.set(f.key, f.unit)
-    return m
-  }, [data])
-  const show = (k: string, v: number | null) => {
-    if (v === null) return '–'
-    if (k.startsWith('score')) return `${Math.round(v)}`
-    if (k === 'demand') return fmt(v)
-    if (k === 'street_footfall') return `${fmt(v, 1)} ×`
-    if (k === 'commercial_price_m2' || k === 'transit_entries_r2') return fmt(v)
-    const unit = units.get(k)
-    return unit ? formatValue(v, unit) : fmt(v)
-  }
+  // every layer's values in order, to place a block in Paris
+  const sorted = useMemo(() => {
+    const out = new Map<string, number[]>()
+    for (const l of ATLAS) {
+      const k = atlasKey(l.id, profile)
+      out.set(
+        k,
+        (data?.grid.features ?? [])
+          .map((f) => num(f.properties, k))
+          .filter((v): v is number => v !== null)
+          .sort((a, b) => a - b),
+      )
+    }
+    return out
+  }, [data, profile])
 
   const open = useMemo(
     () =>
-      data
-        ? data.grid.features
-            .map((f) => f.properties)
-            .filter((p) => p[openKey(key)] === 1)
-            .sort((a, b) => (num(b, key) ?? 0) - (num(a, key) ?? 0))
-        : [],
+      (data?.grid.features ?? [])
+        .map((f) => f.properties)
+        .filter((p) => p[openKey(key)] === 1)
+        .sort((a, b) => (num(b, key) ?? 0) - (num(a, key) ?? 0)),
     [data, key],
   )
 
-  // each boutique of the profile placed in its block, then counted by arrondissement
+  // the arrondissements: average potential, free spots, boutiques of the type, best block
   const arrondissements = useMemo(() => {
-    if (!data || !cells) return []
-    const rows = new Map<string, { name: string; scores: number[]; open: number; boutiques: number; best: CellProps | null }>()
+    const rows = new Map<string, ArrRow>()
+    if (!data || !cells) return rows
     const row = (name: string) => {
-      if (!rows.has(name)) rows.set(name, { name, scores: [], open: 0, boutiques: 0, best: null })
+      if (!rows.has(name)) rows.set(name, { scores: [], open: 0, boutiques: 0, best: null })
       return rows.get(name)!
     }
     for (const f of data.grid.features) {
       const p = f.properties
-      if (!p.arrondissement) continue
-      const r = row(short(p))
       const s = num(p, key)
-      if (s === null) continue
+      if (!p.arrondissement || s === null) continue
+      const r = row(short(p))
       r.scores.push(s)
       if (p[openKey(key)] === 1) r.open += 1
       if (!r.best || s > (num(r.best, key) ?? 0)) r.best = p
@@ -161,13 +137,10 @@ export default function Dashboard() {
       const p = c ? cells.get(c)?.properties : undefined
       if (p?.arrondissement) row(short(p)).boutiques += 1
     }
-    return [...rows.values()]
-      .filter((r) => r.scores.length)
-      .map((r) => ({ ...r, mean: r.scores.reduce((a, b) => a + b, 0) / r.scores.length }))
-      .sort((a, b) => b.mean - a.mean)
+    return rows
   }, [data, cells, key, profile])
 
-  // per tenth of the potential scale: how many blocks already have a boutique of the type in or next to them
+  // per tenth of potential: the share of blocks that already have a boutique of the type around
   const tenths = useMemo(() => {
     const bins = Array.from({ length: 10 }, () => ({ blocks: 0, taken: 0 }))
     const lux = atlasKey('luxury', profile)
@@ -184,18 +157,14 @@ export default function Dashboard() {
   if (error) return <p className="dash-error">{tr('Les données n’ont pas pu être chargées : ', 'The data could not load: ') + error}</p>
 
   const counts = data ? countByProfile(data.stores) : null
-  const scored = data ? data.grid.features.filter((f) => num(f.properties, key) !== null).length : 0
-  const blockScore = block ? num(block, key) : null
-  const scoreRamp = coloursOf(rampFor(key))
-  const selectedArr = block ? short(block) : null
-  const maxMean = Math.max(1, ...arrondissements.map((r) => r.mean))
+  const layerInfo = ATLAS.find((l) => l.id === layer) ?? ATLAS[0]
 
   return (
     <div className="dash">
       <header className="dash-head">
         <p className="wordmark">
           <span className="wordmark-dot" aria-hidden="true" />
-          Adresse <span className="dash-sub">{tr('Tableau de bord', 'Dashboard')}</span>
+          Adresse
         </p>
         <div className="profiles dash-profiles" role="radiogroup" aria-label={tr('Type de marque', 'Type of brand')}>
           {PROFILES.map((p) => (
@@ -205,13 +174,21 @@ export default function Dashboard() {
             </button>
           ))}
         </div>
+        <div className="dash-seg" role="group" aria-label={tr('Ce que montre la carte', 'What the map shows')}>
+          <button aria-pressed={fresh} onClick={() => set({ fresh: true })}>
+            {tr('Places libres', 'Free spots')}
+          </button>
+          <button aria-pressed={!fresh} onClick={() => set({ fresh: false })}>
+            {tr('Déjà présents', 'Already there')}
+          </button>
+        </div>
         <p className="dash-link" role="status">
           <span className={linked ? 'dash-live on' : 'dash-live'} aria-hidden="true" />
           {linked ? (
             tr('Lié à la carte', 'Linked to the map')
           ) : (
             <a href="./" target="_blank" rel="noreferrer">
-              {tr('Ouvrir la carte pour la lier', 'Open the map to link it')}
+              {tr('Ouvrir la carte', 'Open the map')}
             </a>
           )}
         </p>
@@ -237,172 +214,383 @@ export default function Dashboard() {
       {!data ? (
         <p className="dash-loading">{tr('Chargement des données…', 'Loading the data…')}</p>
       ) : (
-        <main className="dash-grid">
-          <section className="dash-kpis" aria-label={tr('Chiffres clés', 'Key figures')}>
-            <Kpi value={fmt(open.length)} label={tr('places libres', 'free spots')} accent />
-            <Kpi value={fmt(counts![profile])} label={tr('boutiques aujourd’hui', 'boutiques today')} />
-            <Kpi value={fmt(scored)} label={tr('blocs notés', 'blocks scored')} />
-            <Kpi
-              value={blockScore === null ? '–' : `${Math.round(blockScore)}`}
-              unit={blockScore === null ? undefined : '/ 100'}
-              label={block ? `${tr('potentiel du bloc', 'block potential')} · ${short(block)}` : tr('aucun bloc choisi', 'no block chosen')}
+        <main className="dash-board">
+          <section className="dash-hero" aria-label={tr('Carte', 'Map')}>
+            <div className="dash-hero-head">
+              <p className="dash-kicker">{tr('Sur la carte', 'On the map')}</p>
+              <h1 className="dash-title">{layerInfo.label}</h1>
+              <p className="muted">{layerInfo.note}</p>
+              <div className="dash-layer-pick" role="radiogroup" aria-label={tr('Couche de la carte', 'Map layer')}>
+                {ATLAS.map((l) => (
+                  <button
+                    key={l.id}
+                    role="radio"
+                    aria-checked={layer === l.id}
+                    aria-label={l.label}
+                    title={l.label}
+                    onClick={() => set({ layer: l.id })}
+                    style={{ background: coloursOf(rampFor(atlasKey(l.id, profile)))[3] }}
+                  />
+                ))}
+              </div>
+              <Figure value={fmt(open.length)} label={tr('places libres', 'free spots')} accent />
+              <Figure value={fmt(counts![profile])} label={tr('boutiques aujourd’hui', 'boutiques today')} />
+            </div>
+            <HeroMap data={data} profile={profile} layer={layer} cell={cell} fresh={fresh} open={open} onBlock={(c) => set({ cell: c })} />
+          </section>
+
+          <section className="dash-portrait" aria-live="polite">
+            <Portrait
+              block={block}
+              open={open}
+              profile={profile}
+              layer={layer}
+              sorted={sorted}
+              onLayer={(id) => set({ layer: id })}
+              onClear={() => set({ cell: null })}
             />
           </section>
 
-          <section className="dash-card dash-spots">
-            <h2 className="dash-kicker">
-              {tr('Places libres, de la meilleure à la moins bonne', 'Free spots, best first')}
-              <span className="dash-hint">{tr('Cliquez une ligne : la carte y va', 'Click a row: the map goes there')}</span>
-            </h2>
-            <table className="dash-table">
-              <thead>
-                <tr>
-                  <th scope="col">#</th>
-                  <th scope="col">{tr('Lieu', 'Place')}</th>
-                  <th scope="col">{tr('Potentiel', 'Potential')}</th>
-                  {COLUMNS.map((c) => (
-                    <th key={c.key} scope="col" className="num">
-                      {c.label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {open.map((p, i) => {
-                  const s = num(p, key) ?? 0
-                  return (
-                    <tr
-                      key={p.cell}
-                      aria-selected={p.cell === cell}
-                      tabIndex={0}
-                      onClick={() => set({ cell: p.cell })}
-                      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && set({ cell: p.cell })}
-                    >
-                      <td className="muted">{i + 1}</td>
-                      <td>{short(p)}</td>
-                      <td>
-                        <span className="dash-bar">
-                          <span style={{ width: `${s}%`, background: scoreRamp[3] }} />
-                        </span>
-                        <span className="dash-bar-value">{Math.round(s)}</span>
-                      </td>
-                      {COLUMNS.map((c) => (
-                        <td key={c.key} className="num">
-                          {show(c.key, num(p, c.key))}
-                        </td>
-                      ))}
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-            {!open.length && <p className="muted">{tr('Aucune place libre pour ce type de marque.', 'No free spot for this type of brand.')}</p>}
-          </section>
-
-          <section className="dash-card dash-block" aria-live="polite">
-            <h2 className="dash-kicker">{tr('Le bloc choisi face à Paris', 'The chosen block against Paris')}</h2>
-            {block ? (
-              <>
-                <p className="dash-block-head">
-                  <span className="dash-block-place">{short(block)}</span>
-                  <span className="muted">
-                    {blockScore === null ? tr('pas de note', 'no score') : `${tr('Le potentiel', 'Its potential')} ${rankText(blockScore)}.`}
-                  </span>
-                </p>
-                <ul className="dash-layers">
-                  {ATLAS.map((l) => {
-                    const k = atlasKey(l.id, profile)
-                    const v = num(block, k)
-                    const at = v === null ? 0 : percentile(pct.get(k), v)
-                    return (
-                      <li key={l.id}>
-                        <button aria-pressed={layer === l.id} onClick={() => set({ layer: l.id })} title={tr('Afficher sur la carte', 'Show on the map')}>
-                          <span className="dash-layer-name">{l.label}</span>
-                          <span className="dash-bar">
-                            <span style={{ width: `${at}%`, background: coloursOf(rampFor(k))[3] }} />
-                          </span>
-                          <span className="dash-layer-value">{show(k, v)}</span>
-                        </button>
-                      </li>
-                    )
-                  })}
-                </ul>
-                <p className="dash-note muted">
-                  {tr(
-                    'Barre : part des blocs de Paris en dessous. Cliquez une ligne pour afficher la couche sur la carte.',
-                    'Bar: share of Paris blocks below. Click a row to show the layer on the map.',
-                  )}
-                </p>
-                <button className="dash-clear" onClick={() => set({ cell: null })}>
-                  {tr('← Tout Paris', '← All of Paris')}
-                </button>
-              </>
-            ) : (
-              <p className="muted">{tr('Cliquez un bloc sur la carte, ou une ligne du tableau.', 'Click a block on the map, or a row of the table.')}</p>
-            )}
-          </section>
-
-          <section className="dash-card dash-arr">
-            <h2 className="dash-kicker">
-              {tr('Les 20 arrondissements, par potentiel moyen', 'The 20 arrondissements, by average potential')}
-              <span className="dash-hint">{tr('Cliquez : la carte va au meilleur bloc', 'Click: the map goes to the best block')}</span>
-            </h2>
-            <div className="dash-arr-head muted" aria-hidden="true">
-              <span />
-              <span />
-              <span className="num">{tr('places libres', 'free spots')}</span>
-              <span className="num">{tr('boutiques', 'boutiques')}</span>
+          <section className="dash-strip">
+            <div className="dash-card">
+              <p className="dash-kicker">{tr('Les places libres, de la meilleure à la moins bonne', 'The free spots, best first')}</p>
+              <Spots open={open} cell={cell} profile={profile} onBlock={(c) => set({ cell: c })} />
             </div>
-            <ol className="dash-arr-list">
-              {arrondissements.map((r) => (
-                <li key={r.name}>
-                  <button aria-current={r.name === selectedArr ? 'true' : undefined} onClick={() => r.best && set({ cell: r.best.cell })}>
-                    <span className="dash-arr-name">{r.name}</span>
-                    <span className="dash-arr-track">
-                      <span
-                        style={{ width: `${(r.mean / maxMean) * 100}%`, background: r.name === selectedArr ? scoreRamp[4] : scoreRamp[2] }}
-                      />
-                      <span className="dash-arr-mean">{Math.round(r.mean)}</span>
-                    </span>
-                    <span className="num">{r.open || '–'}</span>
-                    <span className="num">{r.boutiques || '–'}</span>
-                  </button>
-                </li>
-              ))}
-            </ol>
-          </section>
-
-          <section className="dash-card dash-hist">
-            <h2 className="dash-kicker">{tr('Le luxe est déjà là où le potentiel est haut', 'Luxury is already where potential is high')}</h2>
-            <Tenths bins={tenths} mark={blockScore} colour={scoreRamp[3]} />
-            <p className="dash-note muted">
-              {tr(
-                `Part des blocs qui ont déjà une boutique de ce type, dans le bloc ou juste à côté, par tranche de potentiel. Le potentiel est un rang : 50 est la moitié de Paris. Les places libres partent de ${OPEN_RULE.score}.`,
-                `Share of blocks that already have a boutique of this type, in the block or next to it, by band of potential. Potential is a rank: 50 is the middle of Paris. Free spots start at ${OPEN_RULE.score}.`,
-              )}
-            </p>
+            <div className="dash-card">
+              <p className="dash-kicker">
+                {fresh ? tr('Places libres par arrondissement', 'Free spots by arrondissement') : tr('Boutiques par arrondissement', 'Boutiques by arrondissement')}
+              </p>
+              <TileMap rows={arrondissements} profile={profile} fresh={fresh} chosen={block ? short(block) : null} onBlock={(c) => set({ cell: c })} />
+            </div>
+            <div className="dash-card">
+              <p className="dash-kicker">{tr('Le luxe est déjà là où le potentiel est haut', 'Luxury is already where potential is high')}</p>
+              <Tenths bins={tenths} mark={block ? num(block, key) : null} colour={coloursOf(rampFor(key))[3]} />
+            </div>
           </section>
         </main>
       )}
-      <footer className="dash-foot muted">
-        {tr(
-          'Données ouvertes : Overture Maps, OpenStreetMap, INSEE, DGFiP, Île-de-France Mobilités, Atout France, Apur. Chaque chiffre vient des scripts du dépôt.',
-          'Open data: Overture Maps, OpenStreetMap, INSEE, DGFiP, Île-de-France Mobilités, Atout France, Apur. Every number comes from the repository’s scripts.',
-        )}
-      </footer>
     </div>
   )
 }
 
-function Kpi(props: { value: string; unit?: string; label: string; accent?: boolean }) {
+function Figure(props: { value: string; label: string; accent?: boolean }) {
   return (
-    <p className={props.accent ? 'dash-kpi accent' : 'dash-kpi'}>
-      <span className="dash-kpi-value">
-        {props.value}
-        {props.unit && <span className="dash-kpi-unit"> {props.unit}</span>}
-      </span>
-      <span className="dash-kpi-label">{props.label}</span>
+    <p className={props.accent ? 'dash-figure accent' : 'dash-figure'}>
+      <span className="dash-figure-value">{props.value}</span>
+      <span className="dash-figure-label">{props.label}</span>
     </p>
+  )
+}
+
+/** Paris block by block, coloured like the big map; the free spots numbered, or the boutiques already there. */
+function HeroMap(props: {
+  data: Data
+  profile: ProfileId
+  layer: string
+  cell: string | null
+  fresh: boolean
+  open: CellProps[]
+  onBlock: (cell: string) => void
+}) {
+  const { data, profile, layer, cell, fresh, open, onBlock } = props
+  const ref = useRef<HTMLCanvasElement>(null)
+  const outline = useOutline(data.grid)
+  const key = atlasKey(layer, profile)
+  const colours = useMemo(() => fills(data.grid, key, layer === 'score'), [data, key, layer])
+  const geo = useRef({ s: 1, ox: 0, oy: 0 })
+  const [hover, setHover] = useState<{ x: number; y: number; p: CellProps } | null>(null)
+  const byCell = useMemo(() => cellIndex(data.grid), [data])
+  const rank = useMemo(() => new Map(open.map((p, i) => [p.cell, i + 1])), [open])
+
+  useEffect(() => {
+    const draw = () => {
+      const { ctx, width, height } = sizeCanvas(ref.current!)
+      const s = Math.min(width, height / outline.aspect) * 0.96
+      const ox = (width - s) / 2
+      const oy = (height - s * outline.aspect) / 2
+      geo.current = { s, ox, oy }
+      const quiet = css('--quiet')
+      const ink = css('--ink')
+      ctx.clearRect(0, 0, width, height)
+      for (const b of outline.blocks) {
+        ctx.beginPath()
+        b.ring.forEach(([x, y], i) => (i ? ctx.lineTo(ox + x * s, oy + y * s) : ctx.moveTo(ox + x * s, oy + y * s)))
+        ctx.fillStyle = b.cell === cell ? ink : (colours.get(b.cell) ?? quiet)
+        ctx.fill()
+      }
+      if (!fresh) {
+        ctx.fillStyle = profileColour(profile)
+        for (const f of data.stores.features) {
+          if (f.properties.profile !== profile) continue
+          const [x, y] = outline.project(f.geometry.coordinates)
+          ctx.beginPath()
+          ctx.arc(ox + x * s, oy + y * s, 3, 0, 2 * Math.PI)
+          ctx.fill()
+        }
+        return
+      }
+      // the free spots, numbered as in the list, like the pins of the map page
+      ctx.font = `500 11px ${css('--display')}`
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      const [accent, surface] = [css('--accent'), css('--surface')]
+      for (const b of outline.blocks) {
+        const n = rank.get(b.cell)
+        if (!n) continue
+        const [x, y] = [ox + b.at[0] * s, oy + b.at[1] * s]
+        ctx.beginPath()
+        ctx.arc(x, y, 10, 0, 2 * Math.PI)
+        ctx.fillStyle = b.cell === cell ? accent : ink
+        ctx.fill()
+        ctx.fillStyle = surface
+        ctx.fillText(String(n), x, y + 0.5)
+      }
+    }
+    draw()
+    const obs = new ResizeObserver(draw)
+    obs.observe(ref.current!)
+    return () => obs.disconnect()
+  }, [outline, colours, cell, fresh, profile, data, rank])
+
+  const pick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const r = e.currentTarget.getBoundingClientRect()
+    const { s, ox, oy } = geo.current
+    const mx = e.clientX - r.left
+    const my = e.clientY - r.top
+    let best: { d: number; cell: string; x: number; y: number } | null = null
+    for (const b of outline.blocks) {
+      const x = ox + b.at[0] * s
+      const y = oy + b.at[1] * s
+      const d = Math.hypot(x - mx, y - my)
+      if (!best || d < best.d) best = { d, cell: b.cell, x, y }
+    }
+    // a block is about a fortieth of the city wide
+    return best && best.d < s / 60 ? best : null
+  }
+
+  const value = hover ? num(hover.p, key) : null
+  return (
+    <div className="dash-map">
+      <canvas
+        ref={ref}
+        role="img"
+        aria-label={tr('Carte de Paris par bloc', 'Map of Paris by block')}
+        onMouseMove={(e) => {
+          const hit = pick(e)
+          const p = hit && byCell.get(hit.cell)?.properties
+          setHover(hit && p ? { x: hit.x, y: hit.y, p } : null)
+        }}
+        onMouseLeave={() => setHover(null)}
+        onClick={(e) => {
+          const hit = pick(e)
+          if (hit) onBlock(hit.cell)
+        }}
+        style={{ cursor: hover ? 'pointer' : 'default' }}
+      />
+      {hover && (
+        <span className="dash-tip" style={{ left: hover.x, top: hover.y }}>
+          {short(hover.p)}
+          <span className="muted"> · {layer === 'score' ? (value === null ? '–' : `${Math.round(value)} / 100`) : valueText(key, value)}</span>
+        </span>
+      )}
+    </div>
+  )
+}
+
+/**
+ * The chosen block as a flower: one petal per layer, as long as the share of Paris it beats,
+ * in the layer's own colour. With no block chosen, the typical free spot: the median of each layer.
+ */
+function Portrait(props: {
+  block: CellProps | null
+  open: CellProps[]
+  profile: ProfileId
+  layer: string
+  sorted: Map<string, number[]>
+  onLayer: (id: string) => void
+  onClear: () => void
+}) {
+  const { block, open, profile, layer, sorted } = props
+  const key = scoreKey(profile)
+  const at = (k: string, p: CellProps) => {
+    const v = num(p, k)
+    return v === null ? 0 : percentile(sorted.get(k), v)
+  }
+  const petals = REASONS.map((l) => {
+    const k = atlasKey(l.id, profile)
+    let share = 0
+    if (block) share = at(k, block)
+    else if (open.length) {
+      const v = open.map((p) => at(k, p)).sort((a, b) => a - b)
+      share = v[Math.floor(v.length / 2)]
+    }
+    return {
+      id: l.id,
+      label: l.label,
+      colour: coloursOf(rampFor(k))[3],
+      share,
+      text: block ? valueText(k, num(block, k)) : `${tr('top', 'top')} ${Math.max(1, Math.round(100 - share))}${pc()}`,
+    }
+  })
+  const score = block ? num(block, key) : null
+
+  const size = 300
+  const c = size / 2
+  const inner = 48
+  const outer = 146
+  const step = (2 * Math.PI) / petals.length
+  const petalPath = (i: number, share: number) => {
+    const r = inner + ((outer - inner) * Math.max(share, 3)) / 100
+    const a0 = -Math.PI / 2 + i * step - step * 0.4
+    const a1 = -Math.PI / 2 + i * step + step * 0.4
+    const p = (a: number, rr: number) => `${(c + rr * Math.cos(a)).toFixed(1)} ${(c + rr * Math.sin(a)).toFixed(1)}`
+    return `M ${p(a0, inner)} L ${p(a0, r)} A ${r} ${r} 0 0 1 ${p(a1, r)} L ${p(a1, inner)} A ${inner} ${inner} 0 0 0 ${p(a0, inner)} Z`
+  }
+
+  return (
+    <>
+      <p className="dash-kicker">{block ? tr('Le bloc choisi', 'The chosen block') : tr('La place libre type', 'The typical free spot')}</p>
+      <h2 className="dash-title">{block ? short(block) : tr('Pourquoi ces places', 'Why these spots')}</h2>
+      <p className="muted dash-portrait-note">
+        {block
+          ? score === null
+            ? tr('Pas de note pour ce bloc.', 'No score for this block.')
+            : `${tr('Son potentiel', 'Its potential')} ${rankText(score)}.`
+          : tr('Un pétale par couche : plus il est long, plus la place libre médiane dépasse Paris.', 'One petal per layer: the longer, the more the median free spot beats Paris.')}
+      </p>
+      <svg className="dash-flower" viewBox={`0 0 ${size} ${size}`} role="img" aria-label={tr('Les raisons, couche par couche', 'The reasons, layer by layer')}>
+        {petals.map((p, i) => (
+          <g key={p.id} className="dash-petal" onClick={() => props.onLayer(p.id)}>
+            <path d={petalPath(i, 100)} className="dash-petal-track" />
+            <path d={petalPath(i, p.share)} fill={p.colour} opacity={layer === p.id || !REASONS.some((r) => r.id === layer) ? 1 : 0.45} />
+            <title>{`${p.label} : ${p.text}`}</title>
+          </g>
+        ))}
+        <text x={c} y={c + 2} textAnchor="middle" className="dash-flower-score">
+          {score === null ? (block ? '–' : fmt(open.length)) : Math.round(score)}
+        </text>
+        <text x={c} y={c + 22} textAnchor="middle" className="dash-flower-unit">
+          {score === null ? (block ? '' : tr('places', 'spots')) : '/ 100'}
+        </text>
+      </svg>
+      <ul className="dash-petal-keys">
+        {petals.map((p) => (
+          <li key={p.id}>
+            <button aria-pressed={layer === p.id} onClick={() => props.onLayer(p.id)}>
+              <span className="key-dot" style={{ background: p.colour }} aria-hidden="true" />
+              <span className="dash-petal-name">{p.label}</span>
+              <span className="muted">{p.text}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      {block && (
+        <button className="dash-clear" onClick={props.onClear}>
+          {tr('← Tout Paris', '← All of Paris')}
+        </button>
+      )}
+    </>
+  )
+}
+
+function valueText(k: string, v: number | null) {
+  if (v === null) return '–'
+  if (k.startsWith('score')) return `${Math.round(v)} / 100`
+  if (k === 'demand') return `${fmt(v)} ${tr('(Paris = 100)', '(Paris = 100)')}`
+  if (k === 'street_footfall') return `${fmt(v, 1)} ×`
+  if (k === 'transit_entries_r2') return `${fmt(v / 1000)}k / ${tr('jour', 'day')}`
+  if (k === 'commercial_price_m2') return `${fmt(v)} € / m²`
+  if (k.startsWith('luxury')) return formatValue(v, 'boutiques')
+  if (k === 'upscale_rooms_r1') return formatValue(v, 'rooms')
+  return formatValue(v, 'places')
+}
+
+/** The free spots as a row of hexagons, the darker the better, numbered as on the map. */
+function Spots(props: { open: CellProps[]; cell: string | null; profile: ProfileId; onBlock: (cell: string) => void }) {
+  const key = scoreKey(props.profile)
+  const ramp = coloursOf(rampFor(key))
+  if (!props.open.length) return <p className="muted">{tr('Aucune place libre pour ce type de marque.', 'No free spot for this type of brand.')}</p>
+  return (
+    <ol className="dash-spots">
+      {props.open.map((p, i) => {
+        const s = num(p, key) ?? 0
+        const chosen = p.cell === props.cell
+        const shade = s >= SCORE_BREAKS[3] ? 4 : s >= SCORE_BREAKS[2] ? 3 : 2
+        return (
+          <li key={p.cell}>
+            <button aria-current={chosen ? 'true' : undefined} onClick={() => props.onBlock(p.cell)} title={`${i + 1}. ${short(p)} · ${Math.round(s)} / 100`}>
+              <svg viewBox="0 0 40 46" aria-hidden="true">
+                <path d="M20 1 L39 12 L39 34 L20 45 L1 34 L1 12 Z" fill={chosen ? 'var(--ink)' : ramp[shade]} />
+                <text x="20" y="23" dy="0.35em" textAnchor="middle" className={chosen || shade >= 3 ? 'on-dark' : ''}>
+                  {Math.round(s)}
+                </text>
+              </svg>
+              <span className="dash-spot-place">
+                <span className="muted">{i + 1}</span> {short(p)}
+              </span>
+            </button>
+          </li>
+        )
+      })}
+    </ol>
+  )
+}
+
+/** Where each arrondissement sits as a hexagon tile: column (in half steps) and row, north at the top. */
+const TILES: [string, number, number][] = [
+  ['17e', 1, 0], ['18e', 2, 0], ['19e', 3, 0],
+  ['16e', 0.5, 1], ['8e', 1.5, 1], ['9e', 2.5, 1], ['10e', 3.5, 1], ['20e', 4.5, 1],
+  ['7e', 1, 2], ['1er', 2, 2], ['2e', 3, 2], ['11e', 4, 2],
+  ['15e', 0.5, 3], ['6e', 1.5, 3], ['4e', 2.5, 3], ['3e', 3.5, 3],
+  ['14e', 1, 4], ['5e', 2, 4], ['13e', 3, 4], ['12e', 4, 4],
+]
+
+/** The 20 arrondissements as tiles, coloured by average potential, with the free spots or boutiques counted. */
+function TileMap(props: { rows: Map<string, ArrRow>; profile: ProfileId; fresh: boolean; chosen: string | null; onBlock: (cell: string) => void }) {
+  const ramp = coloursOf(rampFor(scoreKey(props.profile)))
+  const R = 22
+  const w = Math.sqrt(3) * R
+  const h = 1.5 * R
+  return (
+    <svg className="dash-tiles" viewBox={`0 0 ${5 * w + 4} ${4 * h + 2 * R + 4}`} role="img" aria-label={tr('Les 20 arrondissements', 'The 20 arrondissements')}>
+      {TILES.map(([name, col, row]) => {
+        const r = props.rows.get(name)
+        const mean = r?.scores.length ? r.scores.reduce((a, b) => a + b, 0) / r.scores.length : 0
+        const shade = Math.min(4, Math.floor(mean / 20))
+        const chosen = props.chosen === name
+        const x = w / 2 + col * w + 2
+        const y = R + row * h + 2
+        const pts = Array.from({ length: 6 }, (_, i) => {
+          const a = (Math.PI / 3) * i - Math.PI / 2
+          return `${(x + (R - 1) * Math.cos(a)).toFixed(1)},${(y + (R - 1) * Math.sin(a)).toFixed(1)}`
+        }).join(' ')
+        const count = (props.fresh ? r?.open : r?.boutiques) ?? 0
+        const tone = chosen || shade >= 3 ? 'on-dark' : ''
+        return (
+          <g key={name} className="dash-tile" onClick={() => r?.best && props.onBlock(r.best.cell)}>
+            <polygon points={pts} fill={chosen ? 'var(--ink)' : ramp[shade]} />
+            <text x={x} y={count ? y - 4 : y} dy="0.35em" textAnchor="middle" className={tone}>
+              {name}
+            </text>
+            {count > 0 && (
+              <g>
+                {Array.from({ length: Math.min(count, 5) }, (_, i) => (
+                  <circle
+                    key={i}
+                    cx={x + (i - (Math.min(count, 5) - 1) / 2) * 5}
+                    cy={y + 9}
+                    r={1.8}
+                    className={props.fresh ? 'dash-tile-dot' : 'dash-tile-dot taken'}
+                    style={props.fresh ? undefined : { fill: profileColour(props.profile) }}
+                  />
+                ))}
+              </g>
+            )}
+            <title>{`${name} · ${tr('potentiel moyen', 'average potential')} ${Math.round(mean)} · ${r?.open ?? 0} ${tr('places libres', 'free spots')} · ${r?.boutiques ?? 0} ${tr('boutiques', 'boutiques')}`}</title>
+          </g>
+        )
+      })}
+    </svg>
   )
 }
 
@@ -412,30 +600,31 @@ function Tenths(props: { bins: { blocks: number; taken: number }[]; mark: number
   const markBin = props.mark === null ? null : Math.min(9, Math.floor(props.mark / 10))
   const share = (b: { blocks: number; taken: number }) => (b.blocks ? b.taken / b.blocks : 0)
   const max = Math.max(0.01, ...props.bins.map(share))
-  const pc = lang() === 'fr' ? ' %' : '%'
   return (
-    <div className="dash-histogram" onMouseLeave={() => setHover(null)}>
-      {props.bins.map((b, i) => (
-        <div key={i} className="dash-col" onMouseEnter={() => setHover(i)}>
-          {hover === i && (
-            <span className="dash-col-tip">
-              {Math.round(share(b) * 100)}
-              {pc} · {fmt(b.taken)} / {fmt(b.blocks)} {tr('blocs', 'blocks')}
-            </span>
-          )}
-          {(i === 9 || i === markBin) && hover === null && (
-            <span className="dash-col-value">
-              {Math.round(share(b) * 100)}
-              {pc}
-            </span>
-          )}
-          <span
-            className="dash-col-bar"
-            style={{ height: `${(share(b) / max) * 100}%`, background: i === markBin ? 'var(--ink)' : props.colour }}
-          />
-          <span className="dash-col-label">{i * 10}</span>
-        </div>
-      ))}
-    </div>
+    <>
+      <div className="dash-histogram" onMouseLeave={() => setHover(null)}>
+        {props.bins.map((b, i) => (
+          <div key={i} className="dash-col" onMouseEnter={() => setHover(i)} title={`${i * 10}–${i * 10 + 10} · ${fmt(b.taken)} / ${fmt(b.blocks)}`}>
+            {(hover === i || (hover === null && (i === 9 || i === markBin))) && (
+              <span className="dash-col-value">
+                {Math.round(share(b) * 100)}
+                {pc()}
+              </span>
+            )}
+            <span className="dash-col-bar" style={{ height: `${(share(b) / max) * 100}%`, background: i === markBin ? 'var(--ink)' : props.colour }} />
+          </div>
+        ))}
+      </div>
+      <div className="dash-axis muted" aria-hidden="true">
+        <span>{tr('potentiel 0', 'potential 0')}</span>
+        <span>100</span>
+      </div>
+      <p className="dash-note muted">
+        {tr(
+          `Part des blocs avec déjà une boutique de ce type autour. Places libres : ${OPEN_RULE.score} et plus.`,
+          `Share of blocks that already have a boutique of this type around. Free spots: ${OPEN_RULE.score} and up.`,
+        )}
+      </p>
+    </>
   )
 }

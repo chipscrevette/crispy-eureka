@@ -391,7 +391,7 @@ export default function App() {
   const cells = useMemo(() => (data ? cellIndex(data.grid) : null), [data])
 
   // the dashboard in another tab follows the map, and the map follows the dashboard
-  const shared: Shared = { profile, layer, cell: cellA }
+  const shared: Shared = { profile, layer, cell: cellA, fresh }
   const sharedRef = useRef(shared)
   sharedRef.current = shared
   const applied = useRef<Shared | null>(null)
@@ -403,6 +403,7 @@ export default function App() {
         applied.current = s
         setProfile(s.profile)
         setLayer(s.layer)
+        setFresh(s.fresh)
         if (!s.cell) setCellA(null)
         else if (s.cell !== sharedRef.current.cell) focusRef.current(s.cell)
       },
@@ -414,7 +415,7 @@ export default function App() {
   useEffect(() => {
     // a change that came from the dashboard is not sent back to it
     if (!sameShared(sharedRef.current, applied.current)) link.current?.send(sharedRef.current)
-  }, [profile, layer, cellA])
+  }, [profile, layer, cellA, fresh])
   // the street layer exists once the data build has estimated street footfall
   const hasStreets = !!data && typeof data.grid.features[0]?.properties.street_footfall === 'number'
   const a = (cellA && cells?.get(cellA)?.properties) || null
