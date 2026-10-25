@@ -93,12 +93,12 @@ function cssVar(name: string) {
 
 const phone = () => window.matchMedia('(max-width: 760px)').matches
 
-/** The basemap and every layer colour follow the theme, so a switch reloads the page. */
 /** Beyond the city the mask sits over the metro lines and stations too, so only Paris reads clearly. */
 function fadeBeyondParis(m: maplibregl.Map) {
   if (m.getLayer('outside') && m.getLayer('stores-profile')) m.moveLayer('outside', 'stores-profile')
 }
 
+/** The basemap and every layer colour follow the theme, so a switch reloads the page. */
 function switchTheme() {
   try {
     localStorage.setItem('adresse-theme', isDark() ? 'light' : 'dark')
