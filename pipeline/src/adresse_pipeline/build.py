@@ -22,10 +22,10 @@ from datetime import date
 from pathlib import Path
 
 import h3
-from shapely.geometry import Point
+from shapely.geometry import Point, box
 from shapely.ops import unary_union
 
-from adresse_pipeline import apur, dvf, footfall, hotels, idfm, insee, osm, sirene
+from adresse_pipeline import apur, dvf, footfall, hotels, idfm, insee, network, osm, sirene
 from adresse_pipeline.brands import Catalogue, Profile
 from adresse_pipeline.download import fetch
 from adresse_pipeline.features import (
@@ -172,6 +172,11 @@ def main() -> None:
             by_cell[cell_of(st.lon, st.lat)] += st.daily_entries
         own["station_entries"] = by_cell
         columns["transit_entries_r2"] = ring_sum(by_cell, cells, k=2)
+        with_lines = sum(1 for s in stations if s.lines)
+        if not with_lines:
+            print(
+                f"idfm: no line columns in the stations file; columns {sorted(next(idfm.read_csv(fetch(idfm.STATIONS_URL))))}"
+            )
         busiest = sorted(stations, key=lambda s: -s.daily_entries)[:5]
         print(
             f"idfm: {len(stations)} stations in and around Paris; busiest: "
@@ -182,6 +187,19 @@ def main() -> None:
         WEB_DATA.mkdir(parents=True, exist_ok=True)
         (WEB_DATA / "stations.geojson").write_text(
             json.dumps(idfm.to_geojson(stations), ensure_ascii=False, separators=(",", ":"))
+        )
+        print(f"idfm: {with_lines} of {len(stations)} stations list their lines")
+        # the metro and RER lines in their colours, for the map
+        branches = network.traces(
+            network.read_traces(fetch(network.TRACES_URL)),
+            network.read_lines(fetch(network.LINES_URL)),
+            box(PARIS_PADDED.xmin, PARIS_PADDED.ymin, PARIS_PADDED.xmax, PARIS_PADDED.ymax),
+        )
+        lines = network.to_geojson(branches)
+        (WEB_DATA / "network.geojson").write_text(json.dumps(lines, separators=(",", ":")))
+        print(
+            f"network: {len(lines['features'])} metro and RER lines: "
+            + ", ".join(f["properties"]["line"] for f in lines["features"])
         )
 
     if "footfall" not in args.skip:
