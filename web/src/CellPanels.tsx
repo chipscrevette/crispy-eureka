@@ -3,6 +3,10 @@ import LayerStack from './LayerStack'
 import { NEIGHBOURS, cellScore, describeValue, rankText, shortPlaceOf, type Driver, type Scores } from './scores'
 import { BIG_EMPTY, EMPTY, LUXURY, VACANCY, WEAK_KEY } from './dashboardData'
 import { PROFILES, type ProfileId } from './stores'
+import { fmt, lang, tr } from './i18n'
+
+/** "1 brand" / "2 brands"; a French noun and its adjective both take the s: "2 boutiques vides". */
+const plural = (n: number, word: string) => `${n} ${n === 1 ? word : word.replace(/(\S)(?=\s|$)/g, '$1s')}`
 
 const profileLabel = (id: ProfileId) => PROFILES.find((p) => p.id === id)?.label ?? id
 
@@ -11,7 +15,7 @@ function Bar({ contribution, largest }: { contribution: number; largest: number 
     <span
       className={`bar ${contribution > 0 ? 'up' : 'down'}`}
       role="img"
-      aria-label={contribution > 0 ? 'raises the score' : 'lowers the score'}
+      aria-label={contribution > 0 ? tr('fait monter la note', 'raises the score') : tr('fait baisser la note', 'lowers the score')}
     >
       <span style={{ width: `${(Math.abs(contribution) / largest) * 100}%` }} />
     </span>
@@ -46,20 +50,32 @@ export type Zone = {
 
 function ZoneCard({ zone, profile }: { zone: Zone; profile: ProfileId }) {
   return (
-    <section className="zone" aria-label={`Within a ${zone.minutes}-minute walk`}>
+    <section className="zone" aria-label={tr(`À ${zone.minutes} minutes à pied`, `Within a ${zone.minutes}-minute walk`)}>
       <ul className="tiles">
-        <li className="tile" title="Spending demand of every block in the walk; 1 = an average Paris block">
-          <span className="tile-value">{zone.demand.toFixed(1)}</span>
-          <span className="tile-label">average blocks of spending</span>
+        <li
+          className="tile"
+          title={tr(
+            'Pouvoir d’achat de tous les blocs à portée de marche ; 1 = un bloc parisien moyen',
+            'Spending demand of every block in the walk; 1 = an average Paris block',
+          )}
+        >
+          <span className="tile-value">{fmt(zone.demand, 1)}</span>
+          <span className="tile-label">{tr('blocs moyens de pouvoir d’achat', 'average blocks of spending')}</span>
         </li>
-        <li className="tile" title="Catalogue boutiques of this profile in the blocks of the walk">
+        <li
+          className="tile"
+          title={tr('Boutiques du catalogue de ce profil dans les blocs à portée de marche', 'Catalogue boutiques of this profile in the blocks of the walk')}
+        >
           <span className="tile-value">{zone.boutiques}</span>
           <span className="tile-label">
-            {profileLabel(profile).toLowerCase()} boutiques, {zone.brands} brand{zone.brands === 1 ? '' : 's'}
+            {tr(
+              `boutiques ${profileLabel(profile).toLowerCase()}, ${plural(zone.brands, 'marque')}`,
+              `${profileLabel(profile).toLowerCase()} boutiques, ${plural(zone.brands, 'brand')}`,
+            )}
           </span>
         </li>
       </ul>
-      <div className="split" role="img" aria-label={zone.split.map((g) => `${g.label} ${Math.round(g.share * 100)}%`).join(', ')}>
+      <div className="split" role="img" aria-label={zone.split.map((g) => `${g.label} ${pct(g.share)}`).join(', ')}>
         {zone.split.map((g, i) => (
           <span key={g.label} className={`split-${i}`} style={{ flexGrow: g.share }} />
         ))}
@@ -67,14 +83,21 @@ function ZoneCard({ zone, profile }: { zone: Zone; profile: ProfileId }) {
       <ul className="split-legend small" aria-hidden="true">
         {zone.split.map((g, i) => (
           <li key={g.label}>
-            <span className={`swatch split-${i}`} /> {g.label} {Math.round(g.share * 100)}%
+            <span className={`swatch split-${i}`} /> {g.label} {pct(g.share)}
           </li>
         ))}
       </ul>
-      <p className="muted small">{zone.blocks} blocks, shaded on the map. The bar shows where their spending comes from.</p>
+      <p className="muted small">
+        {tr(
+          `${zone.blocks} blocs, ombrés sur la carte. La barre montre d’où vient leur pouvoir d’achat.`,
+          `${zone.blocks} blocks, shaded on the map. The bar shows where their spending comes from.`,
+        )}
+      </p>
     </section>
   )
 }
+
+const pct = (share: number) => `${Math.round(share * 100)}${lang() === 'en' ? '%' : ' %'}`
 
 /** Score as a ring: the share of Paris this block beats. */
 function ScoreRing({ score }: { score: number }) {
@@ -105,7 +128,9 @@ function ScoreRing({ score }: { score: number }) {
 }
 
 const compact = (v: number) =>
-  v >= 10000 ? `${Math.round(v / 1000)}k` : v >= 1000 ? `${(v / 1000).toFixed(1)}k` : `${Math.round(v)}`
+  v >= 10000 ? `${Math.round(v / 1000)}k` : v >= 1000 ? `${fmt(v / 1000, 1)}k` : `${Math.round(v)}`
+/** €12k in English, 12k € in French. */
+const euros = (v: number) => (lang() === 'en' ? `€${compact(v)}` : `${compact(v)} €`)
 
 /** The block's own numbers from the pipeline, as tiles. Missing values are left out. */
 function facts(cell: CellProps) {
@@ -113,38 +138,53 @@ function facts(cell: CellProps) {
   const rows: { value?: string; label: string; title: string }[] = [
     {
       value: num('demand') !== undefined ? compact(num('demand')!) : undefined,
-      label: 'spending demand',
-      title: "Residents' income, workers and hotel guests in the block; Paris average = 100",
+      label: tr('pouvoir d’achat', 'spending demand'),
+      title: tr(
+        'Revenus des habitants, actifs et clients d’hôtel du bloc ; moyenne de Paris = 100',
+        "Residents' income, workers and hotel guests in the block; Paris average = 100",
+      ),
     },
     {
-      value: num('street_footfall') !== undefined ? `${num('street_footfall')!.toFixed(1)}×` : undefined,
-      label: 'footfall of its busiest street',
-      title: 'Walks past the busiest street of the block, compared with a typical Paris street (estimated from the street network)',
+      value: num('street_footfall') !== undefined ? `${fmt(num('street_footfall')!, 1)}×` : undefined,
+      label: tr('passage dans sa rue la plus fréquentée', 'footfall of its busiest street'),
+      title: tr(
+        'Passage dans la rue la plus fréquentée du bloc, comparé à une rue parisienne type (estimé à partir du réseau de rues)',
+        'Walks past the busiest street of the block, compared with a typical Paris street (estimated from the street network)',
+      ),
     },
     {
       value: num('upscale_rooms_r1') !== undefined ? compact(num('upscale_rooms_r1')!) : undefined,
-      label: '4- and 5-star hotel rooms',
-      title: 'Rooms in 4- and 5-star hotels in the block and around it (Atout France)',
+      label: tr('chambres d’hôtels 4 et 5 étoiles', '4- and 5-star hotel rooms'),
+      title: tr(
+        'Chambres d’hôtels 4 et 5 étoiles dans le bloc et autour (Atout France)',
+        'Rooms in 4- and 5-star hotels in the block and around it (Atout France)',
+      ),
     },
     {
       value: num(NEIGHBOURS) !== undefined ? String(num(NEIGHBOURS)) : undefined,
-      label: 'luxury boutiques around',
-      title: 'Luxury boutiques of any profile in the six blocks around it',
+      label: tr('boutiques de luxe autour', 'luxury boutiques around'),
+      title: tr('Boutiques de luxe de tous profils dans les six blocs autour', 'Luxury boutiques of any profile in the six blocks around it'),
     },
     {
-      value: num('living_standard_r1') !== undefined ? `€${compact(num('living_standard_r1')!)}` : undefined,
-      label: 'living standard / year',
-      title: 'Mean disposable income per consumption unit of residents within about 350 m (INSEE Filosofi)',
+      value: num('living_standard_r1') !== undefined ? euros(num('living_standard_r1')!) : undefined,
+      label: tr('niveau de vie / an', 'living standard / year'),
+      title: tr(
+        'Revenu disponible moyen par unité de consommation des habitants à environ 350 m (INSEE Filosofi)',
+        'Mean disposable income per consumption unit of residents within about 350 m (INSEE Filosofi)',
+      ),
     },
     {
       value: num('transit_entries_r2') !== undefined ? compact(num('transit_entries_r2')!) : undefined,
-      label: 'station entries / day',
-      title: 'Average daily entries at metro, RER and train stations within about 600 m (Île-de-France Mobilités)',
+      label: tr('entrées en gare / jour', 'station entries / day'),
+      title: tr(
+        'Entrées moyennes par jour dans les stations de métro, RER et train à environ 600 m (Île-de-France Mobilités)',
+        'Average daily entries at metro, RER and train stations within about 600 m (Île-de-France Mobilités)',
+      ),
     },
     {
-      value: num('apartment_price_m2') !== undefined ? `€${compact(num('apartment_price_m2')!)}` : undefined,
-      label: 'apartment price / m²',
-      title: 'Median sale price of apartments within about 350 m (DVF)',
+      value: num('apartment_price_m2') !== undefined ? euros(num('apartment_price_m2')!) : undefined,
+      label: tr('prix des appartements / m²', 'apartment price / m²'),
+      title: tr('Prix de vente médian des appartements à environ 350 m (DVF)', 'Median sale price of apartments within about 350 m (DVF)'),
     },
   ]
   return rows.filter((r) => r.value !== undefined)
@@ -152,17 +192,17 @@ function facts(cell: CellProps) {
 
 /** The score in plain words. The classes follow SCORE_BREAKS. */
 function verdict(score: number) {
-  if (score >= 95) return 'One of the best places in Paris'
-  if (score >= 90) return 'An excellent place'
-  if (score >= 75) return 'A very good place'
-  if (score >= 50) return 'A fair place'
-  return 'Not a natural fit'
+  if (score >= 95) return tr('L’une des meilleures adresses de Paris', 'One of the best places in Paris')
+  if (score >= 90) return tr('Une excellente adresse', 'An excellent place')
+  if (score >= 75) return tr('Une très bonne adresse', 'A very good place')
+  if (score >= 50) return tr('Une adresse correcte', 'A fair place')
+  return tr('Pas un choix naturel', 'Not a natural fit')
 }
 
 const NOUN: Record<ProfileId, string> = {
-  'jewellery-watches': 'a jeweller or watchmaker',
-  'fashion-house': 'a fashion house',
-  beauty: 'a beauty brand',
+  'jewellery-watches': tr('un joaillier ou un horloger', 'a jeweller or watchmaker'),
+  'fashion-house': tr('une maison de mode', 'a fashion house'),
+  beauty: tr('une marque de beauté', 'a beauty brand'),
 }
 
 /** A few facts anyone can read; each comes straight from the block's pipeline values. */
@@ -171,23 +211,43 @@ function keyFacts(cell: CellProps) {
   const out: string[] = []
   // the catalogue boutiques in the block and around it: the dots on the map
   const lux = LUXURY.reduce((t, k) => t + (num(k) ?? 0), 0)
-  out.push(lux ? `${lux} luxury boutique${lux === 1 ? '' : 's'} in and around this block` : 'No luxury boutique in or around this block yet')
+  out.push(
+    lux
+      ? tr(`${plural(lux, 'boutique')} de luxe dans ce bloc et autour`, `${lux} luxury boutique${lux === 1 ? '' : 's'} in and around this block`)
+      : tr('Aucune boutique de luxe dans ce bloc ni autour pour l’instant', 'No luxury boutique in or around this block yet'),
+  )
   // what there is to move into, from Apur's census of ground floors
   const empty = num(EMPTY)
   const big = num(BIG_EMPTY)
   if (empty !== undefined && big !== undefined)
     out.push(
       big
-        ? `${big} empty shop${big === 1 ? '' : 's'} of 300 m² or more nearby, ${empty} empty in all`
-        : `${empty} empty shop${empty === 1 ? '' : 's'} nearby, none of 300 m² or more`,
+        ? tr(
+            `${plural(big, 'boutique vide')} de 300 m² ou plus à proximité, ${empty} vides en tout`,
+            `${big} empty shop${big === 1 ? '' : 's'} of 300 m² or more nearby, ${empty} empty in all`,
+          )
+        : tr(
+            `${plural(empty, 'boutique vide')} à proximité, aucune de 300 m² ou plus`,
+            `${empty} empty shop${empty === 1 ? '' : 's'} nearby, none of 300 m² or more`,
+          ),
     )
   const share = num(VACANCY)
   if (share !== undefined && cell[WEAK_KEY] === 1)
-    out.push(`${Math.round(share * 100)}% of the shops around stand empty, more than in most of Paris`)
+    out.push(
+      tr(
+        `${pct(share)} des boutiques autour sont vides, plus que dans la plupart de Paris`,
+        `${pct(share)} of the shops around stand empty, more than in most of Paris`,
+      ),
+    )
   // at least four of the seven blocks inside: the block is in the zone or on its edge
   const tourist = num('tourist_zone_r1')
   if (tourist !== undefined && tourist >= 0.5)
-    out.push('In an international tourist zone: shops may open on Sundays and late in the evening')
+    out.push(
+      tr(
+        'En zone touristique internationale : les boutiques peuvent ouvrir le dimanche et en soirée',
+        'In an international tourist zone: shops may open on Sundays and late in the evening',
+      ),
+    )
   return out
 }
 
@@ -203,9 +263,11 @@ export function CellScore({ cell, grid, profile, scores, zone, address, onCompar
         <div>
           <h2 className="place">{address ?? shortPlaceOf(cell)}</h2>
           <p className="verdict">
-            {verdict(score)} for {NOUN[profile]}.
+            {verdict(score)} {tr('pour', 'for')} {NOUN[profile]}.
           </p>
-          <p className="muted small">This block {rankText(score)}.</p>
+          <p className="muted small">
+            {tr('Ce bloc', 'This block')} {rankText(score)}.
+          </p>
         </div>
       </div>
       <LayerStack grid={grid} cell={cell} profile={profile} />
@@ -216,7 +278,7 @@ export function CellScore({ cell, grid, profile, scores, zone, address, onCompar
       </ul>
 
       <details className="more">
-        <summary>Why this score?</summary>
+        <summary>{tr('Pourquoi cette note ?', 'Why this score?')}</summary>
         <ul className="drivers">
           {drivers.map(([key, contribution, value]) => {
             const d = describeValue(scores, key, value)
@@ -229,17 +291,17 @@ export function CellScore({ cell, grid, profile, scores, zone, address, onCompar
             )
           })}
         </ul>
-        <p className="muted small">Long bars raise the score, grey bars lower it.</p>
+        <p className="muted small">{tr('Les barres longues font monter la note, les grises la font baisser.', 'Long bars raise the score, grey bars lower it.')}</p>
       </details>
       {zone && (
         <details className="more">
-          <summary>What is within a {zone.minutes}-minute walk?</summary>
+          <summary>{tr(`Qu’y a-t-il à ${zone.minutes} minutes à pied ?`, `What is within a ${zone.minutes}-minute walk?`)}</summary>
           <ZoneCard zone={zone} profile={profile} />
         </details>
       )}
       <details className="more">
-        <summary>All the numbers</summary>
-        <ul className="tiles" aria-label="This block in numbers">
+        <summary>{tr('Tous les chiffres', 'All the numbers')}</summary>
+        <ul className="tiles" aria-label={tr('Ce bloc en chiffres', 'This block in numbers')}>
           {facts(cell).map((f) => (
             <li key={f.label} className="tile" title={f.title}>
               <span className="tile-value">{f.value}</span>
@@ -251,10 +313,10 @@ export function CellScore({ cell, grid, profile, scores, zone, address, onCompar
 
       <div className="actions">
         <button className="button secondary" onClick={onCompare} aria-pressed={picking}>
-          {picking ? 'Now tap a second block…' : 'Compare with another block'}
+          {picking ? tr('Cliquez sur un second bloc…', 'Now tap a second block…') : tr('Comparer avec un autre bloc', 'Compare with another block')}
         </button>
         <button className="button secondary" onClick={onMemo}>
-          Site memo
+          {tr('Fiche du site', 'Site memo')}
         </button>
       </div>
     </div>
@@ -288,17 +350,20 @@ export function Compare({ a, b, profile, scores, onMemo, onClear }: CompareProps
   const gap = Math.round(ea[0]) - Math.round(eb[0])
   const verdict =
     gap === 0
-      ? 'Both blocks score the same.'
-      : `${gap > 0 ? 'A' : 'B'} scores ${Math.abs(gap)} point${Math.abs(gap) === 1 ? '' : 's'} higher.`
+      ? tr('Les deux blocs ont la même note.', 'Both blocks score the same.')
+      : tr(
+          `${gap > 0 ? 'A' : 'B'} a ${plural(Math.abs(gap), 'point')} de plus.`,
+          `${gap > 0 ? 'A' : 'B'} scores ${plural(Math.abs(gap), 'point')} higher.`,
+        )
 
   return (
     <section className="compare" aria-live="polite">
-      <h2 className="label">Compare</h2>
+      <h2 className="label">{tr('Comparer', 'Compare')}</h2>
       <table>
         <thead>
           <tr>
             <th scope="col">
-              <span className="visually-hidden">Feature</span>
+              <span className="visually-hidden">{tr('Critère', 'Feature')}</span>
             </th>
             {sides.map((s) => (
               <th scope="col" key={s.name}>
@@ -332,14 +397,18 @@ export function Compare({ a, b, profile, scores, onMemo, onClear }: CompareProps
         </tbody>
       </table>
       <p className="muted small">
-        {verdict} Bars show each block's own top drivers; a value without a bar did not move that block's score much.
+        {verdict}{' '}
+        {tr(
+          'Les barres montrent les principaux moteurs de chaque bloc ; une valeur sans barre a peu pesé sur sa note.',
+          "Bars show each block's own top drivers; a value without a bar did not move that block's score much.",
+        )}
       </p>
       <div className="actions">
         <button className="button" onClick={onMemo}>
-          Memo for A
+          {tr('Fiche de A', 'Memo for A')}
         </button>
         <button className="button secondary" onClick={onClear}>
-          Stop comparing
+          {tr('Arrêter la comparaison', 'Stop comparing')}
         </button>
       </div>
     </section>

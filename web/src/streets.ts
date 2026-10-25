@@ -1,4 +1,5 @@
 import type { FeatureCollection, LineString } from 'geojson'
+import { fmt, tr } from './i18n'
 
 export type StreetProps = { level: 1 | 2 | 3; index: number }
 export type Streets = FeatureCollection<LineString, StreetProps>
@@ -11,10 +12,17 @@ export async function loadStreets(): Promise<Streets | null> {
 }
 
 /** Each level's share of Paris street pieces, from footfall.MAP_LEVELS. */
-const SHARE = { 1: '5%', 2: '2%', 3: '0.5%' } as const
+const SHARE = { 1: 5, 2: 2, 3: 0.5 } as const
 
-export const streetTitle = (level: StreetProps['level']) => `Among the busiest ${SHARE[level]} of Paris streets`
+export const streetTitle = (level: StreetProps['level']) =>
+  tr(
+    `Parmi les ${fmt(SHARE[level], level === 3 ? 1 : 0)} % de rues les plus passantes de Paris`,
+    `Among the busiest ${SHARE[level]}% of Paris streets`,
+  )
 
 /** A line's index is the least any of its pieces reaches. */
 export const footfallText = (index: number) =>
-  `At least ${index.toFixed(1)}× the walks past a typical Paris street`
+  tr(
+    `Au moins ${fmt(index, 1)} fois le passage d’une rue parisienne type`,
+    `At least ${index.toFixed(1)}× the walks past a typical Paris street`,
+  )
