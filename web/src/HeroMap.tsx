@@ -13,10 +13,22 @@ import type { ProfileId } from './stores'
 /** A line's badge on the map: its number or letter on its colour, round for the metro, square for the RER. */
 export type Badge = { label: string; colour: string; ink: string; rer: boolean }
 /**
- * A point of a detail view, `size` from 0 to 1 against the largest: a spike as tall as its value, or,
- * for a station with `badges`, its lines' badges as large as its crowd.
+ * A point of a detail view, `size` from 0 to 1 against the largest. Each view draws it its own way:
+ * a station with `badges` as its lines' badges as large as its crowd, a free spot as a `pin` holding its score,
+ * a block's boutiques as a `bubble` holding their count, a block's spending as a `tag` on it, else a spike.
+ * A `faded` mark is outside the walk and steps back.
  */
-export type Mark = { at: LonLat; size: number; colour: string; label?: string; badges?: Badge[] }
+export type Mark = {
+  at: LonLat
+  size: number
+  colour: string
+  label?: string
+  badges?: Badge[]
+  pin?: string
+  bubble?: string
+  tag?: string
+  faded?: boolean
+}
 
 type View = { x: number; y: number; w: number; h: number }
 const lerp = (a: View, b: View, k: number): View => ({ x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k, w: a.w + (b.w - a.w) * k, h: a.h + (b.h - a.h) * k })
@@ -96,6 +108,8 @@ export default function HeroMap(props: {
   muted?: string
   /** the metro drawn bold, as on a transit map */
   transit?: boolean
+  /** only the walk's blocks in the layer's colours, the rest neutral */
+  zoneOnly?: boolean
   open: CellProps[]
   zone: Set<string> | null
   /** minutes to each block reached on foot from the chosen block */
@@ -112,7 +126,7 @@ export default function HeroMap(props: {
   onBlock: (cell: string | null) => void
   onAllParis?: () => void
 }) {
-  const { data, profile, layer, cell, dots, marks, muted, transit, open, zone, rings, minutes, focus, pin, brand, placed, borders, network, onBlock } = props
+  const { data, profile, layer, cell, dots, marks, muted, transit, zoneOnly, open, zone, rings, minutes, focus, pin, brand, placed, borders, network, onBlock } = props
   // the metro is there on demand: the map first reads as the layer
   const [metro, setMetro] = useState(false)
   const ref = useRef<HTMLCanvasElement>(null)
@@ -171,7 +185,8 @@ export default function HeroMap(props: {
       for (const b of outline.blocks) {
         ctx.beginPath()
         b.ring.forEach(([x, y], i) => (i ? ctx.lineTo(ox + x * s, oy + y * s) : ctx.moveTo(ox + x * s, oy + y * s)))
-        ctx.fillStyle = b.cell === cell ? ink : muted ? (zone?.has(b.cell) ? muted : quiet) : (colours.get(b.cell) ?? quiet)
+        ctx.fillStyle =
+          b.cell === cell ? ink : muted ? (zone?.has(b.cell) ? muted : quiet) : zoneOnly && !zone?.has(b.cell) ? quiet : (colours.get(b.cell) ?? quiet)
         // around a chosen block, the farther the walk the more the blocks step back; a picked brand's dots stand out
         const band = zone?.has(b.cell) ? bandIndex.get(rings?.get(b.cell) ?? 0) ?? 0 : null
         ctx.globalAlpha = (zone ? (band === null ? 0.3 : 1 - 0.12 * band) : 1) * (brand && dots === 'boutiques' ? 0.45 : 1)
@@ -297,6 +312,59 @@ export default function HeroMap(props: {
         const tips = new Map<Mark, [number, number]>()
         // stations as their lines' badges side by side, the busiest the largest, a thin gap of paper around each
         const grow = Math.min(Math.max(Math.sqrt(zoom), 1), 1.4)
+        const at = (m: Mark) => {
+          const [x, y] = outline.project(m.at)
+          return [ox + x * s, oy + y * s]
+        }
+        // a block's spending: its multiple of Paris on a small tag laid on the block
+        ctx.textAlign = 'center'
+        ctx.font = `500 ${Math.round(Math.min(10 * Math.sqrt(zoom), 13))}px ${css('--display')}`
+        for (const m of marks.filter((m) => m.tag)) {
+          const [px, py] = at(m)
+          const w = ctx.measureText(m.tag!).width + 10
+          ctx.beginPath()
+          ctx.roundRect(px - w / 2, py - 9, w, 18, 9)
+          ctx.fillStyle = surface
+          ctx.globalAlpha = 0.9
+          ctx.fill()
+          ctx.globalAlpha = 1
+          ctx.fillStyle = m.colour
+          ctx.fillText(m.tag!, px, py + 0.5)
+        }
+        // a block's boutiques: one bubble as large as their count, the count inside, the largest at the back
+        for (const m of [...marks].filter((m) => m.bubble).sort((a, b) => b.size - a.size)) {
+          const [px, py] = at(m)
+          const r = (7 + 13 * Math.sqrt(m.size)) * grow
+          ctx.globalAlpha = m.faded ? 0.35 : 1
+          ctx.beginPath()
+          ctx.arc(px, py, r, 0, 2 * Math.PI)
+          ctx.fillStyle = `${m.colour}d9`
+          ctx.fill()
+          ctx.font = `500 ${Math.round(Math.max(10, r * 0.8))}px ${css('--display')}`
+          ctx.fillStyle = surface
+          ctx.fillText(m.bubble!, px, py + 0.5)
+          ctx.globalAlpha = 1
+          tips.set(m, [px, py - r])
+        }
+        // a free spot: a pin in its score's colour, the score in its head, the nearer ones in front
+        for (const m of [...marks].filter((m) => m.pin).sort((a, b) => at(a)[1] - at(b)[1])) {
+          const [px, py] = at(m)
+          const r = (9 + 3 * m.size) * grow
+          const top = py - 2 * r
+          ctx.globalAlpha = m.faded ? 0.45 : 1
+          ctx.beginPath()
+          ctx.moveTo(px, py)
+          ctx.bezierCurveTo(px - r * 0.45, py - r * 0.75, px - r, py - r * 1.25, px - r, top)
+          ctx.arc(px, top, r, Math.PI, 0)
+          ctx.bezierCurveTo(px + r, py - r * 1.25, px + r * 0.45, py - r * 0.75, px, py)
+          ctx.fillStyle = m.colour
+          ctx.fill()
+          ctx.font = `500 ${Math.round(r * 0.95)}px ${css('--display')}`
+          ctx.fillStyle = surface
+          ctx.fillText(m.pin!, px, top + 0.5)
+          ctx.globalAlpha = 1
+          tips.set(m, [px, top - r])
+        }
         for (const m of [...marks].filter((m) => m.badges?.length).sort((a, b) => a.size - b.size)) {
           const [x, y] = outline.project(m.at)
           const [px, py] = [ox + x * s, oy + y * s]
@@ -321,7 +389,7 @@ export default function HeroMap(props: {
             ctx.fillText(b.label, cx, py + 0.5)
           })
         }
-        for (const m of [...marks].filter((m) => !m.badges?.length).sort((a, b) => outline.project(a.at)[1] - outline.project(b.at)[1])) {
+        for (const m of [...marks].filter((m) => !m.badges?.length && !m.pin && !m.bubble && !m.tag).sort((a, b) => outline.project(a.at)[1] - outline.project(b.at)[1])) {
           const [x, y] = outline.project(m.at)
           const [px, py, h] = [ox + x * s, oy + y * s, Math.max(4, m.size * tall)]
           tips.set(m, [px, py - h])
@@ -346,11 +414,11 @@ export default function HeroMap(props: {
           if (!m.label) continue
           const [tx, ty] = tips.get(m)!
           const w = ctx.measureText(m.label).width
-          const [lx, ly] = [tx - w / 2, ty - (m.badges ? 13 : 9)]
+          const [lx, ly] = [tx - w / 2, ty - (m.badges || m.pin || m.bubble ? 13 : 9)]
           if (taken.some(([a, b, c, d]) => lx < c && lx + w > a && ly - 7 < d && ly + 7 > b)) continue
           taken.push([lx, ly - 7, lx + w, ly + 7])
-          if (m.badges) {
-            // a station's name on a small card above its badges
+          if (m.badges || m.pin || m.bubble) {
+            // a name on a small card above its mark
             ctx.beginPath()
             ctx.roundRect(lx - 7, ly - 9, w + 14, 18, 9)
             ctx.fillStyle = surface
@@ -400,7 +468,7 @@ export default function HeroMap(props: {
     const obs = new ResizeObserver(draw)
     obs.observe(ref.current!)
     return () => obs.disconnect()
-  }, [outline, colours, cell, dots, marks, profile, data, rank, zone, placed, lines, bandIndex, rings, minutes, pin, brand, target, borders, network, metro, muted, transit])
+  }, [outline, colours, cell, dots, marks, profile, data, rank, zone, placed, lines, bandIndex, rings, minutes, pin, brand, target, borders, network, metro, muted, transit, zoneOnly])
 
   // the view glides to its new frame
   useEffect(() => {

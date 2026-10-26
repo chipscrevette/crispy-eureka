@@ -646,3 +646,39 @@ button.dash-figure:hover .dash-figure-open, button.dash-figure:focus-visible .da
   .view-block-walk-side .dash-figure-value { font-size: 1.3rem; }
   .view-block-walk-side .dash-figure-note { display: none; }
 }
+
+/* each detail view draws its number its own way */
+.detail-spots { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.detail-spots button { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; gap: 10px; width: 100%; padding: 3px 0; font: inherit; color: var(--ink); text-align: left; background: none; border: 0; cursor: pointer; }
+.detail-spots button:hover .detail-bar-name { color: var(--accent); }
+.detail-spot-pin { display: grid; place-items: center; width: 28px; height: 28px; font: var(--weight) 0.8rem var(--display); color: var(--surface); border-radius: 50% 50% 50% 4px; transform: rotate(-45deg); }
+.detail-spot-pin > span { transform: rotate(45deg); }
+.detail-units { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.detail-units li { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); align-items: center; gap: 12px; font-size: 0.86rem; }
+.detail-unit-dots { display: flex; flex-wrap: wrap; gap: 4px; }
+.detail-unit-dots span { width: 11px; height: 11px; border-radius: 50%; }
+.detail-groups { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
+.detail-groups li { display: grid; align-content: start; justify-items: start; gap: 2px; padding: 14px; border-radius: 14px; }
+.detail-groups .detail-picto { width: 36px; height: 36px; margin-bottom: 6px; }
+.detail-groups .detail-picto svg { width: 20px; height: 20px; }
+.detail-group-value { font: var(--weight) 1.7rem/1.1 var(--display); letter-spacing: -0.02em; }
+.detail-group-label { font-size: 0.78rem; color: var(--muted); }
+
+/* Short screens: the detail column tightens so its chart and bands still fit */
+@media (min-width: 1101px) and (max-height: 820px) {
+  .detail-side { gap: 12px; padding: 16px 20px; }
+  .detail-picto { width: 34px; height: 34px; margin-bottom: 4px; }
+  .detail-picto svg { width: 20px; height: 20px; }
+  .detail-headline .dash-figure-value { font-size: 2.4rem; }
+  .detail-headline > p { margin-top: 4px; font-size: 0.82rem; }
+  .detail-band-bars { height: 80px; }
+  .detail-bars, .detail-units { gap: 4px; }
+  .detail-bars li:nth-child(n + 7), .detail-spots li:nth-child(n + 5) { display: none; }
+  .detail-units { gap: 2px; }
+  .detail-units li { font-size: 0.78rem; line-height: 1.25; }
+  .detail-unit-dots span { width: 9px; height: 9px; }
+  .detail-groups li { padding: 10px; }
+  .detail-groups .detail-picto { width: 30px; height: 30px; }
+  .detail-group-value { font-size: 1.4rem; }
+  .detail-lines { margin-top: 8px; }
+}
