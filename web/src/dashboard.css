@@ -523,7 +523,7 @@ button.dash-figure:hover .dash-figure-open, button.dash-figure:focus-visible .da
 .dash-side .dash-mix { display: grid; gap: 3px; }
 
 .dash-head button, .dash-walk button { white-space: nowrap; }
-.dash-head .dash-search { flex: 1 1 200px; min-width: 160px; max-width: 320px; }
+.dash-head .dash-search { flex: 1 1 200px; min-width: 140px; max-width: 320px; }
 @media (max-height: 820px) {
   .dash-side-profiles { display: none !important; }
 }
@@ -681,4 +681,80 @@ button.dash-figure:hover .dash-figure-open, button.dash-figure:focus-visible .da
   .detail-groups .detail-picto { width: 30px; height: 30px; }
   .detail-group-value { font-size: 1.4rem; }
   .detail-lines { margin-top: 8px; }
+}
+
+/* Paris in numbers: key figures, the arrondissements on a map and side by side, the chosen one against the rest */
+.paris-page { grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.95fr) minmax(0, 0.8fr); grid-template-rows: auto minmax(0, 1fr); gap: 12px; }
+.paris-page .dash-card { padding: 14px 16px; gap: 8px; overflow: hidden; }
+.paris-kpis { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+.paris-kpi { display: grid; gap: 2px; padding: 10px 14px; font: inherit; color: var(--ink); text-align: left; background: var(--surface); border: 0; border-radius: var(--radius, 16px); cursor: pointer; }
+.paris-kpi:hover .paris-kpi-value { color: var(--accent); }
+.paris-kpi-value { font: var(--weight) 1.6rem/1.1 var(--display); letter-spacing: -0.02em; }
+.paris-kpi-label { font-size: 0.74rem; color: var(--muted); }
+.paris-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.paris-title { margin: 0; font: var(--weight) 1.3rem/1.15 var(--display); letter-spacing: -0.02em; }
+.paris-unit { margin: 0; font-size: 0.76rem; }
+.paris-legend { display: flex; align-items: center; gap: 3px; font-size: 0.7rem; }
+.paris-legend i { width: 16px; height: 8px; border-radius: 2px; }
+.paris-legend span:first-child { margin-right: 4px; }
+.paris-legend span:last-child { margin-left: 4px; }
+.paris-map { flex: 1; min-height: 0; width: 100%; }
+.paris-map path { stroke: var(--surface); stroke-width: 3; stroke-linejoin: round; cursor: pointer; transition: opacity 0.15s; }
+.paris-map path:hover { opacity: 0.85; }
+.paris-map path.is-chosen { stroke: var(--ink); stroke-width: 5; }
+.paris-map-label { pointer-events: none; text-anchor: middle; }
+.paris-map-n { font: var(--weight) 20px var(--ui); opacity: 0.75; }
+.paris-map-v { font: var(--weight) 27px var(--display); }
+.paris-ranking { display: grid; grid-template-columns: repeat(20, minmax(0, 1fr)); align-items: end; gap: 4px; height: 92px; padding-top: 6px; border-top: 1px solid var(--rule); }
+.paris-ranking button { display: grid; grid-template-rows: minmax(0, 1fr) auto; align-items: end; height: 100%; padding: 0; font: inherit; background: none; border: 0; cursor: pointer; }
+.paris-ranking-bar { width: 100%; border-radius: 4px 4px 1px 1px; transition: height 0.3s; }
+.paris-ranking button:not([aria-pressed='true']):not(:hover) .paris-ranking-bar { opacity: 0.8; }
+.paris-ranking-n { padding-top: 3px; font-size: 0.68rem; color: var(--muted); text-align: center; }
+.paris-ranking button[aria-pressed='true'] .paris-ranking-n { color: var(--ink); }
+.paris-ranking button[aria-pressed='true'] .paris-ranking-bar { box-shadow: 0 0 0 1.5px var(--ink); }
+.paris-matrix-card .paris-matrix { flex: 1; min-height: 0; }
+.paris-matrix { display: grid; grid-auto-rows: minmax(0, 1fr); gap: 2px; }
+.paris-matrix > :first-child, .paris-matrix-col { grid-row: 1; }
+.paris-matrix { grid-template-rows: 52px; }
+.paris-matrix-col { display: flex; align-items: flex-end; justify-content: center; padding: 0 1px 4px; font: var(--weight) clamp(0.52rem, 0.62vw, 0.62rem)/1.15 var(--ui); letter-spacing: -0.01em; color: var(--muted); text-align: center; background: none; border: 0; border-bottom: 2px solid transparent; cursor: pointer; overflow: hidden; }
+.paris-matrix-col[aria-pressed='true'] { color: var(--ink); border-bottom-color: var(--ink); }
+.paris-matrix-row { padding: 0 6px 0 0; font: var(--weight) 0.72rem var(--ui); color: var(--muted); text-align: right; background: none; border: 0; cursor: pointer; }
+.paris-matrix-row.is-chosen { color: var(--ink); }
+.paris-matrix-cell { min-height: 0; padding: 0; font: var(--weight) 0.66rem var(--display); background: none; border: 0; border-radius: 3px; cursor: pointer; font-variant-numeric: tabular-nums; }
+.paris-matrix-cell:not(.is-layer):not(.is-chosen):not(:hover) { color: transparent !important; }
+.paris-matrix-cell:hover { outline: 1.5px solid var(--ink); }
+.paris-matrix-cell.is-chosen { outline: 1.5px solid var(--ink); outline-offset: -1px; }
+.paris-side .paris-card-head { align-items: flex-end; }
+.paris-side-figures { display: flex; gap: 14px; font-size: 0.7rem; color: var(--muted); }
+.paris-side-figures span { display: grid; justify-items: end; }
+.paris-side-figures b { font: var(--weight) 1.2rem/1.1 var(--display); color: var(--ink); }
+.paris-radar { flex: 1 1 auto; min-height: 0; width: 100%; max-height: 260px; overflow: visible; }
+.paris-radar-grid { fill: none; stroke: var(--rule); stroke-width: 1; }
+.paris-radar-other { fill: none; stroke: var(--ink); stroke-opacity: 0.1; stroke-width: 1; }
+.paris-radar-chosen { fill: var(--accent); fill-opacity: 0.18; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; }
+.paris-radar-label { font: var(--weight) 9.5px var(--ui); fill: var(--muted); dominant-baseline: middle; }
+.paris-open { align-self: flex-start; padding: 6px 12px; font: var(--weight) 0.78rem var(--ui); color: var(--surface); background: var(--ink); border: 0; border-radius: 999px; cursor: pointer; }
+.paris-open:hover { background: var(--accent); }
+.paris-bubbles-head { display: flex; justify-content: space-between; align-items: baseline; padding-top: 8px; border-top: 1px solid var(--rule); }
+.paris-bubbles-head .muted { margin: 0; font-size: 0.7rem; }
+.paris-bubbles { flex: 1 1 auto; min-height: 0; width: 100%; max-height: 240px; overflow: visible; }
+.paris-axis { stroke: var(--rule); stroke-width: 1; }
+.paris-axis-label { font: var(--weight) 8.5px var(--ui); fill: var(--muted); }
+.paris-bubble { cursor: pointer; }
+.paris-bubble circle { fill-opacity: 0.85; stroke: var(--surface); stroke-width: 1; }
+.paris-bubble.is-chosen circle { fill-opacity: 1; stroke: var(--ink); stroke-width: 1.5; }
+.paris-bubble text { font: var(--weight) 8.5px var(--display); text-anchor: middle; dominant-baseline: middle; pointer-events: none; }
+@media (min-width: 1101px) and (max-height: 820px) {
+  .paris-kpi { padding: 6px 12px; }
+  .paris-kpi-value { font-size: 1.3rem; }
+  .paris-ranking { height: 64px; }
+  .paris-bubbles { max-height: 130px; }
+}
+
+/* the header never pushes the page wider: the search gives way first */
+.dash > * { min-width: 0; }
+.dash-head .dash-search, .dash-head .dash-search .search, .dash-head .dash-search input { min-width: 0; }
+.dash-head .dash-search .search input { width: 100%; }
+@media (max-width: 1366px) {
+  .dash-head { gap: 14px; }
 }
