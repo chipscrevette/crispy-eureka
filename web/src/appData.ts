@@ -17,7 +17,19 @@ export type Data = {
   groups: Demand['groups']
 }
 
-export async function loadData(): Promise<Data> {
+/** The data with its layer names in the page's language; the files carry the English ones. */
+export const localData = (d: Data): Data => ({
+  ...d,
+  meta: { ...d.meta, features: localFeatures(d.meta.features) },
+  scores: { ...d.scores, features: localFeatures(d.scores.features) },
+  demand: localFeatures(d.demand),
+  groups: d.groups.map((g) => ({ ...g, label: featureLabel(`demand_${g.key}`, g.label) })),
+})
+
+export const loadData = async () => localData(await loadRawData())
+
+/** The data as the files have it, in English, for a page that switches language in place. */
+export async function loadRawData(): Promise<Data> {
   const [stores, grid, meta, scores, catchments, demand] = await Promise.all([
     loadStores(),
     loadGrid(),
@@ -32,10 +44,10 @@ export async function loadData(): Promise<Data> {
       withDemand(withScores(grid, scores), demand),
       PROFILES.map((p) => scoreKey(p.id)),
     ),
-    meta: { ...meta, features: localFeatures(meta.features) },
-    scores: { ...scores, features: localFeatures(scores.features) },
+    meta,
+    scores,
     catchments,
-    demand: localFeatures(demandLayers(demand)),
-    groups: demand.groups.map((g) => ({ ...g, label: featureLabel(`demand_${g.key}`, g.label) })),
+    demand: demandLayers(demand),
+    groups: demand.groups,
   }
 }

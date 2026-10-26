@@ -1,3 +1,5 @@
+import { useSyncExternalStore } from 'react'
+
 /** The site speaks French by default and English on request; index.html sets <html lang> before the first paint. */
 export type Lang = 'fr' | 'en'
 
@@ -12,15 +14,29 @@ export const locale = () => (lang() === 'en' ? 'en-GB' : 'fr-FR')
 export const fmt = (v: number, digits = 0) =>
   v.toLocaleString(locale(), { minimumFractionDigits: digits, maximumFractionDigits: digits })
 
-/** Every text on the page follows the language, so a switch reloads the page, like the theme. */
+const listeners = new Set<() => void>()
+
+/** Switches the language in place: the page re-renders, nothing reloads. */
 export function switchLang() {
+  const next: Lang = lang() === 'en' ? 'fr' : 'en'
   try {
-    localStorage.setItem('adresse-lang', lang() === 'en' ? 'fr' : 'en')
+    localStorage.setItem('adresse-lang', next)
   } catch {
-    return
+    // the switch still works for this visit
   }
-  window.location.reload()
+  document.documentElement.lang = next
+  listeners.forEach((l) => l())
 }
+
+/** The language, as React state: a component using it re-renders, with its children, on a switch. */
+export const useLang = () =>
+  useSyncExternalStore(
+    (l) => {
+      listeners.add(l)
+      return () => listeners.delete(l)
+    },
+    lang,
+  )
 
 /** French names and descriptions of the pipeline's layers (web/public/data carries the English ones). */
 const FEATURES_FR: Record<string, [string, string]> = {

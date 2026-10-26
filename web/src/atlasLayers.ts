@@ -7,15 +7,15 @@ import { tr } from './i18n'
 
 /** The nine maps of the atlas: what the big map can show, each in its own colour. */
 export const ATLAS = [
-  { id: 'score', label: tr('Potentiel', 'Potential'), note: tr('Ressemble aux adresses du luxe', 'Looks like where luxury succeeds') },
-  { id: 'demand', label: tr('Pouvoir d’achat', 'Spending'), note: tr('Habitants, actifs, clients d’hôtel', 'Residents, workers, hotel guests') },
-  { id: 'street_footfall', label: tr('Passage', 'Footfall'), note: tr('Piétons sur le trottoir', 'People on the pavement') },
-  { id: 'transit_entries_r2', label: tr('Gares', 'Stations'), note: tr('Entrées métro et RER par jour', 'Metro and RER entries a day') },
-  { id: 'fashion_stores_r1', label: tr('Boutiques de mode', 'Fashion shops'), note: tr('Toutes les boutiques de mode autour', 'All fashion stores around') },
-  { id: 'luxury', label: tr('Luxe déjà là', 'Luxury already'), note: tr('Boutiques de ce type autour', 'Boutiques of this type around') },
-  { id: 'upscale_rooms_r1', label: tr('Hôtels', 'Hotels'), note: tr('Chambres haut de gamme autour', 'Upscale hotel rooms around') },
-  { id: 'offices_r1', label: tr('Bureaux', 'Offices'), note: tr('Entreprises autour', 'Companies around') },
-  { id: 'commercial_price_m2', label: tr('Prix des boutiques', 'Shop prices'), note: tr('Prix des locaux au m²', 'Price of shops per m²') },
+  { id: 'score', get label() { return tr('Potentiel', 'Potential') }, get note() { return tr('Ressemble aux adresses du luxe', 'Looks like where luxury succeeds') } },
+  { id: 'demand', get label() { return tr('Pouvoir d’achat', 'Spending') }, get note() { return tr('Habitants, actifs, clients d’hôtel', 'Residents, workers, hotel guests') } },
+  { id: 'street_footfall', get label() { return tr('Passage', 'Footfall') }, get note() { return tr('Piétons sur le trottoir', 'People on the pavement') } },
+  { id: 'transit_entries_r2', get label() { return tr('Gares', 'Stations') }, get note() { return tr('Entrées métro et RER par jour', 'Metro and RER entries a day') } },
+  { id: 'fashion_stores_r1', get label() { return tr('Boutiques de mode', 'Fashion shops') }, get note() { return tr('Toutes les boutiques de mode autour', 'All fashion stores around') } },
+  { id: 'luxury', get label() { return tr('Luxe déjà là', 'Luxury already') }, get note() { return tr('Boutiques de ce type autour', 'Boutiques of this type around') } },
+  { id: 'upscale_rooms_r1', get label() { return tr('Hôtels', 'Hotels') }, get note() { return tr('Chambres haut de gamme autour', 'Upscale hotel rooms around') } },
+  { id: 'offices_r1', get label() { return tr('Bureaux', 'Offices') }, get note() { return tr('Entreprises autour', 'Companies around') } },
+  { id: 'commercial_price_m2', get label() { return tr('Prix des boutiques', 'Shop prices') }, get note() { return tr('Prix des locaux au m²', 'Price of shops per m²') } },
 ] as const
 
 /** The grid property a layer reads; potential and luxury depend on the type of brand. */

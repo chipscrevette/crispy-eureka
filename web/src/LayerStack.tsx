@@ -20,17 +20,17 @@ type Layer = { id: string; label: string; value: (v: number) => string }
 const LAYERS: Layer[] = [
   {
     id: 'demand',
-    label: tr('Pouvoir d’achat', 'Spending'),
+    get label() { return tr('Pouvoir d’achat', 'Spending') },
     value: (v) => tr(`${fmt(v / 100, 1)}× la moyenne de Paris`, `${(v / 100).toFixed(1)}× the Paris average`),
   },
   {
     id: 'street_footfall',
-    label: tr('Passage', 'Footfall'),
+    get label() { return tr('Passage', 'Footfall') },
     value: (v) => tr(`${fmt(v, 1)}× une rue type`, `${v.toFixed(1)}× a typical street`),
   },
   {
     id: 'transit_entries_r2',
-    label: tr('Gares', 'Stations'),
+    get label() { return tr('Gares', 'Stations') },
     value: (v) => {
       const n = v >= 1000 ? `${Math.round(v / 1000)}k` : Math.round(v)
       return tr(`${n} entrées par jour`, `${n} entries a day nearby`)
@@ -38,18 +38,18 @@ const LAYERS: Layer[] = [
   },
   {
     id: 'fashion_stores_r1',
-    label: tr('Mode', 'Fashion shops'),
+    get label() { return tr('Mode', 'Fashion shops') },
     value: (v) => tr(`${Math.round(v)} boutiques de mode`, `${Math.round(v)} fashion stores around`),
   },
   {
     id: 'luxury',
-    label: tr('Luxe déjà là', 'Luxury already'),
+    get label() { return tr('Luxe déjà là', 'Luxury already') },
     value: (v) =>
       v
         ? tr(`${v} boutique${v === 1 ? '' : 's'} de ce type autour`, `${v} boutique${v === 1 ? '' : 's'} of this type around`)
         : tr('Aucune de ce type autour', 'None of this type around yet'),
   },
-  { id: 'score', label: tr('Potentiel', 'Potential'), value: (v) => `${Math.round(v)} / 100` },
+  { id: 'score', get label() { return tr('Potentiel', 'Potential') }, value: (v) => `${Math.round(v)} / 100` },
 ]
 
 /** Where the block stands in Paris on one value, in plain words. */
