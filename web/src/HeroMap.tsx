@@ -137,8 +137,8 @@ export default function HeroMap(props: {
     if (!pts.length) return all
     const [x0, x1] = [Math.min(...pts.map((q) => q[0])), Math.max(...pts.map((q) => q[0]))]
     const [y0, y1] = [Math.min(...pts.map((q) => q[1])), Math.max(...pts.map((q) => q[1]))]
-    // a margin around, and never closer than about a tenth of Paris
-    const side = Math.max(x1 - x0, y1 - y0, 0.12)
+    // a margin around, and never closer than about a fifth of Paris
+    const side = Math.max(x1 - x0, y1 - y0, 0.2)
     const pad = side * 0.18
     const [cx, cy] = [(x0 + x1) / 2, (y0 + y1) / 2]
     const [w, h] = [Math.max(x1 - x0, side / 2) + 2 * pad, Math.max(y1 - y0, side / 2) + 2 * pad]
