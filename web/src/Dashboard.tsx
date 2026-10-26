@@ -212,6 +212,8 @@ export default function Dashboard() {
     }
     return rows
   }, [data, cells, key, profile])
+  // the widest walk around the chosen block, which the block's own map frames
+  const walkFocus = useMemo(() => (rings ? new Set(rings.keys()) : null), [rings])
   // the blocks of the arrondissement framed in its view
   const arrFocus = useMemo(
     () => (arr && data ? new Set(data.grid.features.filter((f) => f.properties.arrondissement && short(f.properties) === arr).map((f) => f.properties.cell)) : null),
@@ -470,6 +472,39 @@ export default function Dashboard() {
                   <div className="dash-subcard">
                     <p className="dash-kicker">{tr('Le bloc pour chaque type de marque', 'The block for each type of brand')}</p>
                     <Profiles data={data} block={block} profile={profile} onProfile={(p) => set({ profile: p })} onBlock={(c) => set({ cell: c })} />
+                  </div>
+                </div>
+                <div className="view-block-walk">
+                  <HeroMap
+                    data={data}
+                    profile={profile}
+                    layer={layer}
+                    cell={cell}
+                    dots={fresh ? 'free' : 'boutiques'}
+                    open={open}
+                    zone={zone}
+                    rings={rings}
+                    minutes={walkMin}
+                    focus={walkFocus}
+                    pin={found?.at ?? null}
+                    brand={null}
+                    placed={placed}
+                    borders={borders}
+                    network={network}
+                    onBlock={(c) => (c ? set({ cell: c }) : allParis())}
+                  />
+                  <div className="view-block-walk-side">
+                    <p className="dash-kicker">{tr('Autour, à pied', 'Around, on foot')}</p>
+                    <WalkSwitch bands={zones?.bands ?? [5, 10, 15, 20]} minutes={walkMin} onMinutes={setMinutes} />
+                    {zone && (
+                      <WalkFigures
+                        z={zoneStats(data, profile, zone, placed, stationCells)}
+                        onMetric={(m) => {
+                          setView(null)
+                          setDetail(m)
+                        }}
+                      />
+                    )}
                   </div>
                 </div>
               </section>
@@ -1166,6 +1201,19 @@ function WalkSwitch(props: { bands: number[]; minutes: number; onMinutes: (m: nu
   )
 }
 
+/** The walk's four numbers, each opening its own view. */
+function WalkFigures(props: { z: ReturnType<typeof zoneStats>; onMetric: (m: Metric) => void }) {
+  const { z, onMetric } = props
+  return (
+    <div className="dash-tiles-2">
+      <Figure value={fmt(z.free)} label={tr('places libres', 'free spots')} accent onClick={() => onMetric('free')} />
+      <Figure value={fmt(z.boutiques)} label={tr('boutiques de ce type', 'boutiques of this type')} onClick={() => onMetric('boutiques')} />
+      <Figure value={kilo(z.entries)} label={tr('entrées en gare / jour', 'station entries / day')} onClick={() => onMetric('stations')} />
+      <Figure value={z.spendAvg === null ? '–' : `${fmt(z.spendAvg / 100, 1)}×`} label={tr('pouvoir d’achat vs Paris', 'spending vs Paris')} onClick={() => onMetric('spending')} />
+    </div>
+  )
+}
+
 /** Beside the map: the walk around the chosen block, its length to choose, its four numbers, its stations and brands. */
 function WalkCard(props: {
   data: Data
@@ -1190,12 +1238,7 @@ function WalkCard(props: {
           <p className="dash-kicker">{tr('À pied, le long des rues', 'On foot, along the streets')}</p>
           <WalkSwitch bands={props.bands} minutes={props.minutes} onMinutes={props.onMinutes} />
         </div>
-        <div className="dash-tiles-2">
-          <Figure value={fmt(z.free)} label={tr('places libres', 'free spots')} accent onClick={() => onMetric('free')} />
-          <Figure value={fmt(z.boutiques)} label={tr('boutiques de ce type', 'boutiques of this type')} onClick={() => onMetric('boutiques')} />
-          <Figure value={kilo(z.entries)} label={tr('entrées en gare / jour', 'station entries / day')} onClick={() => onMetric('stations')} />
-          <Figure value={z.spendAvg === null ? '–' : `${fmt(z.spendAvg / 100, 1)}×`} label={tr('pouvoir d’achat vs Paris', 'spending vs Paris')} onClick={() => onMetric('spending')} />
-        </div>
+        <WalkFigures z={z} onMetric={onMetric} />
       </section>
       <section className="dash-card dash-walk-lists">
         <button className="dash-list-head" onClick={() => onMetric('stations')}>

@@ -113,10 +113,14 @@ export default function Detail(props: {
     return z.near.flatMap((s, i) => {
       const f = at.get(s.cell)
       const p = s.at ?? (f ? centre(f.geometry.coordinates[0]) : null)
-      return p ? [{ at: p, size: s.p.entries / top, colour, label: i < 5 ? s.p.name : undefined }] : []
+      const badges = (s.p.lines ?? []).flatMap((l) => {
+        const c = props.colours?.get(l)
+        return c ? [{ label: l.startsWith('RER ') ? l.slice(4) : l.replace('bis', 'b'), colour: c.colour, ink: c.text, rer: l.startsWith('RER ') }] : []
+      })
+      return p ? [{ at: p, size: s.p.entries / top, colour, badges, label: i < 5 ? `${s.p.name} · ${kilo(s.p.entries)}` : undefined }] : []
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps -- the ramp follows the theme
-  }, [metric, z, data, theme])
+  }, [metric, z, data, props.colours, theme])
 
   return (
     <main className="dash-page detail">
@@ -146,11 +150,12 @@ export default function Detail(props: {
           dots={m.dots}
           marks={marks}
           muted={metric === 'stations' ? coloursOf(rampFor('transit'))[0] : undefined}
+          transit={metric === 'stations'}
           open={props.open}
           zone={here.zone}
           rings={rings}
           minutes={minutes}
-          focus={byBand[byBand.length - 1].zone}
+          focus={metric === 'stations' ? here.zone : byBand[byBand.length - 1].zone}
           pin={null}
           brand={null}
           placed={placed}
@@ -162,6 +167,7 @@ export default function Detail(props: {
 
       <section className="dash-card detail-side">
         <div className="detail-headline">
+          <Picto metric={metric} colour={m.colour(profile)} />
           <span className="dash-figure-value">{m.text(m.value(z))}</span>
           <span className="dash-figure-label">{m.label()}</span>
           <p className="muted">{headline(metric, data, profile, z)}</p>
@@ -245,21 +251,31 @@ function StationsChart(props: { z: Stats; colours: LineColours | null }) {
   if (!rows.length) return <p className="dash-empty">{tr('Aucune gare dans la zone.', 'No station in the walk.')}</p>
   const max = rows[0].p.entries
   const colour = coloursOf(rampFor('transit'))[3]
+  // every line that stops in the walk, metro first then RER, in the order of their names
+  const lines = [...new Set(props.z.near.flatMap((s) => s.p.lines ?? []))].sort((a, b) => Number(a.startsWith('RER')) - Number(b.startsWith('RER')) || a.localeCompare(b, undefined, { numeric: true }))
   return (
-    <ul className="detail-bars">
-      {rows.map((s) => (
-        <li key={s.p.name}>
-          <span className="detail-bar-name">
-            <span className="tip-badges" dangerouslySetInnerHTML={{ __html: props.colours ? (s.p.lines ?? []).map((l) => badgeHtml(l, props.colours!)).join('') : '' }} />
-            {s.p.name}
-          </span>
-          <span className="dash-brand-track">
-            <span style={{ width: `${(s.p.entries / max) * 100}%`, background: colour }} />
-          </span>
-          <span className="muted">{kilo(s.p.entries)}</span>
-        </li>
-      ))}
-    </ul>
+    <>
+      <ul className="detail-bars">
+        {rows.map((s) => (
+          <li key={s.p.name}>
+            <span className="detail-bar-name">
+              <span className="tip-badges" dangerouslySetInnerHTML={{ __html: props.colours ? (s.p.lines ?? []).map((l) => badgeHtml(l, props.colours!)).join('') : '' }} />
+              {s.p.name}
+            </span>
+            <span className="dash-brand-track">
+              <span style={{ width: `${(s.p.entries / max) * 100}%`, background: colour }} />
+            </span>
+            <span className="muted">{kilo(s.p.entries)}</span>
+          </li>
+        ))}
+      </ul>
+      {props.colours && lines.length > 0 && (
+        <div className="detail-lines">
+          <p className="dash-kicker">{tr(`${lines.length} lignes desservent la zone`, `${lines.length} lines serve the walk`)}</p>
+          <span className="tip-badges" dangerouslySetInnerHTML={{ __html: lines.map((l) => badgeHtml(l, props.colours!)).join('') }} />
+        </div>
+      )}
+    </>
   )
 }
 
@@ -343,5 +359,22 @@ function SpendingChart(props: { data: Data; zone: Set<string> }) {
       </ul>
       <p className="dash-note muted">{tr('Trait : moyenne de Paris (100).', 'Line: the Paris average (100).')}</p>
     </>
+  )
+}
+
+/** Each view's own pictogram, in its colour: a train, a pin, a shopping bag, a wallet. Our own drawings. */
+function Picto(props: { metric: Metric; colour: string }) {
+  const paths: Record<Metric, string> = {
+    stations: 'M7 3h10a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3Zm-3 8h16M8 15h.01M16 15h.01M8 18l-2 3M16 18l2 3',
+    free: 'M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21Zm0-9a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z',
+    boutiques: 'M5 8h14l-1 12H6L5 8Zm4 0V6a3 3 0 0 1 6 0v2',
+    spending: 'M4 7a2 2 0 0 1 2-2h12v4M4 7v10a2 2 0 0 0 2 2h14V9H6a2 2 0 0 1-2-2Zm12 7h.01',
+  }
+  return (
+    <span className="detail-picto" style={{ color: props.colour, background: `${props.colour}1f` }} aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d={paths[props.metric]} />
+      </svg>
+    </span>
   )
 }
