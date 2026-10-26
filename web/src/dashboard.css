@@ -528,6 +528,33 @@ button.dash-figure:hover .dash-figure-open, button.dash-figure:focus-visible .da
   .dash-side-profiles { display: none !important; }
 }
 
+.dash-flower-row { display: grid; grid-template-columns: minmax(0, 1fr) clamp(190px, 30vh, 290px) minmax(0, 1fr); align-items: center; gap: 16px; }
+.dash-flower-row .dash-flower { max-width: none; margin: 0; }
+.dash-petal-side { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.dash-petal-side button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 3px 0;
+  font: var(--weight) 0.82rem var(--ui);
+  color: var(--ink);
+  text-align: left;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.dash-petal-side.values button { justify-content: flex-end; color: var(--muted); font-variant-numeric: tabular-nums; }
+.dash-petal-side .key-dot { width: 8px; height: 8px; flex: none; border-radius: 50%; }
+.dash-petal-side button:hover, .dash-petal-side button[aria-pressed='true'] { color: var(--accent); }
+.dash-petal-side button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.view-block { grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.4fr); }
+.view-block-side { overflow: hidden !important; gap: 10px !important; }
+.view-block-side .dash-subcard { padding-top: 10px; }
+.view-block-pair { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 28px; }
+.view-block-pair .dash-drivers li { grid-template-columns: minmax(0, 1fr) 70px 40px; }
+.view-block-pair .dash-rings svg { width: 54px; height: 54px; }
+
 /* Smaller screens: the sections stack and the page scrolls; a computer screen keeps one section per screen */
 @media (max-width: 1100px), (max-height: 640px) {
   .dash { height: auto; overflow: visible; }

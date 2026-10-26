@@ -462,13 +462,15 @@ export default function Dashboard() {
                   }}
                   head={false}
                 />
-                <div className="dash-subcard">
-                  <p className="dash-kicker">{tr('Ce qui fait la note du bloc', 'What makes the block’s score')}</p>
-                  <Drivers data={data} profile={profile} block={block} />
-                </div>
-                <div className="dash-subcard">
-                  <p className="dash-kicker">{tr('Le bloc pour chaque type de marque', 'The block for each type of brand')}</p>
-                  <Profiles data={data} block={block} profile={profile} onProfile={(p) => set({ profile: p })} onBlock={(c) => set({ cell: c })} />
+                <div className="view-block-pair">
+                  <div className="dash-subcard">
+                    <p className="dash-kicker">{tr('Ce qui fait la note du bloc', 'What makes the block’s score')}</p>
+                    <Drivers data={data} profile={profile} block={block} />
+                  </div>
+                  <div className="dash-subcard">
+                    <p className="dash-kicker">{tr('Le bloc pour chaque type de marque', 'The block for each type of brand')}</p>
+                    <Profiles data={data} block={block} profile={profile} onProfile={(p) => set({ profile: p })} onBlock={(c) => set({ cell: c })} />
+                  </div>
                 </div>
               </section>
             </main>
@@ -754,32 +756,43 @@ function Portrait(props: {
       </p>
         </>
       )}
-      <svg className="dash-flower" viewBox={`0 0 ${size} ${size}`} role="img" aria-label={tr('Les raisons, couche par couche', 'The reasons, layer by layer')}>
-        {petals.map((p, i) => (
-          <g key={p.id} className="dash-petal" onClick={() => props.onLayer(p.id)}>
-            <path d={petalPath(i, 100)} className="dash-petal-track" />
-            <path d={petalPath(i, p.share)} fill={p.colour} opacity={layer === p.id || !REASONS.some((r) => r.id === layer) ? 1 : 0.45} />
-            <title>{`${p.label} : ${p.text}`}</title>
-          </g>
-        ))}
-        <text x={c} y={c + 2} textAnchor="middle" className="dash-flower-score">
-          {score === null ? (block ? '–' : fmt(open.length)) : Math.round(score)}
-        </text>
-        <text x={c} y={c + 22} textAnchor="middle" className="dash-flower-unit">
-          {score === null ? (block ? '' : tr('places', 'spots')) : '/ 100'}
-        </text>
-      </svg>
-      <ul className="dash-petal-keys">
-        {petals.map((p) => (
-          <li key={p.id}>
-            <button aria-pressed={layer === p.id} onClick={() => props.onLayer(p.id)}>
-              <span className="key-dot" style={{ background: p.colour }} aria-hidden="true" />
-              <span className="dash-petal-name">{p.label}</span>
-              <span className="muted">{p.text}</span>
-            </button>
-          </li>
-        ))}
-      </ul>
+      {/* the names on the left of the flower, the block's values on the right, row for row */}
+      <div className="dash-flower-row">
+        <ul className="dash-petal-side">
+          {petals.map((p) => (
+            <li key={p.id}>
+              <button aria-pressed={layer === p.id} onClick={() => props.onLayer(p.id)}>
+                <span className="key-dot" style={{ background: p.colour }} aria-hidden="true" />
+                <span className="dash-petal-name">{p.label}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+        <svg className="dash-flower" viewBox={`0 0 ${size} ${size}`} role="img" aria-label={tr('Les raisons, couche par couche', 'The reasons, layer by layer')}>
+          {petals.map((p, i) => (
+            <g key={p.id} className="dash-petal" onClick={() => props.onLayer(p.id)}>
+              <path d={petalPath(i, 100)} className="dash-petal-track" />
+              <path d={petalPath(i, p.share)} fill={p.colour} opacity={layer === p.id || !REASONS.some((r) => r.id === layer) ? 1 : 0.45} />
+              <title>{`${p.label} : ${p.text}`}</title>
+            </g>
+          ))}
+          <text x={c} y={c + 2} textAnchor="middle" className="dash-flower-score">
+            {score === null ? (block ? '–' : fmt(open.length)) : Math.round(score)}
+          </text>
+          <text x={c} y={c + 22} textAnchor="middle" className="dash-flower-unit">
+            {score === null ? (block ? '' : tr('places', 'spots')) : '/ 100'}
+          </text>
+        </svg>
+        <ul className="dash-petal-side values">
+          {petals.map((p) => (
+            <li key={p.id}>
+              <button aria-pressed={layer === p.id} onClick={() => props.onLayer(p.id)}>
+                {p.text}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
       {block && props.onClear && (
         <button className="dash-clear" onClick={props.onClear}>
           {tr('← Tout Paris', '← All of Paris')}
