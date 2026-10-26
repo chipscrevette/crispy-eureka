@@ -10,7 +10,8 @@ import type { Network } from './network'
 import { profileColour, walkColour } from './palette'
 import type { ProfileId } from './stores'
 
-export type Mark = { at: LonLat; r: number; colour: string; ring?: string; label?: string }
+/** A point of a detail view: a soft glow as large as its weight, with a small solid core in `core`'s colour. */
+export type Mark = { at: LonLat; r: number; /** #rrggbb */ colour: string; core: string; label?: string }
 
 type View = { x: number; y: number; w: number; h: number }
 const lerp = (a: View, b: View, k: number): View => ({ x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k, w: a.w + (b.w - a.w) * k, h: a.h + (b.h - a.h) * k })
@@ -278,19 +279,29 @@ export default function HeroMap(props: {
         }
       }
       if (marks?.length) {
-        // the detail's points, largest first so the small ones stay on top, each ringed so it reads on any colour
+        // the detail's points, largest first so the small ones stay on top: a soft glow for the
+        // weight, a small solid core for the place, and no outline
         const grow = Math.min(Math.sqrt(zoom), 2)
         for (const m of [...marks].sort((a, b) => b.r - a.r)) {
           const [x, y] = outline.project(m.at)
+          const [cx, cy, r] = [ox + x * s, oy + y * s, m.r * grow]
+          // a glow that fades to nothing at its edge, so neighbours blend instead of overlapping
+          const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, r)
+          // the colour itself fades out, never towards black, so the edge never greys
+          glow.addColorStop(0, m.colour)
+          glow.addColorStop(0.35, `${m.colour}b0`)
+          glow.addColorStop(1, `${m.colour}00`)
           ctx.beginPath()
-          ctx.arc(ox + x * s, oy + y * s, m.r * grow, 0, 2 * Math.PI)
-          ctx.globalAlpha = 0.88
-          ctx.fillStyle = m.colour
+          ctx.arc(cx, cy, r, 0, 2 * Math.PI)
+          ctx.fillStyle = glow
           ctx.fill()
-          ctx.globalAlpha = 1
-          ctx.strokeStyle = m.ring ?? surface
-          ctx.lineWidth = 1.5
-          ctx.stroke()
+        }
+        for (const m of marks) {
+          const [x, y] = outline.project(m.at)
+          ctx.beginPath()
+          ctx.arc(ox + x * s, oy + y * s, 2.6 * Math.min(grow, 1.4), 0, 2 * Math.PI)
+          ctx.fillStyle = m.core
+          ctx.fill()
         }
         // names on a halo, skipped where they would run into one already written
         ctx.font = `500 11px ${css('--ui')}`

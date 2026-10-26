@@ -108,16 +108,16 @@ export default function Detail(props: {
   const theme = useTheme()
   const marks = useMemo<Mark[]>(() => {
     if (metric !== 'stations') return []
-    // white rounds with a dark ring, as on a metro map, so they read on the stations' own colours
-    const [colour, ring] = [cssVar('--surface'), cssVar('--ink')]
+    // an amber glow, the violet's opposite, lights up on the stations' layer; the core takes the station's first line colour
+    const [colour, ink] = [coloursOf(rampFor('hotels'))[2], cssVar('--ink')]
     const at = new Map(data.grid.features.map((f) => [f.properties.cell, f]))
     return z.near.flatMap((s, i) => {
       const f = at.get(s.cell)
       const p = s.at ?? (f ? centre(f.geometry.coordinates[0]) : null)
-      return p ? [{ at: p, r: 2.5 + Math.sqrt(s.p.entries) / 30, colour, label: i < 5 ? s.p.name : undefined, ring }] : []
+      return p ? [{ at: p, r: 5 + Math.sqrt(s.p.entries) / 10, colour, core: props.colours?.get(s.p.lines?.[0] ?? '')?.colour ?? ink, label: i < 5 ? s.p.name : undefined }] : []
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps -- cssVar reads the theme
-  }, [metric, z, data, theme])
+  }, [metric, z, data, props.colours, theme])
 
   return (
     <main className="dash-page detail">
