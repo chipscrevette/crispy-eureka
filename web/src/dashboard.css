@@ -345,6 +345,105 @@
 .dash-station-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dash-empty { margin: 0; font-size: 0.85rem; color: var(--muted); }
 
+/* a number that opens its own view: it reads as a number, the arrow says it opens */
+button.dash-figure {
+  position: relative;
+  justify-items: start;
+  margin: -6px -10px;
+  padding: 6px 28px 6px 10px;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background: none;
+  border: 0;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+button.dash-figure:hover { background: var(--seine-soft); }
+button.dash-figure:focus-visible { outline: 2px solid var(--accent); outline-offset: 0; }
+.dash-figure-open { position: absolute; top: 8px; right: 8px; font-size: 0.85rem; color: var(--muted); opacity: 0.45; transition: opacity 0.15s; }
+button.dash-figure:hover .dash-figure-open, button.dash-figure:focus-visible .dash-figure-open { opacity: 1; }
+
+/* one number opened up: the tabs of the four numbers, its map, its chart */
+.detail {
+  grid-template-columns: minmax(0, 1fr) clamp(380px, 32vw, 520px);
+  grid-template-rows: auto minmax(0, 1fr);
+  animation: detail-in 0.25s ease-out;
+}
+@keyframes detail-in { from { opacity: 0; transform: translateY(6px); } }
+.detail-head { grid-column: 1 / -1; display: flex; align-items: center; gap: 20px; }
+.detail-back {
+  flex: none;
+  padding: 7px 14px;
+  font: var(--weight) 0.82rem var(--ui);
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.detail-back:hover { border-color: var(--muted); }
+.detail-head .dash-kicker { flex: none; }
+.detail-tabs { display: flex; gap: 6px; margin-left: auto; padding: 4px; background: var(--seine-soft); border-radius: 14px; }
+.detail-tabs button {
+  display: grid;
+  min-width: 128px;
+  padding: 6px 14px;
+  font: inherit;
+  color: var(--muted);
+  text-align: left;
+  background: none;
+  border: 0;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.detail-tabs button:hover { color: var(--ink); }
+.detail-tabs button[aria-current='true'] { color: var(--ink); background: var(--surface); }
+.detail-tab-value { font: var(--weight) 1.25rem/1.1 var(--display); letter-spacing: -0.02em; }
+.detail-tab-label { font-size: 0.72rem; }
+.detail-map { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); padding: 12px; }
+.detail-side { display: flex; flex-direction: column; gap: 18px; padding: 22px 24px; }
+.detail-headline { display: grid; }
+.detail-headline .dash-figure-value { font-size: 3.4rem; }
+.detail-headline > p { margin: 8px 0 0; font-size: 0.88rem; line-height: 1.45; }
+.detail-chart { display: grid; gap: 6px; }
+.detail-bars { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
+.detail-bars li, .detail-bars button {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.82rem;
+}
+.detail-bars li:has(> button) { display: block; }
+.detail-bars button { width: 100%; padding: 2px 0; font: inherit; color: var(--ink); text-align: left; background: none; border: 0; cursor: pointer; }
+.detail-bars button:hover .detail-bar-name { color: var(--accent); }
+.detail-bars .muted { text-align: right; font-variant-numeric: tabular-nums; }
+.detail-bar-name { display: flex; align-items: center; gap: 6px; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.detail-bar-name .tip-badges { flex: none; }
+.detail-paris { position: absolute; top: -3px; bottom: -3px; width: 1px; background: var(--ink); opacity: 0.5; }
+.detail-bands { display: grid; gap: 10px; margin-top: auto; }
+.detail-band-bars { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; height: 120px; }
+.detail-band-bars button {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 4px;
+  padding: 0;
+  font: inherit;
+  color: var(--muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.detail-band-bars button[aria-pressed='true'] { color: var(--ink); }
+.detail-band-bars button:not([aria-pressed='true']) .detail-band-bar { opacity: 0.45; }
+.detail-band-bars button:hover .detail-band-bar { opacity: 1; }
+.detail-band-value { font: var(--weight) 0.9rem var(--display); font-variant-numeric: tabular-nums; }
+.detail-band-bar { align-self: end; width: 100%; border-radius: 6px 6px 2px 2px; transition: height 0.3s, opacity 0.15s; }
+.detail-band-label { font-size: 0.75rem; }
+.detail-side > .dash-note { margin: 0; }
+
 /* Smaller screens: the sections stack and the page scrolls; a computer screen keeps one section per screen */
 @media (max-width: 1100px), (max-height: 640px) {
   .dash { height: auto; overflow: visible; }
