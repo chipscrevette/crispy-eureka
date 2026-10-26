@@ -17,6 +17,7 @@ import { kilo, num, short, valueText, zoneStats, type Placed } from './blocks'
 import Search, { type Address } from './Search'
 import { bandsOf, fromCatchments, loadWalkZones, type WalkZones } from './walkZones'
 import { loadStations, type Stations } from './stations'
+import ParisView from './ParisView'
 import { badgeHtml, lineColours, loadNetwork, type LineColours, type Network } from './network'
 
 const pc = () => (lang() === 'fr' ? ' %' : '%')
@@ -32,6 +33,7 @@ const REASONS = ATLAS.filter((l) => l.id !== 'score')
 
 const SECTIONS = [
   { id: 'overview', get label() { return tr('Vue d’ensemble', 'Overview') } },
+  { id: 'paris', get label() { return tr('Paris en chiffres', 'Paris in numbers') } },
   { id: 'method', get label() { return tr('Méthode', 'Method') } },
 ] as const
 type Section = (typeof SECTIONS)[number]['id']
@@ -602,6 +604,20 @@ export default function Dashboard() {
                 <Brands data={data} profile={profile} brand={brand} onBrand={setBrand} />
               </section>
             </main>
+          )}
+
+          {section === 'paris' && (
+            <ParisView
+              data={data}
+              profile={profile}
+              borders={borders}
+              placed={placed}
+              stations={stationCells}
+              onBlock={(c) => {
+                go('overview')
+                set({ cell: c })
+              }}
+            />
           )}
 
           {section === 'method' && (
