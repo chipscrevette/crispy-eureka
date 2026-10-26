@@ -444,6 +444,14 @@ button.dash-figure:hover .dash-figure-open, button.dash-figure:focus-visible .da
 .detail-band-label { font-size: 0.75rem; }
 .detail-side > .dash-note { margin: 0; }
 
+/* the views that open over the overview: the block in full, the arrondissements, the brands */
+.view-title { display: grid; gap: 2px; }
+.view-title .dash-title { margin: 0; font-size: 1.6rem; }
+.view-note { margin: 0; font-size: 0.85rem; line-height: 1.45; }
+.view-block { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); }
+.view-block-side { display: flex; flex-direction: column; gap: 14px; }
+.detail-side .dash-ranking { min-height: 0; }
+
 /* Smaller screens: the sections stack and the page scrolls; a computer screen keeps one section per screen */
 @media (max-width: 1100px), (max-height: 640px) {
   .dash { height: auto; overflow: visible; }
