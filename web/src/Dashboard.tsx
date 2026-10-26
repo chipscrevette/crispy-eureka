@@ -1,24 +1,24 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { loadRawData, localData, type Data } from './appData'
-import { ATLAS, atlasKey, cssVar as css, fills, shadeOf, sizeCanvas, useOutline } from './atlasLayers'
+import { ATLAS, atlasKey, shadeOf } from './atlasLayers'
 import { loadBorders, type Borders } from './borders'
 import { OPEN_RULE, openKey } from './dashboardData'
 import { cellAt, cellIndex, type LonLat } from './geo'
-import { formatValue, type CellProps } from './grid'
+import type { CellProps } from './grid'
 import { fmt, lang, switchLang, tr, useLang } from './i18n'
 import { coloursOf, isDark, profileColour, rampFor, switchTheme, useTheme, walkColour } from './palette'
-import { SCORE_BREAKS, ordinal, placeOf, rankText, scoreKey } from './scores'
+import { SCORE_BREAKS, ordinal, rankText, scoreKey } from './scores'
 import { PROFILES, countByProfile, type ProfileId } from './stores'
 import type { Shared } from './sync'
 import LayerStack from './LayerStack'
+import HeroMap from './HeroMap'
+import Detail, { type Metric } from './Detail'
+import { kilo, num, short, valueText, zoneStats, type Placed } from './blocks'
 import Search, { type Address } from './Search'
 import { bandsOf, fromCatchments, loadWalkZones, type WalkZones } from './walkZones'
 import { loadStations, type Stations } from './stations'
 import { badgeHtml, lineColours, loadNetwork, type LineColours, type Network } from './network'
 
-/** "Paris 8e Arrondissement" → "8e". */
-const short = (p: CellProps) => placeOf(p).replace(/^Paris /, '').replace(/ Arrondissement$/, '')
-const num = (p: CellProps, k: string) => (typeof p[k] === 'number' ? (p[k] as number) : null)
 const pc = () => (lang() === 'fr' ? ' %' : '%')
 
 const SHORT: Record<ProfileId, string> = {
@@ -84,6 +84,7 @@ export default function Dashboard() {
   const [section, setSection] = useState<Section>(readSection)
   const go = (id: Section) => {
     setSection(id)
+    setDetail(null)
     window.history.replaceState(null, '', `#${id}`)
     window.scrollTo(0, 0)
   }
@@ -109,6 +110,8 @@ export default function Dashboard() {
   // a searched address: its pin, and the map closes in on its widest walk until "All of Paris"
   const [found, setFound] = useState<(Address & { cell: string }) | null>(null)
   const [searchNote, setSearchNote] = useState('')
+  // one number of the walk opened up in its own view, until Back or Escape
+  const [detail, setDetail] = useState<Metric | null>(null)
   const focus = useMemo(() => (found && zones ? new Set(bandsOf(zones, found.cell).keys()) : null), [found, zones])
   // one brand picked in the legend: its boutiques stand out on the map
   const [brand, setBrand] = useState<string | null>(null)
@@ -125,8 +128,8 @@ export default function Dashboard() {
   const stationCells = useMemo(() => {
     if (!data || !stations) return []
     return stations.features
-      .map((f) => ({ p: f.properties, cell: cellAt(data.grid, f.geometry.coordinates as [number, number]) }))
-      .filter((x): x is { p: (typeof x)['p']; cell: string } => !!x.cell)
+      .map((f) => ({ p: f.properties, at: f.geometry.coordinates as LonLat, cell: cellAt(data.grid, f.geometry.coordinates as [number, number]) }))
+      .filter((x): x is Placed & { at: LonLat } => !!x.cell)
   }, [data, stations])
 
   const brandStores = useMemo(
@@ -303,7 +306,29 @@ export default function Dashboard() {
             ))}
           </nav>
 
-          {section === 'overview' && (
+          {section === 'overview' && detail && block && rings && (
+            <Detail
+              metric={detail}
+              onMetric={setDetail}
+              onClose={() => setDetail(null)}
+              data={data}
+              profile={profile}
+              block={block}
+              rings={rings}
+              bands={zones?.bands ?? [5, 10, 15, 20]}
+              minutes={walkMin}
+              onMinutes={setMinutes}
+              placed={placed}
+              stations={stationCells}
+              colours={colours}
+              open={open}
+              borders={borders}
+              network={network}
+              onBlock={(c) => set({ cell: c })}
+            />
+          )}
+
+          {section === 'overview' && !(detail && block && rings) && (
             <main className="dash-page dash-overview">
               <section className="dash-hero" aria-label={tr('Carte', 'Map')}>
                 <div className="dash-hero-head">
@@ -329,7 +354,7 @@ export default function Dashboard() {
                   profile={profile}
                   layer={layer}
                   cell={cell}
-                  fresh={fresh}
+                  dots={fresh ? 'free' : 'boutiques'}
                   open={open}
                   zone={zone}
                   rings={rings}
@@ -352,6 +377,7 @@ export default function Dashboard() {
                   zone={block ? zone : null}
                   placed={placed}
                   stations={stationCells}
+                  onMetric={setDetail}
                 />
               </section>
 
@@ -419,6 +445,7 @@ export default function Dashboard() {
                       placed={placed}
                       stations={stationCells}
                       colours={colours}
+                      onMetric={setDetail}
                     />
                     <div className="dash-subcard">
                       <p className="dash-kicker">{tr('Le bloc pour chaque type de marque', 'The block for each type of brand')}</p>
@@ -488,7 +515,7 @@ export default function Dashboard() {
                   profile={profile}
                   layer={layer}
                   cell={cell}
-                  fresh={false}
+                  dots="boutiques"
                   open={open}
                   zone={null}
                   rings={null}
@@ -545,440 +572,21 @@ export default function Dashboard() {
   )
 }
 
-function Figure(props: { value: string; label: string; accent?: boolean }) {
-  return (
-    <p className={props.accent ? 'dash-figure accent' : 'dash-figure'}>
+/** A number and what it counts; with `onClick`, a button that opens the number's own view. */
+function Figure(props: { value: string; label: string; accent?: boolean; onClick?: () => void }) {
+  const className = props.accent ? 'dash-figure accent' : 'dash-figure'
+  const body = (
+    <>
       <span className="dash-figure-value">{props.value}</span>
       <span className="dash-figure-label">{props.label}</span>
-    </p>
+    </>
   )
-}
-
-type View = { x: number; y: number; w: number; h: number }
-const lerp = (a: View, b: View, k: number): View => ({ x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k, w: a.w + (b.w - a.w) * k, h: a.h + (b.h - a.h) * k })
-const sameView = (a: View, b: View) => a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h
-
-type Pt = [number, number]
-
-/** The outline of a set of blocks as closed loops: the edges no two of its blocks share, chained end to end. */
-function loopsOf(blocks: { ring: Pt[] }[]): Pt[][] {
-  const at = (q: Pt) => `${q[0].toFixed(6)},${q[1].toFixed(6)}`
-  const edges = new Map<string, [Pt, Pt]>()
-  for (const b of blocks)
-    for (let i = 0; i + 1 < b.ring.length; i++) {
-      const [p, q] = [b.ring[i], b.ring[i + 1]]
-      const k = [at(p), at(q)].sort().join(' ')
-      if (edges.has(k)) edges.delete(k)
-      else edges.set(k, [p, q])
-    }
-  const from = new Map<string, [Pt, Pt][]>()
-  for (const e of edges.values()) for (const q of e) from.set(at(q), [...(from.get(at(q)) ?? []), e])
-  const used = new Set<[Pt, Pt]>()
-  const loops: Pt[][] = []
-  for (const first of edges.values()) {
-    if (used.has(first)) continue
-    used.add(first)
-    const loop = [first[0]]
-    let end = first[1]
-    while (at(end) !== at(loop[0])) {
-      const next = (from.get(at(end)) ?? []).find((e) => !used.has(e))
-      if (!next) break
-      used.add(next)
-      loop.push(end)
-      end = at(next[0]) === at(end) ? next[1] : next[0]
-    }
-    loops.push(loop)
-  }
-  return loops
-}
-
-/**
- * Turns a loop of hexagon edges into one soft line: the edges' midpoints, averaged with their
- * neighbours to iron out the hexagon steps, then rounded by cutting corners (Chaikin).
- */
-function smooth(loop: Pt[]): Pt[] {
-  const n = loop.length
-  let pts: Pt[] = loop.map((p, i) => [(p[0] + loop[(i + 1) % n][0]) / 2, (p[1] + loop[(i + 1) % n][1]) / 2])
-  for (let r = 0; r < 3; r++)
-    pts = pts.map((_, i) => {
-      const near = [-2, -1, 0, 1, 2].map((d) => pts[(i + d + n) % n])
-      return [near.reduce((t, q) => t + q[0], 0) / 5, near.reduce((t, q) => t + q[1], 0) / 5]
-    })
-  for (let r = 0; r < 2; r++)
-    pts = pts.flatMap((p, i) => {
-      const q = pts[(i + 1) % pts.length]
-      return [
-        [p[0] * 0.75 + q[0] * 0.25, p[1] * 0.75 + q[1] * 0.25],
-        [p[0] * 0.25 + q[0] * 0.75, p[1] * 0.25 + q[1] * 0.75],
-      ] as Pt[]
-    })
-  return pts
-}
-
-/**
- * Paris block by block, coloured like the big map; the free spots numbered, or the boutiques already there.
- * Around the chosen block, one ring per band of the walk; a searched address closes the view in on its walk.
- */
-function HeroMap(props: {
-  data: Data
-  profile: ProfileId
-  layer: string
-  cell: string | null
-  fresh: boolean
-  open: CellProps[]
-  zone: Set<string> | null
-  /** minutes to each block reached on foot from the chosen block */
-  rings: Map<string, number> | null
-  minutes: number
-  /** the blocks to frame, or null for all of Paris */
-  focus: Set<string> | null
-  pin: LonLat | null
-  brand: string | null
-  placed: Map<string, string>
-  borders: Borders | null
-  network: Network | null
-  onBlock: (cell: string) => void
-  onAllParis?: () => void
-}) {
-  const { data, profile, layer, cell, fresh, open, zone, rings, minutes, focus, pin, brand, placed, borders, network, onBlock } = props
-  // the metro is there on demand: the map first reads as the layer
-  const [metro, setMetro] = useState(false)
-  const ref = useRef<HTMLCanvasElement>(null)
-  const outline = useOutline(data.grid)
-  const key = atlasKey(layer, profile)
-  const colours = useMemo(() => fills(data.grid, key, layer === 'score'), [data, key, layer])
-  const geo = useRef({ s: 1, ox: 0, oy: 0 })
-  const [hover, setHover] = useState<{ x: number; y: number; p: CellProps } | null>(null)
-  const byCell = useMemo(() => cellIndex(data.grid), [data])
-  const rank = useMemo(() => new Map(open.map((p, i) => [p.cell, i + 1])), [open])
-
-  // each band's ring: the soft outline of every block reached within its minutes, nearest first
-  const lines = useMemo(() => {
-    if (!rings) return []
-    const bands = [...new Set(rings.values())].sort((a, b) => a - b)
-    return bands.map((m, i) => {
-      const loops = loopsOf(outline.blocks.filter((b) => (rings.get(b.cell) ?? Infinity) <= m)).map((l) => smooth(l))
-      // the label sits on the ring's northernmost point
-      const top = loops.flat().reduce((t, q) => (q[1] < t[1] ? q : t), [0, Infinity] as Pt)
-      return { minutes: m, band: i, loops, top }
-    })
-  }, [rings, outline])
-  const bandIndex = useMemo(() => new Map(lines.map((r) => [r.minutes, r.band])), [lines])
-
-  // what the map frames: all of Paris, or the walk around a searched address with a margin
-  const target = useMemo<View>(() => {
-    const all = { x: 0, y: 0, w: 1, h: outline.aspect }
-    const pts = focus ? outline.blocks.filter((b) => focus.has(b.cell)).flatMap((b) => b.ring) : []
-    if (!pts.length) return all
-    const [x0, x1] = [Math.min(...pts.map((q) => q[0])), Math.max(...pts.map((q) => q[0]))]
-    const [y0, y1] = [Math.min(...pts.map((q) => q[1])), Math.max(...pts.map((q) => q[1]))]
-    // a margin around, and never closer than about a tenth of Paris
-    const side = Math.max(x1 - x0, y1 - y0, 0.12)
-    const pad = side * 0.18
-    const [cx, cy] = [(x0 + x1) / 2, (y0 + y1) / 2]
-    const [w, h] = [Math.max(x1 - x0, side / 2) + 2 * pad, Math.max(y1 - y0, side / 2) + 2 * pad]
-    return { x: cx - w / 2, y: cy - h / 2, w, h }
-  }, [focus, outline])
-  const view = useRef<View | null>(null)
-  // bumped to send the view back to its frame after the visitor zoomed or moved it
-  const [home, setHome] = useState(0)
-  const drawRef = useRef<() => void>(() => {})
-
-  useEffect(() => {
-    const draw = () => {
-      const { ctx, width, height } = sizeCanvas(ref.current!)
-      const v = view.current ?? target
-      const s = Math.min(width / v.w, height / v.h) * 0.96
-      const ox = (width - s * v.w) / 2 - v.x * s
-      const oy = (height - s * v.h) / 2 - v.y * s
-      geo.current = { s, ox, oy }
-      const zoom = s / Math.min(width, height / outline.aspect)
-      const quiet = css('--quiet')
-      const ink = css('--ink')
-      ctx.clearRect(0, 0, width, height)
-      for (const b of outline.blocks) {
-        ctx.beginPath()
-        b.ring.forEach(([x, y], i) => (i ? ctx.lineTo(ox + x * s, oy + y * s) : ctx.moveTo(ox + x * s, oy + y * s)))
-        ctx.fillStyle = b.cell === cell ? ink : (colours.get(b.cell) ?? quiet)
-        // around a chosen block, the farther the walk the more the blocks step back; a picked brand's dots stand out
-        const band = zone?.has(b.cell) ? bandIndex.get(rings?.get(b.cell) ?? 0) ?? 0 : null
-        ctx.globalAlpha = (zone ? (band === null ? 0.3 : 1 - 0.12 * band) : 1) * (brand && !fresh ? 0.45 : 1)
-        ctx.fill()
-      }
-      ctx.globalAlpha = 1
-      // landmarks: the arrondissements' edges, then the metro in its own colours, thin and quiet
-      const path = (ring: number[][]) =>
-        ring.forEach((c, i) => {
-          const [x, y] = outline.project(c)
-          if (i) ctx.lineTo(ox + x * s, oy + y * s)
-          else ctx.moveTo(ox + x * s, oy + y * s)
-        })
-      // nothing beyond the city: the landmarks are cut at its edge
-      const city = borders?.features.find((f) => f.properties.city)
-      ctx.save()
-      if (city) {
-        ctx.beginPath()
-        path(city.geometry.coordinates[0])
-        ctx.clip()
-      }
-      if (borders) {
-        ctx.strokeStyle = ink
-        ctx.lineJoin = 'round'
-        for (const f of borders.features) {
-          ctx.globalAlpha = f.properties.city ? 0.25 : 0.1
-          ctx.lineWidth = f.properties.city ? 1 : 0.7
-          ctx.beginPath()
-          path(f.geometry.coordinates[0])
-          ctx.stroke()
-        }
-        ctx.globalAlpha = 1
-      }
-      if (network && metro) {
-        ctx.lineWidth = Math.min(1.2 * Math.sqrt(zoom), 2.6)
-        ctx.lineCap = 'round'
-        ctx.globalAlpha = zone ? 0.3 : 0.45
-        for (const f of network.features) {
-          ctx.strokeStyle = f.properties.colour
-          ctx.beginPath()
-          const g = f.geometry
-          for (const line of g.type === 'LineString' ? [g.coordinates] : g.coordinates) path(line)
-          ctx.stroke()
-        }
-        ctx.globalAlpha = 1
-      }
-      ctx.restore()
-      // the walk's rings, the farthest first so the nearest lies on top
-      ctx.lineJoin = 'round'
-      const thick = Math.min(Math.max(Math.sqrt(zoom), 1), 1.6)
-      for (const r of [...lines].reverse()) {
-        if (r.minutes > minutes) continue
-        ctx.strokeStyle = walkColour(r.band)
-        ctx.lineWidth = (r.band === 0 ? 2 : 1.5) * thick
-        ctx.beginPath()
-        for (const loop of r.loops) {
-          loop.forEach(([x, y], i) => (i ? ctx.lineTo(ox + x * s, oy + y * s) : ctx.moveTo(ox + x * s, oy + y * s)))
-          ctx.closePath()
-        }
-        ctx.stroke()
-      }
-      ctx.font = `500 10px ${css('--ui')}`
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'middle'
-      const surface = css('--surface')
-      // labels from the outermost ring in, each only where it clears the ones already placed
-      const labelled: [number, number][] = []
-      for (const r of [...lines].reverse()) {
-        if (r.minutes > minutes || !r.loops.length) continue
-        const [x, y] = [ox + r.top[0] * s, oy + r.top[1] * s]
-        // on all of Paris the rings are small: only the outermost is named
-        if (labelled.length && zoom < 1.5) break
-        if (labelled.some(([lx, ly]) => Math.abs(lx - x) < 52 && Math.abs(ly - y) < 18)) continue
-        labelled.push([x, y])
-        const text = `${r.minutes} min`
-        const w = ctx.measureText(text).width + 10
-        ctx.fillStyle = surface
-        ctx.beginPath()
-        ctx.roundRect(x - w / 2, y - 8, w, 16, 8)
-        ctx.fill()
-        ctx.fillStyle = walkColour(r.band)
-        ctx.fillText(text, x, y + 0.5)
-      }
-      if (!fresh) {
-        // with a brand picked, its boutiques on top in colour and the rest stepped back
-        const mine = (f: (typeof data.stores.features)[number]) => !brand || f.properties.brand === brand
-        const r = Math.min(3 * Math.sqrt(zoom), 6)
-        for (const pass of brand ? [false, true] : [true]) {
-          ctx.fillStyle = pass ? profileColour(profile) : css('--muted')
-          for (const f of data.stores.features) {
-            const at = placed.get(f.properties.id)
-            if (f.properties.profile !== profile || !at || mine(f) !== pass) continue
-            ctx.globalAlpha = (zone && !zone.has(at) ? 0.4 : 1) * (pass ? 1 : 0.35)
-            const [x, y] = outline.project(f.geometry.coordinates)
-            ctx.beginPath()
-            ctx.arc(ox + x * s, oy + y * s, pass && brand ? r + 2.5 : pass ? r : r * 0.7, 0, 2 * Math.PI)
-            ctx.fill()
-          }
-        }
-        ctx.globalAlpha = 1
-      } else {
-        // the free spots, numbered as in the list, like the pins of the map page
-        ctx.font = `500 11px ${css('--display')}`
-        const accent = css('--accent')
-        for (const b of outline.blocks) {
-          const n = rank.get(b.cell)
-          if (!n || (zone && !zone.has(b.cell))) continue
-          const [x, y] = [ox + b.at[0] * s, oy + b.at[1] * s]
-          ctx.beginPath()
-          ctx.arc(x, y, 10, 0, 2 * Math.PI)
-          ctx.fillStyle = b.cell === cell ? accent : ink
-          ctx.fill()
-          ctx.fillStyle = surface
-          ctx.fillText(String(n), x, y + 0.5)
-        }
-      }
-      if (borders) {
-        ctx.font = `500 ${Math.round(Math.min(10 * Math.sqrt(zoom), 16))}px ${css('--display')}`
-        ctx.fillStyle = ink
-        ctx.globalAlpha = 0.3
-        for (const f of borders.features) {
-          if (!f.properties.label || !f.properties.n) continue
-          const [x, y] = outline.project(f.properties.label)
-          ctx.fillText(f.properties.n === 1 ? '1er' : `${f.properties.n}e`, ox + x * s, oy + y * s)
-        }
-        ctx.globalAlpha = 1
-      }
-      if (pin) {
-        // the searched address: a pin whose point is on the spot
-        const [px, py] = outline.project(pin)
-        const [x, y] = [ox + px * s, oy + py * s]
-        ctx.fillStyle = css('--accent')
-        ctx.beginPath()
-        ctx.moveTo(x, y)
-        ctx.bezierCurveTo(x - 4, y - 7, x - 9, y - 11, x - 9, y - 17)
-        ctx.arc(x, y - 17, 9, Math.PI, 0)
-        ctx.bezierCurveTo(x + 9, y - 11, x + 4, y - 7, x, y)
-        ctx.fill()
-        ctx.fillStyle = surface
-        ctx.beginPath()
-        ctx.arc(x, y - 17, 3.5, 0, 2 * Math.PI)
-        ctx.fill()
-      }
-    }
-    drawRef.current = draw
-    draw()
-    const obs = new ResizeObserver(draw)
-    obs.observe(ref.current!)
-    return () => obs.disconnect()
-  }, [outline, colours, cell, fresh, profile, data, rank, zone, placed, lines, bandIndex, rings, minutes, pin, brand, target, borders, network, metro])
-
-  // the view glides to its new frame
-  useEffect(() => {
-    const from = view.current
-    if (!from || sameView(from, target) || matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      view.current = target
-      drawRef.current()
-      return
-    }
-    const t0 = performance.now()
-    let raf = 0
-    const step = (t: number) => {
-      const k = Math.min(1, (t - t0) / 700)
-      view.current = lerp(from, target, 1 - (1 - k) ** 3)
-      drawRef.current()
-      if (k < 1) raf = requestAnimationFrame(step)
-    }
-    raf = requestAnimationFrame(step)
-    return () => cancelAnimationFrame(raf)
-  }, [target, home])
-
-  // the wheel zooms around the pointer, a drag moves the map, like any web map
-  const [moved, setMoved] = useState(false)
-  const drag = useRef<{ x: number; y: number; far: boolean } | null>(null)
-  useEffect(() => {
-    const canvas = ref.current!
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault()
-      const v = view.current ?? target
-      const r = canvas.getBoundingClientRect()
-      const { s, ox, oy } = geo.current
-      const [px, py] = [(e.clientX - r.left - ox) / s, (e.clientY - r.top - oy) / s]
-      // never wider than Paris, never closer than a few blocks
-      const k = Math.min(Math.max(Math.exp(e.deltaY * 0.001), 0.02 / v.w), 1.4 / v.w)
-      view.current = { x: px - (px - v.x) * k, y: py - (py - v.y) * k, w: v.w * k, h: v.h * k }
-      setMoved(true)
-      drawRef.current()
-    }
-    canvas.addEventListener('wheel', onWheel, { passive: false })
-    return () => canvas.removeEventListener('wheel', onWheel)
-  }, [target])
-
-  const pick = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const r = e.currentTarget.getBoundingClientRect()
-    const { s, ox, oy } = geo.current
-    const mx = e.clientX - r.left
-    const my = e.clientY - r.top
-    let best: { d: number; cell: string; x: number; y: number } | null = null
-    for (const b of outline.blocks) {
-      const x = ox + b.at[0] * s
-      const y = oy + b.at[1] * s
-      const d = Math.hypot(x - mx, y - my)
-      if (!best || d < best.d) best = { d, cell: b.cell, x, y }
-    }
-    // a block is about a fortieth of the city wide
-    return best && best.d < s / 60 ? best : null
-  }
-
-  const value = hover ? num(hover.p, key) : null
+  if (!props.onClick) return <p className={className}>{body}</p>
   return (
-    <div className="dash-map">
-      <canvas
-        ref={ref}
-        role="img"
-        aria-label={tr('Carte de Paris par bloc', 'Map of Paris by block')}
-        onPointerDown={(e) => {
-          drag.current = { x: e.clientX, y: e.clientY, far: false }
-          e.currentTarget.setPointerCapture(e.pointerId)
-        }}
-        onPointerUp={() => {
-          // a click stays a click; the end of a drag does not choose a block
-          window.setTimeout(() => (drag.current = null))
-        }}
-        onMouseMove={(e) => {
-          const d = drag.current
-          if (d && e.buttons === 1) {
-            const [dx, dy] = [e.clientX - d.x, e.clientY - d.y]
-            if (d.far || Math.hypot(dx, dy) > 4) {
-              const v = view.current ?? target
-              const { s } = geo.current
-              view.current = { ...v, x: v.x - dx / s, y: v.y - dy / s }
-              drag.current = { x: e.clientX, y: e.clientY, far: true }
-              setMoved(true)
-              setHover(null)
-              drawRef.current()
-              return
-            }
-          }
-          const hit = pick(e)
-          const p = hit && byCell.get(hit.cell)?.properties
-          setHover(hit && p ? { x: hit.x, y: hit.y, p } : null)
-        }}
-        onMouseLeave={() => setHover(null)}
-        onClick={(e) => {
-          if (drag.current?.far) return
-          const hit = pick(e)
-          if (hit) onBlock(hit.cell)
-        }}
-        style={{ cursor: drag.current?.far ? 'grabbing' : hover ? 'pointer' : 'grab' }}
-      />
-      {hover && (
-        <span className="dash-tip" style={{ left: hover.x, top: hover.y }}>
-          {short(hover.p)}
-          <span className="muted">
-            {' '}
-            · {layer === 'score' ? (value === null ? '–' : `${Math.round(value)} / 100`) : valueText(key, value)}
-            {rings?.has(hover.p.cell) && ` · ${rings.get(hover.p.cell)} min ${tr('à pied', 'on foot')}`}
-          </span>
-        </span>
-      )}
-      {network && (
-        <button className="dash-map-toggle" aria-pressed={metro} onClick={() => setMetro((m) => !m)}>
-          <span className="dash-map-toggle-lines" aria-hidden="true" />
-          {tr('Métro', 'Metro')}
-        </button>
-      )}
-      {((focus && props.onAllParis) || moved) && (
-        <button
-          className="dash-map-reset"
-          onClick={() => {
-            setMoved(false)
-            if (focus && props.onAllParis) props.onAllParis()
-            else setHome((n) => n + 1)
-          }}
-        >
-          {tr('Tout Paris', 'All of Paris')}
-        </button>
-      )}
-    </div>
+    <button className={`${className} opens`} onClick={props.onClick} title={tr('Voir le détail', 'See the detail')}>
+      {body}
+      <span className="dash-figure-open" aria-hidden="true">→</span>
+    </button>
   )
 }
 
@@ -1134,18 +742,6 @@ function Portrait(props: {
       )}
     </>
   )
-}
-
-function valueText(k: string, v: number | null) {
-  if (v === null) return '–'
-  if (k.startsWith('score')) return `${Math.round(v)} / 100`
-  if (k === 'demand') return `${fmt(v)} ${tr('(Paris = 100)', '(Paris = 100)')}`
-  if (k === 'street_footfall') return `${fmt(v, 1)} ×`
-  if (k === 'transit_entries_r2') return `${fmt(v / 1000)}k / ${tr('jour', 'day')}`
-  if (k === 'commercial_price_m2') return `${fmt(v)} € / m²`
-  if (k.startsWith('luxury')) return formatValue(v, 'boutiques')
-  if (k === 'upscale_rooms_r1') return formatValue(v, 'rooms')
-  return formatValue(v, 'places')
 }
 
 /** The free spots as a row of hexagons, the darker the better, numbered as on the map. */
@@ -1532,36 +1128,6 @@ function ArrRanking(props: { rows: Map<string, ArrRow>; profile: ProfileId; chos
   )
 }
 
-type Placed = { p: { name: string; entries: number; lines?: string[] }; cell: string }
-
-/**
- * What is within the walk of the chosen block: free spots, boutiques of the type and their brands,
- * stations with their daily entries, spending and the busiest street. Counts come from points placed
- * in blocks, never from the blocks' own neighbourhood sums, so nothing is counted twice.
- */
-function zoneStats(data: Data, profile: ProfileId, zone: Set<string>, placed: Map<string, string>, stations: Placed[]) {
-  const key = scoreKey(profile)
-  const blocks = data.grid.features.map((f) => f.properties).filter((p) => zone.has(p.cell))
-  const brands = new Map<string, number>()
-  for (const f of data.stores.features) {
-    const at = placed.get(f.properties.id)
-    if (f.properties.profile === profile && at && zone.has(at)) brands.set(f.properties.brand, (brands.get(f.properties.brand) ?? 0) + 1)
-  }
-  const near = stations.filter((s) => zone.has(s.cell)).sort((a, b) => b.p.entries - a.p.entries)
-  const spend = blocks.map((p) => num(p, 'demand')).filter((v): v is number => v !== null)
-  return {
-    blocks: blocks.length,
-    free: blocks.filter((p) => p[openKey(key)] === 1).length,
-    brands,
-    boutiques: [...brands.values()].reduce((a, b) => a + b, 0),
-    near,
-    entries: near.reduce((a, s) => a + s.p.entries, 0),
-    spendAvg: spend.length ? spend.reduce((a, b) => a + b, 0) / spend.length : null,
-    busiest: Math.max(0, ...blocks.map((p) => num(p, 'street_footfall') ?? 0)),
-  }
-}
-
-const kilo = (n: number) => (n >= 1000 ? `${fmt(n / 1000)}k` : fmt(n))
 
 function WalkSwitch(props: { bands: number[]; minutes: number; onMinutes: (m: number) => void }) {
   return (
@@ -1586,8 +1152,9 @@ function ZoneBar(props: {
   zone: Set<string> | null
   placed: Map<string, string>
   stations: Placed[]
+  onMetric: (m: Metric) => void
 }) {
-  const { zone } = props
+  const { zone, onMetric } = props
   if (!zone)
     return (
       <div className="dash-zonebar idle">
@@ -1602,10 +1169,10 @@ function ZoneBar(props: {
         <p className="dash-kicker">{tr('À pied, le long des rues', 'On foot, along the streets')}</p>
         <WalkSwitch bands={props.bands} minutes={props.minutes} onMinutes={props.onMinutes} />
       </div>
-      <Figure value={fmt(z.free)} label={tr('places libres', 'free spots')} accent />
-      <Figure value={fmt(z.boutiques)} label={tr('boutiques de ce type', 'boutiques of this type')} />
-      <Figure value={kilo(z.entries)} label={tr('entrées en gare / jour', 'station entries / day')} />
-      <Figure value={z.spendAvg === null ? '–' : `${fmt(z.spendAvg / 100, 1)}×`} label={tr('pouvoir d’achat vs Paris', 'spending vs Paris')} />
+      <Figure value={fmt(z.free)} label={tr('places libres', 'free spots')} accent onClick={() => onMetric('free')} />
+      <Figure value={fmt(z.boutiques)} label={tr('boutiques de ce type', 'boutiques of this type')} onClick={() => onMetric('boutiques')} />
+      <Figure value={kilo(z.entries)} label={tr('entrées en gare / jour', 'station entries / day')} onClick={() => onMetric('stations')} />
+      <Figure value={z.spendAvg === null ? '–' : `${fmt(z.spendAvg / 100, 1)}×`} label={tr('pouvoir d’achat vs Paris', 'spending vs Paris')} onClick={() => onMetric('spending')} />
     </div>
   )
 }
@@ -1621,8 +1188,9 @@ function ZoneBox(props: {
   placed: Map<string, string>
   stations: Placed[]
   colours: LineColours | null
+  onMetric: (m: Metric) => void
 }) {
-  const { profile, minutes, zone, colours } = props
+  const { profile, minutes, zone, colours, onMetric } = props
   if (!zone) return <p className="muted">{tr('Calcul de la zone à pied…', 'Working out the walking zone…')}</p>
   const z = zoneStats(props.data, profile, zone, props.placed, props.stations)
   return (
@@ -1635,9 +1203,9 @@ function ZoneBox(props: {
         <WalkSwitch bands={props.bands} minutes={minutes} onMinutes={props.onMinutes} />
       </div>
       <div className="dash-zone-figures">
-        <Figure value={fmt(z.free)} label={tr('places libres', 'free spots')} accent />
-        <Figure value={fmt(z.boutiques)} label={tr('boutiques de ce type', 'boutiques of this type')} />
-        <Figure value={kilo(z.entries)} label={tr('entrées en gare / jour', 'station entries / day')} />
+        <Figure value={fmt(z.free)} label={tr('places libres', 'free spots')} accent onClick={() => onMetric('free')} />
+        <Figure value={fmt(z.boutiques)} label={tr('boutiques de ce type', 'boutiques of this type')} onClick={() => onMetric('boutiques')} />
+        <Figure value={kilo(z.entries)} label={tr('entrées en gare / jour', 'station entries / day')} onClick={() => onMetric('stations')} />
         <Figure value={z.busiest ? `${fmt(z.busiest, 1)}×` : '–'} label={tr('rue la plus passante', 'busiest street')} />
       </div>
       {z.spendAvg !== null && (
