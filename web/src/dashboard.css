@@ -555,6 +555,18 @@ button.dash-figure:hover .dash-figure-open, button.dash-figure:focus-visible .da
 .view-block-pair .dash-drivers li { grid-template-columns: minmax(0, 1fr) 70px 40px; }
 .view-block-pair .dash-rings svg { width: 54px; height: 54px; }
 
+.detail-picto { display: grid; place-items: center; width: 44px; height: 44px; margin-bottom: 10px; border-radius: 12px; }
+.detail-picto svg { width: 24px; height: 24px; }
+
+.detail-lines { display: grid; gap: 8px; margin-top: 14px; }
+.detail-lines .tip-badges { flex-wrap: wrap; gap: 6px; }
+.detail-lines .line-badge { min-width: 26px; height: 26px; font-size: 0.85rem; }
+
+.view-block-walk { display: grid; flex: 1; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 20px; min-height: 0; padding-top: 12px; border-top: 1px solid var(--rule); }
+.view-block-walk .dash-map { min-height: 0; }
+.view-block-walk-side { display: flex; flex-direction: column; gap: 12px; }
+.view-block-walk-side .dash-walk button { padding: 4px 9px; font-size: 0.76rem; }
+
 /* Smaller screens: the sections stack and the page scrolls; a computer screen keeps one section per screen */
 @media (max-width: 1100px), (max-height: 640px) {
   .dash { height: auto; overflow: visible; }
@@ -624,3 +636,13 @@ button.dash-figure:hover .dash-figure-open, button.dash-figure:focus-visible .da
 .dash-map-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .dash-map-toggle-lines { width: 16px; height: 8px; background: linear-gradient(#ffcd00 0 2px, transparent 2px 3px, #003ca6 3px 5px, transparent 5px 6px, #6eca97 6px 8px); border-radius: 2px; opacity: 0.4; }
 .dash-map-toggle[aria-pressed='true'] .dash-map-toggle-lines { opacity: 1; }
+
+/* Short screens: the block view keeps its walk map by tightening the portrait */
+@media (min-width: 1101px) and (max-height: 820px) {
+  .dash-flower-row { grid-template-columns: minmax(0, 1fr) 150px minmax(0, 1fr); }
+  .dash-petal-side button { padding: 1px 0; font-size: 0.76rem; }
+  .view-block-pair .dash-note, .view-block-pair .dash-mix { display: none; }
+  .view-block-walk { gap: 14px; padding-top: 8px; }
+  .view-block-walk-side .dash-figure-value { font-size: 1.3rem; }
+  .view-block-walk-side .dash-figure-note { display: none; }
+}

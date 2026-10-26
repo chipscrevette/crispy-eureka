@@ -10,8 +10,13 @@ import type { Network } from './network'
 import { profileColour, walkColour } from './palette'
 import type { ProfileId } from './stores'
 
-/** A point of a detail view, drawn as a spike: `size` from 0 to 1 sets its height against the largest. */
-export type Mark = { at: LonLat; size: number; colour: string; label?: string }
+/** A line's badge on the map: its number or letter on its colour, round for the metro, square for the RER. */
+export type Badge = { label: string; colour: string; ink: string; rer: boolean }
+/**
+ * A point of a detail view, `size` from 0 to 1 against the largest: a spike as tall as its value, or,
+ * for a station with `badges`, its lines' badges as large as its crowd.
+ */
+export type Mark = { at: LonLat; size: number; colour: string; label?: string; badges?: Badge[] }
 
 type View = { x: number; y: number; w: number; h: number }
 const lerp = (a: View, b: View, k: number): View => ({ x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k, w: a.w + (b.w - a.w) * k, h: a.h + (b.h - a.h) * k })
@@ -89,6 +94,8 @@ export default function HeroMap(props: {
   marks?: Mark[]
   /** the walk's blocks in this one pale tone and the rest neutral, so the marks are the subject */
   muted?: string
+  /** the metro drawn bold, as on a transit map */
+  transit?: boolean
   open: CellProps[]
   zone: Set<string> | null
   /** minutes to each block reached on foot from the chosen block */
@@ -105,7 +112,7 @@ export default function HeroMap(props: {
   onBlock: (cell: string | null) => void
   onAllParis?: () => void
 }) {
-  const { data, profile, layer, cell, dots, marks, muted, open, zone, rings, minutes, focus, pin, brand, placed, borders, network, onBlock } = props
+  const { data, profile, layer, cell, dots, marks, muted, transit, open, zone, rings, minutes, focus, pin, brand, placed, borders, network, onBlock } = props
   // the metro is there on demand: the map first reads as the layer
   const [metro, setMetro] = useState(false)
   const ref = useRef<HTMLCanvasElement>(null)
@@ -198,10 +205,11 @@ export default function HeroMap(props: {
         }
         ctx.globalAlpha = 1
       }
-      if (network && metro) {
-        ctx.lineWidth = Math.min(1.2 * Math.sqrt(zoom), 2.6)
+      if (network && (metro || transit)) {
+        ctx.lineWidth = transit ? Math.min(2.6 * Math.sqrt(zoom), 6) : Math.min(1.2 * Math.sqrt(zoom), 2.6)
         ctx.lineCap = 'round'
-        ctx.globalAlpha = zone ? 0.3 : 0.45
+        ctx.lineJoin = 'round'
+        ctx.globalAlpha = transit ? 0.75 : zone ? 0.3 : 0.45
         for (const f of network.features) {
           ctx.strokeStyle = f.properties.colour
           ctx.beginPath()
@@ -287,7 +295,33 @@ export default function HeroMap(props: {
         const tall = 72 * Math.min(Math.max(Math.sqrt(zoom), 1), 1.5)
         const half = 5
         const tips = new Map<Mark, [number, number]>()
-        for (const m of [...marks].sort((a, b) => outline.project(a.at)[1] - outline.project(b.at)[1])) {
+        // stations as their lines' badges side by side, the busiest the largest, a thin gap of paper around each
+        const grow = Math.min(Math.max(Math.sqrt(zoom), 1), 1.4)
+        for (const m of [...marks].filter((m) => m.badges?.length).sort((a, b) => a.size - b.size)) {
+          const [x, y] = outline.project(m.at)
+          const [px, py] = [ox + x * s, oy + y * s]
+          const r = (5 + 5 * m.size) * grow
+          const bs = m.badges!
+          const step = 2 * r - 1
+          const x0 = px - ((bs.length - 1) * step) / 2
+          tips.set(m, [px, py - r - 2])
+          ctx.font = `500 ${Math.round(r * 1.05)}px ${css('--display')}`
+          ctx.textAlign = 'center'
+          bs.forEach((b, k) => {
+            const cx = x0 + k * step
+            ctx.beginPath()
+            if (b.rer) ctx.roundRect(cx - r, py - r, 2 * r, 2 * r, r * 0.35)
+            else ctx.arc(cx, py, r, 0, 2 * Math.PI)
+            ctx.fillStyle = b.colour
+            ctx.fill()
+            ctx.strokeStyle = surface
+            ctx.lineWidth = 1.5
+            ctx.stroke()
+            ctx.fillStyle = b.ink
+            ctx.fillText(b.label, cx, py + 0.5)
+          })
+        }
+        for (const m of [...marks].filter((m) => !m.badges?.length).sort((a, b) => outline.project(a.at)[1] - outline.project(b.at)[1])) {
           const [x, y] = outline.project(m.at)
           const [px, py, h] = [ox + x * s, oy + y * s, Math.max(4, m.size * tall)]
           tips.set(m, [px, py - h])
@@ -312,12 +346,22 @@ export default function HeroMap(props: {
           if (!m.label) continue
           const [tx, ty] = tips.get(m)!
           const w = ctx.measureText(m.label).width
-          const [lx, ly] = [tx - w / 2, ty - 9]
+          const [lx, ly] = [tx - w / 2, ty - (m.badges ? 13 : 9)]
           if (taken.some(([a, b, c, d]) => lx < c && lx + w > a && ly - 7 < d && ly + 7 > b)) continue
           taken.push([lx, ly - 7, lx + w, ly + 7])
-          ctx.strokeStyle = surface
-          ctx.lineWidth = 2.5
-          ctx.strokeText(m.label, lx, ly)
+          if (m.badges) {
+            // a station's name on a small card above its badges
+            ctx.beginPath()
+            ctx.roundRect(lx - 7, ly - 9, w + 14, 18, 9)
+            ctx.fillStyle = surface
+            ctx.globalAlpha = 0.94
+            ctx.fill()
+            ctx.globalAlpha = 1
+          } else {
+            ctx.strokeStyle = surface
+            ctx.lineWidth = 2.5
+            ctx.strokeText(m.label, lx, ly)
+          }
           ctx.fillStyle = ink
           ctx.fillText(m.label, lx, ly)
         }
@@ -356,7 +400,7 @@ export default function HeroMap(props: {
     const obs = new ResizeObserver(draw)
     obs.observe(ref.current!)
     return () => obs.disconnect()
-  }, [outline, colours, cell, dots, marks, profile, data, rank, zone, placed, lines, bandIndex, rings, minutes, pin, brand, target, borders, network, metro, muted])
+  }, [outline, colours, cell, dots, marks, profile, data, rank, zone, placed, lines, bandIndex, rings, minutes, pin, brand, target, borders, network, metro, muted, transit])
 
   // the view glides to its new frame
   useEffect(() => {
