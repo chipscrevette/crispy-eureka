@@ -6,7 +6,7 @@ import { OPEN_RULE, openKey } from './dashboardData'
 import { cellAt, cellIndex, type LonLat } from './geo'
 import { formatValue, type CellProps } from './grid'
 import { fmt, lang, switchLang, tr, useLang } from './i18n'
-import { coloursOf, isDark, profileColour, rampFor, walkColour } from './palette'
+import { coloursOf, isDark, profileColour, rampFor, switchTheme, useTheme, walkColour } from './palette'
 import { SCORE_BREAKS, ordinal, placeOf, rankText, scoreKey } from './scores'
 import { PROFILES, countByProfile, type ProfileId } from './stores'
 import type { Shared } from './sync'
@@ -42,15 +42,6 @@ const readSection = (): Section => SECTIONS.find((x) => `#${x.id}` === window.lo
 
 type ArrRow = { scores: number[]; open: number; boutiques: number; best: CellProps | null }
 
-function switchTheme() {
-  try {
-    localStorage.setItem('adresse-theme', isDark() ? 'light' : 'dark')
-  } catch {
-    return
-  }
-  window.location.reload()
-}
-
 /** Share of blocks with a lower value, 0 to 100: where a value stands in Paris. */
 function percentile(sorted: number[] | undefined, v: number) {
   if (!sorted?.length) return 0
@@ -68,8 +59,10 @@ export default function Dashboard() {
   // the data as the files have it; its layer names follow the language, which switches in place
   const [raw, setRaw] = useState<Data | null>(null)
   const language = useLang()
+  // colours are computed from the data in script, so a new object on a theme switch recomputes and redraws them
+  const theme = useTheme()
   // eslint-disable-next-line react-hooks/exhaustive-deps -- localData reads the language
-  const data = useMemo(() => (raw ? localData(raw) : null), [raw, language])
+  const data = useMemo(() => (raw ? localData(raw) : null), [raw, language, theme])
   useEffect(() => {
     document.title = tr('Adresse · Choisir l’emplacement d’une boutique de luxe à Paris', 'Adresse · Luxury retail site selection in Paris')
   }, [language])

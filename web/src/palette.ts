@@ -1,3 +1,4 @@
+import { useSyncExternalStore } from 'react'
 import type { ExpressionSpecification } from 'maplibre-gl'
 import type { ProfileId } from './stores'
 
@@ -80,6 +81,30 @@ function rampNameFor(key: string): RampName {
 
 /** The theme index.html set from the visitor's choice or their system. */
 export const isDark = () => document.documentElement.dataset.theme === 'dark'
+
+const themeListeners = new Set<() => void>()
+
+/** Switches day and night in place: the CSS colours follow at once, the canvases redraw. */
+export function switchTheme() {
+  const next = isDark() ? 'light' : 'dark'
+  try {
+    localStorage.setItem('adresse-theme', next)
+  } catch {
+    // the switch still works for this visit
+  }
+  document.documentElement.dataset.theme = next
+  themeListeners.forEach((l) => l())
+}
+
+/** The theme, as React state, for whatever computes colours in script rather than CSS. */
+export const useTheme = () =>
+  useSyncExternalStore(
+    (l) => {
+      themeListeners.add(l)
+      return () => themeListeners.delete(l)
+    },
+    () => (isDark() ? 'dark' : 'light'),
+  )
 export const coloursOf = (r: Ramp) => (isDark() ? r.dark : r.light)
 
 /** Profile colours, for boutique dots and the profile switch: muted, so the dots read as data, not jewels. */

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CellProps, Grid } from './grid'
 import { centroid, toMetres, type LonLat } from './geo'
 import { atlasKey, cssVar, fills, sizeCanvas } from './atlasLayers'
-import { coloursOf, rampFor } from './palette'
+import { coloursOf, rampFor, useTheme } from './palette'
 import type { ProfileId } from './stores'
 import { fmt, lang, tr } from './i18n'
 
@@ -94,12 +94,14 @@ export default function LayerStack({ grid, cell, profile, fill = false }: Props)
     })
   }, [grid, cell.cell])
   const keys = LAYERS.map((l) => atlasKey(l.id, profile))
+  const theme = useTheme()
   const colours = useMemo(
     () => LAYERS.map((l, i) => fills(grid, keys[i], l.id === 'score')),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [grid, profile],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fills reads the theme
+    [grid, profile, theme],
   )
 
+  // the canvas reads the theme's CSS colours, so `theme` makes it redraw on a switch
   useEffect(() => {
     const { ctx, width } = sizeCanvas(ref.current!)
     const s = mapW / 2 / RADIUS_M
@@ -149,7 +151,7 @@ export default function LayerStack({ grid, cell, profile, fill = false }: Props)
       ctx.lineWidth = 1.4
       ctx.stroke()
     })
-  }, [around, colours, cell.cell, row, mapW])
+  }, [around, colours, cell.cell, row, mapW, theme])
 
   return (
     <figure className={fill ? 'stack fill' : 'stack'} aria-label={tr('Ce bloc, couche par couche', 'This block, layer by layer')}>
