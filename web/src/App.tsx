@@ -967,7 +967,11 @@ export default function App() {
           <span>{tr('Paris, données ouvertes', 'Paris, from open data only')}</span>
           <button
             className="lang-toggle"
-            onClick={switchLang}
+            onClick={() => {
+              // the 3D map builds its texts once: it reloads in the new language
+              switchLang()
+              window.location.reload()
+            }}
             lang={lang() === 'en' ? 'fr' : 'en'}
             aria-label={tr('Read this site in English', 'Lire le site en français')}
             title={tr('English', 'Français')}

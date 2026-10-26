@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { loadData, type Data } from './appData'
+import { loadRawData, localData, type Data } from './appData'
 import { ATLAS, atlasKey, cssVar as css, fills, shadeOf, sizeCanvas, useOutline } from './atlasLayers'
 import { loadBorders, type Borders } from './borders'
 import { OPEN_RULE, openKey } from './dashboardData'
 import { cellAt, cellIndex, type LonLat } from './geo'
 import { formatValue, type CellProps } from './grid'
-import { fmt, lang, switchLang, tr } from './i18n'
+import { fmt, lang, switchLang, tr, useLang } from './i18n'
 import { coloursOf, isDark, profileColour, rampFor, walkColour } from './palette'
 import { SCORE_BREAKS, ordinal, placeOf, rankText, scoreKey } from './scores'
 import { PROFILES, countByProfile, type ProfileId } from './stores'
@@ -22,20 +22,20 @@ const num = (p: CellProps, k: string) => (typeof p[k] === 'number' ? (p[k] as nu
 const pc = () => (lang() === 'fr' ? ' %' : '%')
 
 const SHORT: Record<ProfileId, string> = {
-  'jewellery-watches': tr('Joaillerie', 'Jewellery'),
-  'fashion-house': tr('Mode', 'Fashion'),
-  beauty: tr('Beauté', 'Beauty'),
+  get 'jewellery-watches'() { return tr('Joaillerie', 'Jewellery') },
+  get 'fashion-house'() { return tr('Mode', 'Fashion') },
+  get beauty() { return tr('Beauté', 'Beauty') },
 }
 
 /** The layers that explain the potential: a block's reasons. */
 const REASONS = ATLAS.filter((l) => l.id !== 'score')
 
 const SECTIONS = [
-  { id: 'overview', label: tr('Vue d’ensemble', 'Overview') },
-  { id: 'block', label: tr('Le bloc', 'The block') },
-  { id: 'arrondissements', label: tr('Arrondissements', 'Arrondissements') },
-  { id: 'brands', label: tr('Marques', 'Brands') },
-  { id: 'method', label: tr('Méthode', 'Method') },
+  { id: 'overview', get label() { return tr('Vue d’ensemble', 'Overview') } },
+  { id: 'block', get label() { return tr('Le bloc', 'The block') } },
+  { id: 'arrondissements', get label() { return tr('Arrondissements', 'Arrondissements') } },
+  { id: 'brands', get label() { return tr('Marques', 'Brands') } },
+  { id: 'method', get label() { return tr('Méthode', 'Method') } },
 ] as const
 type Section = (typeof SECTIONS)[number]['id']
 const readSection = (): Section => SECTIONS.find((x) => `#${x.id}` === window.location.hash)?.id ?? 'overview'
@@ -65,7 +65,14 @@ function percentile(sorted: number[] | undefined, v: number) {
 }
 
 export default function Dashboard() {
-  const [data, setData] = useState<Data | null>(null)
+  // the data as the files have it; its layer names follow the language, which switches in place
+  const [raw, setRaw] = useState<Data | null>(null)
+  const language = useLang()
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- localData reads the language
+  const data = useMemo(() => (raw ? localData(raw) : null), [raw, language])
+  useEffect(() => {
+    document.title = tr('Adresse · Choisir l’emplacement d’une boutique de luxe à Paris', 'Adresse · Luxury retail site selection in Paris')
+  }, [language])
   const [error, setError] = useState<string | null>(null)
   const [shared, setShared] = useState<Shared>({ profile: 'jewellery-watches', layer: 'score', cell: null, fresh: true })
 
@@ -73,7 +80,7 @@ export default function Dashboard() {
   const [borders, setBorders] = useState<Borders | null>(null)
   const [network, setNetwork] = useState<Network | null>(null)
   useEffect(() => {
-    loadData().then(setData, (e: Error) => setError(e.message))
+    loadRawData().then(setRaw, (e: Error) => setError(e.message))
     loadBorders().then(setBorders, () => setBorders(null))
     loadNetwork().then(setNetwork, () => setNetwork(null))
   }, [])
