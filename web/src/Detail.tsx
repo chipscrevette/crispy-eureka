@@ -1,6 +1,5 @@
 import { useEffect, useMemo } from 'react'
 import type { Data } from './appData'
-import { cssVar } from './atlasLayers'
 import type { Borders } from './borders'
 import { kilo, num, short, zoneStats, type Placed } from './blocks'
 import { openKey } from './dashboardData'
@@ -81,7 +80,7 @@ export default function Detail(props: {
   open: CellProps[]
   borders: Borders | null
   network: Network | null
-  onBlock: (cell: string) => void
+  onBlock: (cell: string | null) => void
 }) {
   const { metric, data, profile, block, rings, bands, minutes, placed, stations, onClose } = props
   const m = METRICS[metric]
@@ -104,19 +103,19 @@ export default function Detail(props: {
   const here = byBand.find((b) => b.minutes === minutes) ?? byBand[byBand.length - 1]
   const z = here.stats
 
-  // the stations as circles as large as their crowds, the five busiest named; their colours follow the theme
+  // the stations as spikes as tall as their crowds, in the stations' violet, the five busiest named
   const theme = useTheme()
   const marks = useMemo<Mark[]>(() => {
-    if (metric !== 'stations') return []
-    // white rounds with a dark ring, as on a metro map, so they read on the stations' own colours
-    const [colour, ring] = [cssVar('--surface'), cssVar('--ink')]
+    if (metric !== 'stations' || !z.near.length) return []
+    const colour = coloursOf(rampFor('transit'))[3]
     const at = new Map(data.grid.features.map((f) => [f.properties.cell, f]))
+    const top = z.near[0].p.entries
     return z.near.flatMap((s, i) => {
       const f = at.get(s.cell)
       const p = s.at ?? (f ? centre(f.geometry.coordinates[0]) : null)
-      return p ? [{ at: p, r: 2.5 + Math.sqrt(s.p.entries) / 30, colour, label: i < 5 ? s.p.name : undefined, ring }] : []
+      return p ? [{ at: p, size: s.p.entries / top, colour, label: i < 5 ? s.p.name : undefined }] : []
     })
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- cssVar reads the theme
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the ramp follows the theme
   }, [metric, z, data, theme])
 
   return (
@@ -146,6 +145,7 @@ export default function Detail(props: {
           cell={block.cell}
           dots={m.dots}
           marks={marks}
+          muted={metric === 'stations' ? coloursOf(rampFor('transit'))[0] : undefined}
           open={props.open}
           zone={here.zone}
           rings={rings}

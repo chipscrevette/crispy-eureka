@@ -365,7 +365,7 @@ export default function Dashboard() {
                   placed={placed}
                   borders={borders}
                   network={network}
-                  onBlock={(c) => set({ cell: c })}
+                  onBlock={(c) => (c ? set({ cell: c }) : allParis())}
                   onAllParis={allParis}
                 />
                 <ZoneBar

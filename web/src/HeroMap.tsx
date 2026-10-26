@@ -10,7 +10,8 @@ import type { Network } from './network'
 import { profileColour, walkColour } from './palette'
 import type { ProfileId } from './stores'
 
-export type Mark = { at: LonLat; r: number; colour: string; ring?: string; label?: string }
+/** A point of a detail view, drawn as a spike: `size` from 0 to 1 sets its height against the largest. */
+export type Mark = { at: LonLat; size: number; colour: string; label?: string }
 
 type View = { x: number; y: number; w: number; h: number }
 const lerp = (a: View, b: View, k: number): View => ({ x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k, w: a.w + (b.w - a.w) * k, h: a.h + (b.h - a.h) * k })
@@ -84,8 +85,10 @@ export default function HeroMap(props: {
   cell: string | null
   /** what the dots show: the numbered free spots, the boutiques of the type, or nothing */
   dots: 'free' | 'boutiques' | 'none'
-  /** points of the detail views, as circles sized by their value */
+  /** points of the detail views, as spikes as tall as their value */
   marks?: Mark[]
+  /** the walk's blocks in this one pale tone and the rest neutral, so the marks are the subject */
+  muted?: string
   open: CellProps[]
   zone: Set<string> | null
   /** minutes to each block reached on foot from the chosen block */
@@ -98,10 +101,11 @@ export default function HeroMap(props: {
   placed: Map<string, string>
   borders: Borders | null
   network: Network | null
-  onBlock: (cell: string) => void
+  /** a block clicked, or null for a click outside Paris, which lets the choice go */
+  onBlock: (cell: string | null) => void
   onAllParis?: () => void
 }) {
-  const { data, profile, layer, cell, dots, marks, open, zone, rings, minutes, focus, pin, brand, placed, borders, network, onBlock } = props
+  const { data, profile, layer, cell, dots, marks, muted, open, zone, rings, minutes, focus, pin, brand, placed, borders, network, onBlock } = props
   // the metro is there on demand: the map first reads as the layer
   const [metro, setMetro] = useState(false)
   const ref = useRef<HTMLCanvasElement>(null)
@@ -160,7 +164,7 @@ export default function HeroMap(props: {
       for (const b of outline.blocks) {
         ctx.beginPath()
         b.ring.forEach(([x, y], i) => (i ? ctx.lineTo(ox + x * s, oy + y * s) : ctx.moveTo(ox + x * s, oy + y * s)))
-        ctx.fillStyle = b.cell === cell ? ink : (colours.get(b.cell) ?? quiet)
+        ctx.fillStyle = b.cell === cell ? ink : muted ? (zone?.has(b.cell) ? muted : quiet) : (colours.get(b.cell) ?? quiet)
         // around a chosen block, the farther the walk the more the blocks step back; a picked brand's dots stand out
         const band = zone?.has(b.cell) ? bandIndex.get(rings?.get(b.cell) ?? 0) ?? 0 : null
         ctx.globalAlpha = (zone ? (band === null ? 0.3 : 1 - 0.12 * band) : 1) * (brand && dots === 'boutiques' ? 0.45 : 1)
@@ -278,35 +282,41 @@ export default function HeroMap(props: {
         }
       }
       if (marks?.length) {
-        // the detail's points, largest first so the small ones stay on top, each ringed so it reads on any colour
-        const grow = Math.min(Math.sqrt(zoom), 2)
-        for (const m of [...marks].sort((a, b) => b.r - a.r)) {
+        // the detail's points as a spike map: thin peaks rising from each place, as tall as its value,
+        // drawn from the back so the nearer ones stand in front, a tinted body with an edge of the same colour
+        const tall = 72 * Math.min(Math.max(Math.sqrt(zoom), 1), 1.5)
+        const half = 5
+        const tips = new Map<Mark, [number, number]>()
+        for (const m of [...marks].sort((a, b) => outline.project(a.at)[1] - outline.project(b.at)[1])) {
           const [x, y] = outline.project(m.at)
+          const [px, py, h] = [ox + x * s, oy + y * s, Math.max(4, m.size * tall)]
+          tips.set(m, [px, py - h])
           ctx.beginPath()
-          ctx.arc(ox + x * s, oy + y * s, m.r * grow, 0, 2 * Math.PI)
-          ctx.globalAlpha = 0.88
-          ctx.fillStyle = m.colour
+          ctx.moveTo(px - half, py)
+          ctx.lineTo(px, py - h)
+          ctx.lineTo(px + half, py)
+          ctx.closePath()
+          ctx.fillStyle = `${m.colour}a6`
           ctx.fill()
-          ctx.globalAlpha = 1
-          ctx.strokeStyle = m.ring ?? surface
-          ctx.lineWidth = 1.5
+          ctx.strokeStyle = m.colour
+          ctx.lineWidth = 1
+          ctx.lineJoin = 'miter'
           ctx.stroke()
         }
-        // names on a halo, skipped where they would run into one already written
+        // names above the peaks, skipped where they would run into one already written
         ctx.font = `500 11px ${css('--ui')}`
         ctx.textAlign = 'left'
         ctx.lineJoin = 'round'
         const taken: [number, number, number, number][] = []
         for (const m of marks) {
           if (!m.label) continue
-          const [x, y] = outline.project(m.at)
-          const lx = ox + x * s + m.r * grow + 4
-          const ly = oy + y * s
+          const [tx, ty] = tips.get(m)!
           const w = ctx.measureText(m.label).width
+          const [lx, ly] = [tx - w / 2, ty - 9]
           if (taken.some(([a, b, c, d]) => lx < c && lx + w > a && ly - 7 < d && ly + 7 > b)) continue
           taken.push([lx, ly - 7, lx + w, ly + 7])
           ctx.strokeStyle = surface
-          ctx.lineWidth = 3
+          ctx.lineWidth = 2.5
           ctx.strokeText(m.label, lx, ly)
           ctx.fillStyle = ink
           ctx.fillText(m.label, lx, ly)
@@ -346,7 +356,7 @@ export default function HeroMap(props: {
     const obs = new ResizeObserver(draw)
     obs.observe(ref.current!)
     return () => obs.disconnect()
-  }, [outline, colours, cell, dots, marks, profile, data, rank, zone, placed, lines, bandIndex, rings, minutes, pin, brand, target, borders, network, metro])
+  }, [outline, colours, cell, dots, marks, profile, data, rank, zone, placed, lines, bandIndex, rings, minutes, pin, brand, target, borders, network, metro, muted])
 
   // the view glides to its new frame
   useEffect(() => {
@@ -443,7 +453,7 @@ export default function HeroMap(props: {
         onClick={(e) => {
           if (drag.current?.far) return
           const hit = pick(e)
-          if (hit) onBlock(hit.cell)
+          onBlock(hit ? hit.cell : null)
         }}
         style={{ cursor: drag.current?.far ? 'grabbing' : hover ? 'pointer' : 'grab' }}
       />
