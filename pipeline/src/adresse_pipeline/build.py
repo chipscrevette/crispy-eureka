@@ -50,7 +50,7 @@ from adresse_pipeline.grid import (
     ring_sum,
     ring_weighted_mean,
 )
-from adresse_pipeline.luxury_stores import CATALOGUE, find_stores, to_geojson
+from adresse_pipeline.luxury_stores import CATALOGUE, find_stores, in_city, to_geojson
 from adresse_pipeline.overture import (
     PARIS_PADDED,
     arrondissements_geojson,
@@ -109,6 +109,9 @@ def main() -> None:
 
     catalogue = Catalogue.from_csv(CATALOGUE)
     stores, concessions = find_stores(places, catalogue)
+    beyond = len(stores)
+    stores = in_city(stores, commune.geometry)
+    beyond -= len(stores)
     for profile in Profile:
         counts = count_by_cell(
             (s.place.lon, s.place.lat) for s in stores if s.brand.profile == profile
@@ -116,7 +119,7 @@ def main() -> None:
         columns[f"luxury_{profile.value}_r1"] = ring_sum(counts, cells)
     print(
         f"overture: {len(places)} open places, {len(stores)} luxury street boutiques "
-        f"({concessions} department-store concessions left out)"
+        f"({concessions} department-store concessions and {beyond} beyond the city left out)"
     )
 
     sources = [f"{OVERTURE}, release {args.overture_release}"]

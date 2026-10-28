@@ -47,6 +47,36 @@ STORE_CATEGORIES = frozenset(
 # long one: "Céline Dupont Psychologue" is someone's practice, not the brand.
 MAX_SUFFIX_CHARS = 12
 
+# Brands that are also first names: "Celine Daoust", "Chloe Bay" or "Céline Calvez!" are
+# people's shops. After such a brand every word must be one a boutique uses.
+FIRST_NAME_BRANDS = frozenset({"celine", "chloe"})
+# A name that goes on with one of these is a boutique telling where it is, however long:
+# "Saint Laurent Champs Elysees", "FRED Rue de la Paix", "Guerlain Boutique et Suite Facialiste".
+BOUTIQUE_WORDS = frozenset(
+    {"paris", "boutique", "store", "flagship", "femme", "homme", "men", "women"}
+    | {"rue", "avenue", "boulevard", "place", "faubourg", "montaigne", "vendome"}
+    | {"champs", "saint", "rive", "marais", "haussmann", "opera", "grenelle", "babylone"}
+)
+STOP_WORDS = frozenset({"de", "du", "des", "la", "le", "les", "et"})
+# Words a boutique's name may put before the brand: "Les Boutiques Boucheron", "Christian Dior".
+# Not "le" or "la": "Le Saint Laurent", in the 14e, is not a Saint Laurent boutique.
+LEADING_WORDS = frozenset({"les", "boutique", "boutiques", "maison", "christian", "polo"})
+
+# Words that make a place something other than a boutique: offices, legal entities,
+# showrooms, museums, a brand's restaurant, outlet stock, pop-ups, workshops.
+NOT_A_BOUTIQUE = frozenset(
+    {"bureau", "bureaux", "showroom", "sas", "sarl", "group", "groupe", "retail"}
+    | {"foundation", "fondation", "etablissement", "galerie", "restaurant", "stock"}
+    | {"serres", "ephemere", "sellier"}
+)
+
+# How a brand's own boutiques may spell it when the name differs from the catalogue.
+ALIASES: dict[str, tuple[str, ...]] = {
+    "Bulgari": ("bvlgari",),
+    "Tiffany & Co.": ("tiffany",),
+    "Van Cleef & Arpels": ("van cleef",),
+}
+
 
 @dataclass(frozen=True)
 class Brand:
@@ -83,6 +113,16 @@ def normalize(text: str | None) -> str:
     return re.sub(r"[^a-z0-9]", "", folded.lower())
 
 
+def words(text: str | None) -> list[str]:
+    """The name's words without accents or punctuation: "Hermès, Paris" → ["hermes", "paris"]."""
+    folded = unicodedata.normalize("NFKD", text or "").encode("ascii", "ignore").decode()
+    return re.findall(r"[a-z0-9]+", folded.lower())
+
+
+def _contains(seq: list[str], part: list[str]) -> bool:
+    return any(seq[i : i + len(part)] == part for i in range(len(seq) - len(part) + 1))
+
+
 class Catalogue:
     def __init__(self, brands: list[Brand]):
         self.brands = brands
@@ -103,30 +143,69 @@ class Catalogue:
         return self._by_qid.get(qid) if qid else None
 
     def brand_for_name(self, name: str | None) -> Brand | None:
+        """The brand a name starts with, whole words only: "Graffiti Bazar" is not Graff."""
         key = normalize(name)
         if not key:
             return None
         if key in self._by_key:
             return self._by_key[key]
-        for brand_key, brand in self._by_key.items():
-            if (
-                len(brand_key) > 4
-                and key.startswith(brand_key)
-                and len(key) - len(brand_key) <= MAX_SUFFIX_CHARS
-            ):
-                return brand
+        found = words(name)
+        # the name as it is, then without the words a boutique may put before the brand
+        starts = [found]
+        while starts[-1] and starts[-1][0] in LEADING_WORDS:
+            starts.append(starts[-1][1:])
+        for brand in self.brands:
+            for spelling in (brand.name, *ALIASES.get(brand.name, ())):
+                head = words(spelling)
+                for start in starts:
+                    if start[: len(head)] == head and self._goes_on_as_a_boutique(
+                        brand, start[len(head) :]
+                    ):
+                        return brand
         return None
+
+    @staticmethod
+    def _goes_on_as_a_boutique(brand: Brand, rest: list[str]) -> bool:
+        key = normalize(brand.name)
+        # after a first name, every word must be a boutique's: "Celine Paris Coiffure" is a salon
+        if key in FIRST_NAME_BRANDS:
+            return set(rest) <= BOUTIQUE_WORDS | STOP_WORDS
+        if not rest or rest[0] in BOUTIQUE_WORDS:
+            return True
+        if len(key) <= 4:
+            return False
+        return len("".join(rest)) <= MAX_SUFFIX_CHARS
+
+    def named_in(self, brand: Brand, name: str | None) -> bool:
+        """Whether a place's own name shows the brand, as a boutique's sign would."""
+        found = words(name)
+        return any(
+            _contains(found, words(spelling))
+            for spelling in (brand.name, *ALIASES.get(brand.name, ()))
+        )
 
     def match(self, place: Place) -> Brand | None:
         if place.category not in STORE_CATEGORIES:
             return None
         if place.operating_status not in (None, "open"):
             return None
-        return (
-            self.brand_for_qid(place.brand_wikidata)
-            or self.brand_for_name(place.brand_name)
-            or self.brand_for_name(place.name)
-        )
+        # "S.A.S." reads as one word once its dots are gone
+        found = set(words(place.name)) | set(words((place.name or "").replace(".", "")))
+        if found & NOT_A_BOUTIQUE:
+            return None
+        by_name = self.brand_for_name(place.name)
+        # a brand tag alone is not enough: "77 Diamonds" tagged Graff, "Restaurant" tagged Dior
+        tagged = self.brand_for_qid(place.brand_wikidata) or self.brand_for_name(place.brand_name)
+        brand = by_name or (tagged if tagged and self.named_in(tagged, place.name) else None)
+        # a fashion or jewellery brand's perfume line is a counter or an office, not its boutique
+        if (
+            brand
+            and brand.segment != Segment.BEAUTY
+            and "parfums" in found
+            and "beaute" not in found
+        ):
+            return None
+        return brand
 
 
 def distance_m(a: Place, b: Place) -> float:

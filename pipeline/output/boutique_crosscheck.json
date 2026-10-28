@@ -1,6 +1,6 @@
 {
- "overture_boutiques": 290,
- "confirmed_by_osm": 139,
+ "overture_boutiques": 236,
+ "confirmed_by_osm": 141,
  "osm_only": [
   {
    "brand": "Aesop",
@@ -60,20 +60,6 @@
   },
   {
    "brand": "Celine",
-   "name": "Céline Beauté",
-   "osm": "node/12366210790",
-   "lon": 2.3418572,
-   "lat": 48.8926769
-  },
-  {
-   "brand": "Celine",
-   "name": "Celine",
-   "osm": "node/14242325406",
-   "lon": 2.3080849,
-   "lat": 48.8682088
-  },
-  {
-   "brand": "Celine",
    "name": "Celine",
    "osm": "node/3980828286",
    "lon": 2.325693,
@@ -85,20 +71,6 @@
    "osm": "node/3981413158",
    "lon": 2.305813,
    "lat": 48.8674684
-  },
-  {
-   "brand": "Celine",
-   "name": "Céline",
-   "osm": "node/3991869872",
-   "lon": 2.3078627,
-   "lat": 48.8675505
-  },
-  {
-   "brand": "Celine",
-   "name": "Céline Nails",
-   "osm": "node/9876503610",
-   "lon": 2.2649742,
-   "lat": 48.8411214
   },
   {
    "brand": "Chanel",
@@ -148,6 +120,13 @@
    "osm": "node/6570051731",
    "lon": 2.3591946,
    "lat": 48.8585093
+  },
+  {
+   "brand": "Chloé",
+   "name": "Chloé",
+   "osm": "node/10609138978",
+   "lon": 2.3933713,
+   "lat": 48.8395565
   },
   {
    "brand": "Chopard",
@@ -206,13 +185,6 @@
    "lat": 48.8695994
   },
   {
-   "brand": "Goyard",
-   "name": "Goyard",
-   "osm": "node/3980791250",
-   "lon": 2.3289199,
-   "lat": 48.8663285
-  },
-  {
    "brand": "Gucci",
    "name": "Gucci",
    "osm": "node/11510770645",
@@ -232,6 +204,13 @@
    "osm": "node/9388558820",
    "lon": 2.3052803,
    "lat": 48.8711859
+  },
+  {
+   "brand": "Guerlain",
+   "name": "Guerlain",
+   "osm": "node/9817777968",
+   "lon": 2.3266735,
+   "lat": 48.8735333
   },
   {
    "brand": "Hermès",
@@ -302,34 +281,6 @@
    "osm": "node/10814251191",
    "lon": 2.3544746,
    "lat": 48.857915
-  },
-  {
-   "brand": "Rolex",
-   "name": "Rolex",
-   "osm": "node/11549222031",
-   "lon": 2.3282917,
-   "lat": 48.8674211
-  },
-  {
-   "brand": "Rolex",
-   "name": "Rolex",
-   "osm": "node/14159309199",
-   "lon": 2.3019658,
-   "lat": 48.8686828
-  },
-  {
-   "brand": "Rolex",
-   "name": "Rolex",
-   "osm": "node/2039904978",
-   "lon": 2.3037854,
-   "lat": 48.8706043
-  },
-  {
-   "brand": "Rolex",
-   "name": "Rolex",
-   "osm": "node/8808683827",
-   "lon": 2.3288214,
-   "lat": 48.8520369
   },
   {
    "brand": "Saint Laurent",
