@@ -56,11 +56,11 @@ BOUTIQUE_WORDS = frozenset(
 )
 
 # Words that make a place something other than a boutique: offices, legal entities,
-# showrooms, museums, a brand's restaurant, outlet stock, pop-ups.
+# showrooms, museums, a brand's restaurant, outlet stock, pop-ups, workshops.
 NOT_A_BOUTIQUE = frozenset(
     {"bureau", "bureaux", "showroom", "sas", "sarl", "group", "groupe", "retail"}
     | {"foundation", "fondation", "etablissement", "galerie", "restaurant", "stock"}
-    | {"serres", "ephemere"}
+    | {"serres", "ephemere", "sellier", "france"}
 )
 
 # How a brand's own boutiques may spell it when the name differs from the catalogue.

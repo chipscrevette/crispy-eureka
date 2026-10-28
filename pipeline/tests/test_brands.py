@@ -118,6 +118,8 @@ def test_find_stores_leaves_out_department_store_concessions():
         "Alexander McQueen Showroom",
         "Givenchy Showroom",
         "Prada Retail France",
+        "Ralph Lauren France",
+        "Hermès Sellier",
         "Messika Group",
         "Byredo France S.A.S.",
         "Chloe' SAS",
