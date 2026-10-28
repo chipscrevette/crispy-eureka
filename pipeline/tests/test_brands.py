@@ -109,6 +109,8 @@ def test_find_stores_leaves_out_department_store_concessions():
         "Chloe Bay",
         "Chloé Courcelle",
         "Chloe Et  Louis",
+        "Celine Paris Coiffure",
+        "Chloé Paris Beauté Institut",
         "Graffiti Bazar",
         "Chanel - Bureaux",
         "CHANEL Établissement Pantin",

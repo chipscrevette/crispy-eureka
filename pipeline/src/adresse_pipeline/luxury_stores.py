@@ -61,7 +61,7 @@ def find_stores(places: Iterable[Place], catalogue: Catalogue) -> tuple[list[Sto
     return street, len(stores) - len(street)
 
 
-def inside(stores: list[Store], area: BaseGeometry) -> list[Store]:
+def in_city(stores: list[Store], area: BaseGeometry) -> list[Store]:
     """The boutiques within the city: the map, the counts and the model are about Paris."""
     return [s for s in stores if area.contains(Point(s.place.lon, s.place.lat))]
 

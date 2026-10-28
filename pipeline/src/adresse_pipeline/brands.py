@@ -48,9 +48,8 @@ STORE_CATEGORIES = frozenset(
 MAX_SUFFIX_CHARS = 12
 
 # Brands that are also first names: "Celine Daoust", "Chloe Bay" or "Céline Calvez!" are
-# people's shops. After such a brand, or a brand this short, the name may only go on
-# with a word a boutique uses.
-FIRST_NAME_BRANDS = frozenset({"celine", "chloe", "fred"})
+# people's shops. After such a brand every word must be one a boutique uses.
+FIRST_NAME_BRANDS = frozenset({"celine", "chloe"})
 # A name that goes on with one of these is a boutique telling where it is, however long:
 # "Saint Laurent Champs Elysees", "FRED Rue de la Paix", "Guerlain Boutique et Suite Facialiste".
 BOUTIQUE_WORDS = frozenset(
@@ -58,6 +57,7 @@ BOUTIQUE_WORDS = frozenset(
     | {"rue", "avenue", "boulevard", "place", "faubourg", "montaigne", "vendome"}
     | {"champs", "saint", "rive", "marais", "haussmann", "opera", "grenelle", "babylone"}
 )
+STOP_WORDS = frozenset({"de", "du", "des", "la", "le", "les", "et"})
 # Words a boutique's name may put before the brand: "Les Boutiques Boucheron", "Christian Dior".
 LEADING_WORDS = frozenset(
     {"les", "la", "le", "boutique", "boutiques", "maison", "christian", "polo"}
@@ -167,10 +167,13 @@ class Catalogue:
 
     @staticmethod
     def _goes_on_as_a_boutique(brand: Brand, rest: list[str]) -> bool:
+        key = normalize(brand.name)
+        # after a first name, every word must be a boutique's: "Celine Paris Coiffure" is a salon
+        if key in FIRST_NAME_BRANDS:
+            return set(rest) <= BOUTIQUE_WORDS | STOP_WORDS
         if not rest or rest[0] in BOUTIQUE_WORDS:
             return True
-        key = normalize(brand.name)
-        if key in FIRST_NAME_BRANDS or len(key) <= 4:
+        if len(key) <= 4:
             return False
         return len("".join(rest)) <= MAX_SUFFIX_CHARS
 

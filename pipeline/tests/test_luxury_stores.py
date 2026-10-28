@@ -3,7 +3,7 @@ from pathlib import Path
 from shapely.geometry import box
 
 from adresse_pipeline.brands import Catalogue, Place
-from adresse_pipeline.luxury_stores import find_stores, inside
+from adresse_pipeline.luxury_stores import find_stores, in_city
 
 CATALOGUE = Catalogue.from_csv(Path(__file__).resolve().parents[1] / "data" / "luxury_brands.csv")
 
@@ -45,4 +45,4 @@ def test_keeps_only_boutiques_inside_the_city():
         CATALOGUE,
     )
 
-    assert [s.place.id for s in inside(stores, paris)] == ["cambon"]
+    assert [s.place.id for s in in_city(stores, paris)] == ["cambon"]
