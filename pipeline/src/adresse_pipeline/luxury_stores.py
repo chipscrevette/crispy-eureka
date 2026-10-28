@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+import csv
+from collections.abc import Collection, Iterable
 from pathlib import Path
 
 from shapely.geometry import Point
@@ -11,6 +12,8 @@ from shapely.geometry.base import BaseGeometry
 from adresse_pipeline.brands import Catalogue, Place, Store, dedupe, distance_m, normalize
 
 CATALOGUE = Path(__file__).resolve().parents[2] / "data" / "luxury_brands.csv"
+# Places a reviewer checked by hand and found not to be a boutique, each with its reason.
+NOT_BOUTIQUES = Path(__file__).resolve().parents[2] / "data" / "not_boutiques.csv"
 
 
 # Paris department stores that host brand concessions. Overture places a concession
@@ -47,11 +50,24 @@ def is_concession(place: Place) -> bool:
     return any(name in normalize(place.name) for name in GRANDS_MAGASINS)
 
 
-def find_stores(places: Iterable[Place], catalogue: Catalogue) -> tuple[list[Store], int]:
-    """Street boutiques of catalogue brands, and how many concessions were left out."""
+def not_boutiques(path: Path = NOT_BOUTIQUES) -> dict[str, str]:
+    """Overture ids checked by hand and left out, with the reason for each."""
+    with path.open(newline="", encoding="utf-8") as f:
+        return {row["overture_id"]: row["reason"] for row in csv.DictReader(f)}
+
+
+def find_stores(
+    places: Iterable[Place], catalogue: Catalogue, excluded: Collection[str] = frozenset()
+) -> tuple[list[Store], int]:
+    """Street boutiques of catalogue brands, and how many concessions were left out.
+
+    `excluded` holds Overture ids a reviewer found not to be boutiques.
+    """
     places = list(places)
     anchors = department_stores(places)
-    stores = dedupe([Store(p, b) for p in places if (b := catalogue.match(p))])
+    stores = dedupe(
+        [Store(p, b) for p in places if p.id not in excluded and (b := catalogue.match(p))]
+    )
     street = [
         s
         for s in stores

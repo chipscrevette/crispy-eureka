@@ -148,7 +148,6 @@ def test_a_brand_tag_needs_the_brand_in_the_place_name(name, brand_name):
     ("name", "brand_name", "expected"),
     [
         ("Bvlgari", "Bulgari", "Bulgari"),
-        ("Polo Ralph Lauren", "Ralph Lauren", "Ralph Lauren"),
         ("Les Boutiques Boucheron", "Boucheron", "Boucheron"),
         ("Tiffany & Company", "Tiffany & Co.", "Tiffany & Co."),
     ],
@@ -170,7 +169,6 @@ def test_a_brand_tag_counts_when_the_name_shows_the_brand(name, brand_name, expe
         ("Van Cleef & Arpels (Paris - Avenue Montaigne)", "Van Cleef & Arpels"),
         ("BYREDO Paris Grenelle", "Byredo"),
         ("Les Boutiques Boucheron", "Boucheron"),
-        ("Polo Ralph Lauren", "Ralph Lauren"),
         ("Christian Dior", "Dior"),
         ("Guerlain Boutique et Suite Facialiste", "Guerlain"),
         ("FRED Rue de la Paix", "Fred"),
@@ -190,3 +188,10 @@ def test_keeps_real_boutiques(name, expected):
 )
 def test_keeps_real_boutiques_tagged_with_their_brand(name, brand_name):
     assert CATALOGUE.match(place(name, brand_name=brand_name)).name == brand_name
+
+
+# Premium brands whose price and clientele are not those of a luxury house: counting them as
+# luxury made Mauboussin a fifth of jewellery and Aesop a quarter of beauty.
+@pytest.mark.parametrize("name", ["Mauboussin", "Aesop", "Polo Ralph Lauren", "Ralph Lauren"])
+def test_premium_brands_are_not_luxury_boutiques(name):
+    assert CATALOGUE.match(place(name)) is None

@@ -50,7 +50,13 @@ from adresse_pipeline.grid import (
     ring_sum,
     ring_weighted_mean,
 )
-from adresse_pipeline.luxury_stores import CATALOGUE, find_stores, in_city, to_geojson
+from adresse_pipeline.luxury_stores import (
+    CATALOGUE,
+    find_stores,
+    in_city,
+    not_boutiques,
+    to_geojson,
+)
 from adresse_pipeline.overture import (
     PARIS_PADDED,
     arrondissements_geojson,
@@ -108,7 +114,7 @@ def main() -> None:
             own["hotels"] = counts
 
     catalogue = Catalogue.from_csv(CATALOGUE)
-    stores, concessions = find_stores(places, catalogue)
+    stores, concessions = find_stores(places, catalogue, not_boutiques())
     beyond = len(stores)
     stores = in_city(stores, commune.geometry)
     beyond -= len(stores)

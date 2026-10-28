@@ -1,14 +1,7 @@
 {
- "overture_boutiques": 236,
- "confirmed_by_osm": 141,
+ "overture_boutiques": 208,
+ "confirmed_by_osm": 129,
  "osm_only": [
-  {
-   "brand": "Aesop",
-   "name": "Aesop",
-   "osm": "node/8354199450",
-   "lon": 2.3321922,
-   "lat": 48.8512477
-  },
   {
    "brand": "Berluti",
    "name": "Berluti",

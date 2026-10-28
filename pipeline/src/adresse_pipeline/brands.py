@@ -15,7 +15,6 @@ class Segment(StrEnum):
     FASHION_HOUSE = "fashion house"
     LEATHER_GOODS = "leather goods"
     SHOES = "shoes"
-    PREMIUM_FASHION = "premium fashion"
     JEWELLERY_WATCHES = "jewellery & watches"
     BEAUTY = "beauty"
 
@@ -32,7 +31,6 @@ PROFILE_OF_SEGMENT: dict[Segment, Profile] = {
     Segment.FASHION_HOUSE: Profile.FASHION_HOUSE,
     Segment.LEATHER_GOODS: Profile.FASHION_HOUSE,
     Segment.SHOES: Profile.FASHION_HOUSE,
-    Segment.PREMIUM_FASHION: Profile.FASHION_HOUSE,
     Segment.JEWELLERY_WATCHES: Profile.JEWELLERY_WATCHES,
     Segment.BEAUTY: Profile.BEAUTY,
 }
@@ -60,7 +58,7 @@ BOUTIQUE_WORDS = frozenset(
 STOP_WORDS = frozenset({"de", "du", "des", "la", "le", "les", "et"})
 # Words a boutique's name may put before the brand: "Les Boutiques Boucheron", "Christian Dior".
 # Not "le" or "la": "Le Saint Laurent", in the 14e, is not a Saint Laurent boutique.
-LEADING_WORDS = frozenset({"les", "boutique", "boutiques", "maison", "christian", "polo"})
+LEADING_WORDS = frozenset({"les", "boutique", "boutiques", "maison", "christian"})
 
 # Words that make a place something other than a boutique: offices, legal entities,
 # showrooms, museums, a brand's restaurant, outlet stock, pop-ups, workshops.
