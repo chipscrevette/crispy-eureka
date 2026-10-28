@@ -52,8 +52,12 @@ def test_rejects_closed_places():
     assert CATALOGUE.match(place("Chanel", status="permanently_closed")) is None
 
 
-def test_wikidata_id_wins_over_an_unrecognised_name():
-    assert CATALOGUE.match(place("Boutique Rue Saint-Honoré", qid="Q178516")).name == "Gucci"
+def test_wikidata_id_wins_when_the_name_shows_the_brand():
+    assert CATALOGUE.match(place("GUCCI Boutique Rue Saint-Honoré", qid="Q178516")).name == "Gucci"
+
+
+def test_wikidata_id_alone_is_not_enough():
+    assert CATALOGUE.match(place("Boutique Rue Saint-Honoré", qid="Q178516")) is None
 
 
 def test_every_segment_maps_to_one_of_three_profiles():
@@ -91,3 +95,79 @@ def test_find_stores_leaves_out_department_store_concessions():
 
     assert [s.place.id for s in stores] == ["montaigne"]
     assert concessions == 1
+
+
+# Real places from Overture release 2026-10-21.0 that an earlier matcher took for boutiques.
+@pytest.mark.parametrize(
+    "name",
+    [
+        "Céline Calvez!",
+        "Celine Daoust",
+        "Céline Dominiak",
+        "Celine Lingerie",
+        "Chloe Ramseyer",
+        "Chloe Bay",
+        "Chloé Courcelle",
+        "Chloe Et  Louis",
+        "Graffiti Bazar",
+        "Chanel - Bureaux",
+        "CHANEL Établissement Pantin",
+        "Dans Les Serres de Chanel",
+        "Cartier Foundation",
+        "DIOR Galerie",
+        "Alexander McQueen Showroom",
+        "Givenchy Showroom",
+        "Prada Retail France",
+        "Messika Group",
+        "Byredo France S.A.S.",
+        "Chloe' SAS",
+        "Chloe Stock Paris",
+        "Louis Vuitton Residence Ephemere Champs Elysees",
+        "Mauboussin Parfums",
+        "Hermès Parfums",
+        "Parfums Christian Dior",
+    ],
+)
+def test_rejects_people_offices_and_venues_that_carry_a_brand_name(name):
+    assert CATALOGUE.match(place(name)) is None
+
+
+@pytest.mark.parametrize(
+    ("name", "brand_name"),
+    [("77 Diamonds", "Graff"), ("Restaurant", "Dior"), ("La Samaritaine  RTW", "Fendi")],
+)
+def test_a_brand_tag_needs_the_brand_in_the_place_name(name, brand_name):
+    assert CATALOGUE.match(place(name, brand_name=brand_name)) is None
+
+
+@pytest.mark.parametrize(
+    ("name", "brand_name", "expected"),
+    [
+        ("Bvlgari", "Bulgari", "Bulgari"),
+        ("Polo Ralph Lauren", "Ralph Lauren", "Ralph Lauren"),
+        ("Les Boutiques Boucheron", "Boucheron", "Boucheron"),
+        ("Tiffany & Company", "Tiffany & Co.", "Tiffany & Co."),
+    ],
+)
+def test_a_brand_tag_counts_when_the_name_shows_the_brand(name, brand_name, expected):
+    assert CATALOGUE.match(place(name, brand_name=brand_name)).name == expected
+
+
+@pytest.mark.parametrize(
+    ("name", "expected"),
+    [
+        ("Celine", "Celine"),
+        ("Celine Paris", "Celine"),
+        ("Saint Laurent Babylone", "Saint Laurent"),
+    ],
+)
+def test_keeps_real_boutiques(name, expected):
+    assert CATALOGUE.match(place(name)).name == expected
+
+
+@pytest.mark.parametrize(
+    ("name", "brand_name"),
+    [("FRED Rue de la Paix", "Fred"), ("CHANEL Parfums et Beauté", "Chanel")],
+)
+def test_keeps_real_boutiques_tagged_with_their_brand(name, brand_name):
+    assert CATALOGUE.match(place(name, brand_name=brand_name)).name == brand_name
