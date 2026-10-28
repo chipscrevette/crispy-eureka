@@ -122,94 +122,94 @@
    "calibration": [
     {
      "beta": 0.05,
-     "mean_percentile": 83.48
+     "mean_percentile": 84.4
     },
     {
      "beta": 0.1,
-     "mean_percentile": 84.01
+     "mean_percentile": 84.9
     },
     {
      "beta": 0.15,
-     "mean_percentile": 84.42
+     "mean_percentile": 85.26
     },
     {
      "beta": 0.2,
-     "mean_percentile": 84.69
+     "mean_percentile": 85.42
     },
     {
      "beta": 0.25,
-     "mean_percentile": 84.64
+     "mean_percentile": 85.23
     },
     {
      "beta": 0.3,
-     "mean_percentile": 84.36
+     "mean_percentile": 84.84
     },
     {
      "beta": 0.35,
-     "mean_percentile": 83.91
+     "mean_percentile": 84.26
     },
     {
      "beta": 0.4,
-     "mean_percentile": 83.31
+     "mean_percentile": 83.55
     },
     {
      "beta": 0.45,
-     "mean_percentile": 82.76
+     "mean_percentile": 82.94
     },
     {
      "beta": 0.5,
-     "mean_percentile": 82.2
+     "mean_percentile": 82.32
     },
     {
      "beta": 0.55,
-     "mean_percentile": 81.62
+     "mean_percentile": 81.7
     },
     {
      "beta": 0.6,
-     "mean_percentile": 81.15
+     "mean_percentile": 81.19
     },
     {
      "beta": 0.65,
-     "mean_percentile": 80.79
+     "mean_percentile": 80.8
     },
     {
      "beta": 0.7,
-     "mean_percentile": 80.46
+     "mean_percentile": 80.45
     },
     {
      "beta": 0.75,
-     "mean_percentile": 80.18
+     "mean_percentile": 80.15
     },
     {
      "beta": 0.8,
-     "mean_percentile": 80.03
+     "mean_percentile": 80.0
     },
     {
      "beta": 0.85,
-     "mean_percentile": 79.87
+     "mean_percentile": 79.82
     },
     {
      "beta": 0.9,
-     "mean_percentile": 79.71
+     "mean_percentile": 79.65
     },
     {
      "beta": 0.95,
-     "mean_percentile": 79.63
+     "mean_percentile": 79.58
     },
     {
      "beta": 1.0,
-     "mean_percentile": 79.56
+     "mean_percentile": 79.5
     }
    ],
    "capture": {
-    "Chanel": 3794.3,
+    "Chanel": 3795.7,
     "Louis Vuitton": 2678.9,
-    "Saint Laurent": 1679.8,
     "Dior": 1627.4,
     "Max Mara": 1623.9,
     "Hermès": 1534.3,
     "Ralph Lauren": 1527.3,
     "Celine": 1441.8,
+    "Saint Laurent": 1310.5,
     "Berluti": 1267.2,
     "Bottega Veneta": 1064.5,
     "Christian Louboutin": 975.0,
