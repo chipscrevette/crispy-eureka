@@ -13,5 +13,5 @@ export async function loadStations(): Promise<Stations | null> {
 
 export const entriesText = (n: number) => {
   const count = n >= 1000 ? `${Math.round(n / 1000)}k` : fmt(n)
-  return tr(`${count} entrées par jour`, `${count} entries a day`)
+  return tr(`${count} validations par jour`, `${count} validations a day`)
 }

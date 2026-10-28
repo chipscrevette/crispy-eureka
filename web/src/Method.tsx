@@ -245,7 +245,7 @@ export default function Method({ scores, stores, meta, cells, onClose }: Props) 
             <li>{tr('La stratégie propre d’une marque, sa clientèle ou ses projets de flagship.', "A brand's own strategy, clientele or flagship plans.")}</li>
             <li>
               {tr(
-                'Le passage réel sur le trottoir. Il est estimé à partir du réseau de rues et des entrées en gare, pas compté.',
+                'Le passage réel sur le trottoir. Il est estimé à partir du réseau de rues et des validations en gare, pas compté.',
                 'Footfall on the pavement. It is estimated from the street network and station entries, not counted.',
               )}
             </li>

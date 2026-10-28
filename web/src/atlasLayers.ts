@@ -7,15 +7,15 @@ import { tr } from './i18n'
 
 /** The nine maps of the atlas: what the big map can show, each in its own colour. */
 export const ATLAS = [
-  { id: 'score', get label() { return tr('Potentiel', 'Potential') }, get note() { return tr('Ressemble aux adresses du luxe', 'Looks like where luxury succeeds') } },
-  { id: 'demand', get label() { return tr('Pouvoir d’achat', 'Spending') }, get note() { return tr('Habitants, actifs, clients d’hôtel', 'Residents, workers, hotel guests') } },
-  { id: 'street_footfall', get label() { return tr('Passage', 'Footfall') }, get note() { return tr('Piétons sur le trottoir', 'People on the pavement') } },
-  { id: 'transit_entries_r2', get label() { return tr('Gares', 'Stations') }, get note() { return tr('Entrées métro et RER par jour', 'Metro and RER entries a day') } },
+  { id: 'score', get label() { return tr('Ressemblance', 'Likeness') }, get note() { return tr('Ressemblance avec les adresses du luxe, sur 100', 'How much it looks like luxury addresses, out of 100') } },
+  { id: 'demand', get label() { return tr('Clientèle', 'Customers') }, get note() { return tr('Indice de clientèle : habitants, actifs, clients d’hôtel. Moyenne des blocs de Paris = 1×', 'Customer index: residents, workers, hotel guests. Paris block average = 1×') } },
+  { id: 'street_footfall', get label() { return tr('Centralité de la rue', 'Street centrality') }, get note() { return tr('Trajets à pied qui passent par la rue (calculé, pas compté)', 'Walking trips through the street (computed, not counted)') } },
+  { id: 'transit_entries_r2', get label() { return tr('Validations en gare', 'Station validations') }, get note() { return tr('Validations par jour, gares autour du bloc (~600 m)', 'Ticket validations a day, stations around the block (~600 m)') } },
   { id: 'fashion_stores_r1', get label() { return tr('Boutiques de mode', 'Fashion shops') }, get note() { return tr('Toutes les boutiques de mode autour', 'All fashion stores around') } },
   { id: 'luxury', get label() { return tr('Luxe déjà là', 'Luxury already') }, get note() { return tr('Boutiques de ce type autour', 'Boutiques of this type around') } },
   { id: 'upscale_rooms_r1', get label() { return tr('Hôtels', 'Hotels') }, get note() { return tr('Chambres haut de gamme autour', 'Upscale hotel rooms around') } },
-  { id: 'offices_r1', get label() { return tr('Bureaux', 'Offices') }, get note() { return tr('Entreprises autour', 'Companies around') } },
-  { id: 'commercial_price_m2', get label() { return tr('Prix des boutiques', 'Shop prices') }, get note() { return tr('Prix des locaux au m²', 'Price of shops per m²') } },
+  { id: 'offices_r1', get label() { return tr('Bureaux', 'Offices') }, get note() { return tr('Sièges, bureaux et banques autour (Overture)', 'Head offices, offices and banks around (Overture)') } },
+  { id: 'commercial_price_m2', get label() { return tr('Prix des murs', 'Shop sale prices') }, get note() { return tr('Prix de vente des locaux commerciaux au m² (DVF)', 'Sale price of commercial premises per m² (DVF)') } },
 ] as const
 
 /** The grid property a layer reads; potential and luxury depend on the type of brand. */

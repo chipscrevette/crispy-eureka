@@ -14,8 +14,8 @@ export const num = (p: CellProps, k: string) => (typeof p[k] === 'number' ? (p[k
 export function valueText(k: string, v: number | null) {
   if (v === null) return '–'
   if (k.startsWith('score')) return `${Math.round(v)} / 100`
-  if (k === 'demand') return `${fmt(v)} ${tr('(Paris = 100)', '(Paris = 100)')}`
-  if (k === 'street_footfall') return `${fmt(v, 1)} ×`
+  if (k === 'demand') return `${fmt(v / 100, 1)}×`
+  if (k === 'street_footfall') return `${fmt(v, 1)}×`
   if (k === 'transit_entries_r2') return `${fmt(v / 1000)}k / ${tr('jour', 'day')}`
   if (k === 'commercial_price_m2') return `${fmt(v)} € / m²`
   if (k.startsWith('luxury')) return formatValue(v, 'boutiques')
