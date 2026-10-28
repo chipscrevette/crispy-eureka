@@ -118,7 +118,6 @@ def test_find_stores_leaves_out_department_store_concessions():
         "Alexander McQueen Showroom",
         "Givenchy Showroom",
         "Prada Retail France",
-        "Ralph Lauren France",
         "Hermès Sellier",
         "Messika Group",
         "Byredo France S.A.S.",
@@ -161,6 +160,21 @@ def test_a_brand_tag_counts_when_the_name_shows_the_brand(name, brand_name, expe
         ("Celine", "Celine"),
         ("Celine Paris", "Celine"),
         ("Saint Laurent Babylone", "Saint Laurent"),
+        ("Bvlgari", "Bulgari"),
+        ("Bottega Veneta Paris Faubourg Saint Honore", "Bottega Veneta"),
+        ("Saint Laurent Champs Elysees", "Saint Laurent"),
+        ("Diptyque Paris Francs Bourgeois", "Diptyque"),
+        ("Van Cleef & Arpels (Paris - Avenue Montaigne)", "Van Cleef & Arpels"),
+        ("BYREDO Paris Grenelle", "Byredo"),
+        ("Les Boutiques Boucheron", "Boucheron"),
+        ("Polo Ralph Lauren", "Ralph Lauren"),
+        ("Christian Dior", "Dior"),
+        ("Guerlain Boutique et Suite Facialiste", "Guerlain"),
+        ("FRED Rue de la Paix", "Fred"),
+        ("Tiffany & Company", "Tiffany & Co."),
+        ("Van Cleef and Arpels", "Van Cleef & Arpels"),
+        # the Place Vendôme flagship as Overture names it, confirmed by OpenStreetMap
+        ("Van Cleef & Arpels France", "Van Cleef & Arpels"),
     ],
 )
 def test_keeps_real_boutiques(name, expected):
@@ -169,7 +183,7 @@ def test_keeps_real_boutiques(name, expected):
 
 @pytest.mark.parametrize(
     ("name", "brand_name"),
-    [("FRED Rue de la Paix", "Fred"), ("CHANEL Parfums et Beauté", "Chanel")],
+    [("CHANEL Parfums et Beauté", "Chanel")],
 )
 def test_keeps_real_boutiques_tagged_with_their_brand(name, brand_name):
     assert CATALOGUE.match(place(name, brand_name=brand_name)).name == brand_name

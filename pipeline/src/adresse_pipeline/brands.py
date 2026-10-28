@@ -48,11 +48,19 @@ STORE_CATEGORIES = frozenset(
 MAX_SUFFIX_CHARS = 12
 
 # Brands that are also first names: "Celine Daoust", "Chloe Bay" or "Céline Calvez!" are
-# people's shops. After such a brand the name may only go on with a word a boutique uses.
+# people's shops. After such a brand, or a brand this short, the name may only go on
+# with a word a boutique uses.
 FIRST_NAME_BRANDS = frozenset({"celine", "chloe", "fred"})
+# A name that goes on with one of these is a boutique telling where it is, however long:
+# "Saint Laurent Champs Elysees", "FRED Rue de la Paix", "Guerlain Boutique et Suite Facialiste".
 BOUTIQUE_WORDS = frozenset(
     {"paris", "boutique", "store", "flagship", "femme", "homme", "men", "women"}
     | {"rue", "avenue", "boulevard", "place", "faubourg", "montaigne", "vendome"}
+    | {"champs", "saint", "rive", "marais", "haussmann", "opera", "grenelle", "babylone"}
+)
+# Words a boutique's name may put before the brand: "Les Boutiques Boucheron", "Christian Dior".
+LEADING_WORDS = frozenset(
+    {"les", "la", "le", "boutique", "boutiques", "maison", "christian", "polo"}
 )
 
 # Words that make a place something other than a boutique: offices, legal entities,
@@ -60,7 +68,7 @@ BOUTIQUE_WORDS = frozenset(
 NOT_A_BOUTIQUE = frozenset(
     {"bureau", "bureaux", "showroom", "sas", "sarl", "group", "groupe", "retail"}
     | {"foundation", "fondation", "etablissement", "galerie", "restaurant", "stock"}
-    | {"serres", "ephemere", "sellier", "france"}
+    | {"serres", "ephemere", "sellier"}
 )
 
 # How a brand's own boutiques may spell it when the name differs from the catalogue.
@@ -143,17 +151,28 @@ class Catalogue:
         if key in self._by_key:
             return self._by_key[key]
         found = words(name)
+        # the name as it is, then without the words a boutique may put before the brand
+        starts = [found]
+        while starts[-1] and starts[-1][0] in LEADING_WORDS:
+            starts.append(starts[-1][1:])
         for brand in self.brands:
-            head = words(brand.name)
-            rest = found[len(head) :]
-            if (
-                len(normalize(brand.name)) > 4
-                and found[: len(head)] == head
-                and len("".join(rest)) <= MAX_SUFFIX_CHARS
-                and not (normalize(brand.name) in FIRST_NAME_BRANDS and set(rest) - BOUTIQUE_WORDS)
-            ):
-                return brand
+            for spelling in (brand.name, *ALIASES.get(brand.name, ())):
+                head = words(spelling)
+                for start in starts:
+                    if start[: len(head)] == head and self._goes_on_as_a_boutique(
+                        brand, start[len(head) :]
+                    ):
+                        return brand
         return None
+
+    @staticmethod
+    def _goes_on_as_a_boutique(brand: Brand, rest: list[str]) -> bool:
+        if not rest or rest[0] in BOUTIQUE_WORDS:
+            return True
+        key = normalize(brand.name)
+        if key in FIRST_NAME_BRANDS or len(key) <= 4:
+            return False
+        return len("".join(rest)) <= MAX_SUFFIX_CHARS
 
     def named_in(self, brand: Brand, name: str | None) -> bool:
         """Whether a place's own name shows the brand, as a boutique's sign would."""
