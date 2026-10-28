@@ -128,6 +128,7 @@ def test_find_stores_leaves_out_department_store_concessions():
         "Louis Vuitton Residence Ephemere Champs Elysees",
         "Mauboussin Parfums",
         "Hermès Parfums",
+        "Le Saint Laurent",
         "Parfums Christian Dior",
     ],
 )

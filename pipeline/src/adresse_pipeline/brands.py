@@ -59,9 +59,8 @@ BOUTIQUE_WORDS = frozenset(
 )
 STOP_WORDS = frozenset({"de", "du", "des", "la", "le", "les", "et"})
 # Words a boutique's name may put before the brand: "Les Boutiques Boucheron", "Christian Dior".
-LEADING_WORDS = frozenset(
-    {"les", "la", "le", "boutique", "boutiques", "maison", "christian", "polo"}
-)
+# Not "le" or "la": "Le Saint Laurent", in the 14e, is not a Saint Laurent boutique.
+LEADING_WORDS = frozenset({"les", "boutique", "boutiques", "maison", "christian", "polo"})
 
 # Words that make a place something other than a boutique: offices, legal entities,
 # showrooms, museums, a brand's restaurant, outlet stock, pop-ups, workshops.
