@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { loadRawData, localData, type Data } from './appData'
 import { ATLAS, atlasKey, shadeOf } from './atlasLayers'
 import { loadBorders, type Borders } from './borders'
-import { OPEN_RULE, openKey } from './dashboardData'
+import { openKey } from './dashboardData'
 import { cellAt, cellIndex, type LonLat } from './geo'
 import type { CellProps } from './grid'
-import { fmt, lang, switchLang, tr, useLang } from './i18n'
+import { fmt, lang, sourceLabel, sourceShort, switchLang, tr, useLang } from './i18n'
 import { coloursOf, isDark, profileColour, rampFor, switchTheme, useTheme, walkColour } from './palette'
 import { SCORE_BREAKS, ordinal, rankText, scoreKey } from './scores'
 import { PROFILES, countByProfile, type ProfileId } from './stores'
@@ -222,20 +222,6 @@ export default function Dashboard() {
     [arr, data],
   )
 
-  // per tenth of potential: the share of blocks that already have a boutique of the type around
-  const tenths = useMemo(() => {
-    const bins = Array.from({ length: 10 }, () => ({ blocks: 0, taken: 0 }))
-    const lux = atlasKey('luxury', profile)
-    for (const f of data?.grid.features ?? []) {
-      const s = num(f.properties, key)
-      if (s === null) continue
-      const b = bins[Math.min(9, Math.floor(s / 10))]
-      b.blocks += 1
-      if ((num(f.properties, lux) ?? 0) > 0) b.taken += 1
-    }
-    return bins
-  }, [data, key, profile])
-
   if (error) return <p className="dash-error">{tr('Les données n’ont pas pu être chargées : ', 'The data could not load: ') + error}</p>
 
   const counts = data ? countByProfile(data.stores) : null
@@ -274,7 +260,7 @@ export default function Dashboard() {
         </div>
         <div className="dash-seg" role="group" aria-label={tr('Ce que montre la carte', 'What the map shows')}>
           <button aria-pressed={fresh} onClick={() => set({ fresh: true })}>
-            {tr('Places libres', 'Free spots')}
+            {tr('Sites avec local vide', 'Sites with an empty shop')}
           </button>
           <button aria-pressed={!fresh} onClick={() => set({ fresh: false })}>
             {tr('Déjà présents', 'Already there')}
@@ -362,8 +348,8 @@ export default function Dashboard() {
                   <p className="dash-kicker">{tr('Paris', 'Paris')}</p>
                   {fresh ? (
                     <div className="dash-tiles-2">
-                      <Figure value={fmt(open.length)} label={tr('places libres', 'free spots')} accent onClick={() => setView('arrondissements')} />
-                      <Figure value={fmt(counts![profile])} label={tr('boutiques', 'boutiques')} onClick={() => setView('brands')} />
+                      <Figure value={fmt(open.length)} label={tr('sites avec local vide (2023)', 'sites with an empty shop (2023)')} source={sourceShort(data.meta.sources, 'BDCOM', 'Apur')} accent onClick={() => setView('arrondissements')} />
+                      <Figure value={fmt(counts![profile])} label={tr('boutiques', 'boutiques')} source={sourceShort(data.meta.sources, 'Overture Maps Places', 'Overture')} onClick={() => setView('brands')} />
                     </div>
                   ) : (
                     <Brands data={data} profile={profile} limit={5} brand={brand} onBrand={setBrand} compact />
@@ -435,9 +421,9 @@ export default function Dashboard() {
                 ) : (
                   <section className="dash-card dash-side-start">
                     <p className="dash-kicker">{tr('Par où commencer', 'Where to start')}</p>
-                    <h2 className="dash-title">{tr('Les places libres', 'The free spots')}</h2>
+                    <h2 className="dash-title">{tr('Les sites avec un local vide en 2023', 'Sites with an empty shop in 2023')}</h2>
                     <p className="muted dash-start-note">
-                      {tr('Les blocs au fort potentiel sans boutique de ce type autour. Choisissez-en un, ou cliquez la carte.', 'High-potential blocks with no boutique of this type around. Pick one, or click the map.')}
+                      {tr('Blocs qui ressemblent aux adresses du luxe, sans boutique de ce type autour, avec un grand local vide en 2023 (Apur). Choisissez-en un, ou cliquez la carte.', 'Blocks that look like luxury addresses, with no boutique of this type around and a large empty shop in 2023 (Apur). Pick one, or click the map.')}
                     </p>
                     <Spots open={open} cell={cell} profile={profile} onBlock={(c) => set({ cell: c })} />
                   </section>
@@ -501,6 +487,7 @@ export default function Dashboard() {
                     {zone && (
                       <WalkFigures
                         z={zoneStats(data, profile, zone, placed, stationCells)}
+                        sources={data.meta.sources}
                         onMetric={(m) => {
                           setView(null)
                           setDetail(m)
@@ -539,12 +526,12 @@ export default function Dashboard() {
               </section>
               <section className="dash-card detail-side">
                 <p className="muted view-note">
-                  {tr('Potentiel moyen des blocs de chaque arrondissement. Cliquez une ligne : la carte s’y rapproche et montre son meilleur bloc.', 'Average potential of each arrondissement’s blocks. Click a row: the map closes in and shows its best block.')}
+                  {tr('Ressemblance moyenne des blocs de chaque arrondissement avec les adresses du luxe. Cliquez une ligne : la carte s’y rapproche et montre son meilleur bloc.', 'Average likeness of each arrondissement’s blocks to luxury addresses. Click a row: the map closes in and shows its best block.')}
                 </p>
                 <p className="dash-rank-legend muted">
                   <span>
                     <span className="dash-rank-dot" aria-hidden="true" />
-                    {tr('places libres', 'free spots')}
+                    {tr('sites avec local vide (2023)', 'sites with an empty shop (2023)')}
                   </span>
                   <span>
                     <span className="dash-rank-dot" style={{ background: profileColour(profile) }} aria-hidden="true" />
@@ -631,15 +618,11 @@ export default function Dashboard() {
                 <p className="dash-kicker">{tr('Ce qui compte le plus pour le modèle', 'What matters most to the model')}</p>
                 <Drivers data={data} profile={profile} block={null} />
               </section>
-              <section className="dash-card">
-                <p className="dash-kicker">{tr('Le luxe est déjà là où le potentiel est haut', 'Luxury is already where potential is high')}</p>
-                <Tenths bins={tenths} mark={block ? num(block, key) : null} colour={coloursOf(rampFor(key))[3]} />
-              </section>
               <section className="dash-card dash-sources">
                 <p className="dash-kicker">{tr('Données ouvertes', 'Open data')}</p>
                 <ul>
                   {(data.meta.sources ?? []).map((src) => (
-                    <li key={src}>{src}</li>
+                    <li key={src}>{sourceLabel(src)}</li>
                   ))}
                 </ul>
                 <p className="dash-note muted">
@@ -671,12 +654,13 @@ function ViewHead(props: { kicker: string; title: string; onClose: () => void })
 }
 
 /** A number and what it counts; with `onClick`, a button that opens the number's own view. */
-function Figure(props: { value: string; label: string; accent?: boolean; onClick?: () => void }) {
+function Figure(props: { value: string; label: string; source?: string; accent?: boolean; onClick?: () => void }) {
   const className = props.accent ? 'dash-figure accent' : 'dash-figure'
   const body = (
     <>
       <span className="dash-figure-value">{props.value}</span>
       <span className="dash-figure-label">{props.label}</span>
+      {props.source && <span className="dash-figure-source">{props.source}</span>}
     </>
   )
   if (!props.onClick) return <p className={className}>{body}</p>
@@ -796,14 +780,14 @@ function Portrait(props: {
       {!head && <p className="dash-kicker">{tr('Chaque couche face à Paris', 'Each layer against Paris')}</p>}
       {head && (
         <>
-      <p className="dash-kicker">{block ? tr('Le bloc choisi', 'The chosen block') : tr('La place libre type', 'The typical free spot')}</p>
+      <p className="dash-kicker">{block ? tr('Le bloc choisi', 'The chosen block') : tr('Le site type', 'The typical site')}</p>
       <h2 className="dash-title">{block ? short(block) : tr('Pourquoi ces places', 'Why these spots')}</h2>
       <p className="muted dash-portrait-note">
         {block
           ? score === null
             ? tr('Pas de note pour ce bloc.', 'No score for this block.')
-            : `${tr('Son potentiel', 'Its potential')} ${rankText(score)}.`
-          : tr('Un pétale par couche : plus il est long, plus la place libre médiane dépasse Paris.', 'One petal per layer: the longer, the more the median free spot beats Paris.')}
+            : `${tr('Sa ressemblance', 'Its likeness')} ${rankText(score)}.`
+          : tr('Un pétale par couche : plus il est long, plus le site médian dépasse Paris.', 'One petal per layer: the longer, the more the median site beats Paris.')}
       </p>
         </>
       )}
@@ -857,7 +841,7 @@ function Portrait(props: {
 function Spots(props: { open: CellProps[]; cell: string | null; profile: ProfileId; onBlock: (cell: string) => void }) {
   const key = scoreKey(props.profile)
   const ramp = coloursOf(rampFor(key))
-  if (!props.open.length) return <p className="muted">{tr('Aucune place libre pour ce type de marque.', 'No free spot for this type of brand.')}</p>
+  if (!props.open.length) return <p className="muted">{tr('Aucun site avec local vide (2023) pour ce type de marque.', 'No site with an empty shop (2023) for this type of brand.')}</p>
   return (
     <ol className="dash-spots">
       {props.open.map((p, i) => {
@@ -884,43 +868,19 @@ function Spots(props: { open: CellProps[]; cell: string | null; profile: Profile
   )
 }
 
-/** One column per tenth of potential, as high as the share of its blocks with luxury already; the chosen block's tenth in ink. */
-function Tenths(props: { bins: { blocks: number; taken: number }[]; mark: number | null; colour: string }) {
-  const [hover, setHover] = useState<number | null>(null)
-  const markBin = props.mark === null ? null : Math.min(9, Math.floor(props.mark / 10))
-  const share = (b: { blocks: number; taken: number }) => (b.blocks ? b.taken / b.blocks : 0)
-  const max = Math.max(0.01, ...props.bins.map(share))
-  return (
-    <>
-      <div className="dash-histogram" onMouseLeave={() => setHover(null)}>
-        {props.bins.map((b, i) => (
-          <div key={i} className="dash-col" onMouseEnter={() => setHover(i)} title={`${i * 10}–${i * 10 + 10} · ${fmt(b.taken)} / ${fmt(b.blocks)}`}>
-            {(hover === i || (hover === null && (i === 9 || i === markBin))) && (
-              <span className="dash-col-value">
-                {Math.round(share(b) * 100)}
-                {pc()}
-              </span>
-            )}
-            <span className="dash-col-bar" style={{ height: `${(share(b) / max) * 100}%`, background: i === markBin ? 'var(--ink)' : props.colour }} />
-          </div>
-        ))}
-      </div>
-      <div className="dash-axis muted" aria-hidden="true">
-        <span>{tr('potentiel 0', 'potential 0')}</span>
-        <span>100</span>
-      </div>
-      <p className="dash-note muted">
-        {tr(
-          `Part des blocs avec déjà une boutique de ce type autour. Places libres : ${OPEN_RULE.score} et plus.`,
-          `Share of blocks that already have a boutique of this type around. Free spots: ${OPEN_RULE.score} and up.`,
-        )}
-      </p>
-    </>
-  )
-}
-
 const featureName = (data: Data, k: string) =>
   data.scores.features.find((f) => f.key === k)?.label ?? data.meta.features.find((f) => f.key === k)?.label ?? k
+
+/** How high a block is on one layer among all Paris blocks, in words: "très haut ici · ". Empty when the block has no value. */
+function levelWords(data: Data, key: string, block: CellProps) {
+  const v = num(block, key)
+  if (v === null) return ''
+  const values = data.grid.features.map((f) => num(f.properties, key)).filter((x): x is number => x !== null)
+  const below = values.filter((x) => x < v).length / Math.max(1, values.length)
+  const word =
+    below >= 0.8 ? tr('très haut', 'very high') : below >= 0.6 ? tr('haut', 'high') : below >= 0.4 ? tr('moyen', 'average') : below >= 0.2 ? tr('bas', 'low') : tr('très bas', 'very low')
+  return `${word} ${tr('ici', 'here')} → `
+}
 
 /**
  * Why the model scores as it does. For a block: the four layers that moved its score most, up or
@@ -949,13 +909,18 @@ function Drivers(props: { data: Data; profile: ProfileId; block: CellProps | nul
                 }}
               />
             </span>
-            {block && <span className="dash-driver-sign muted">{r.v >= 0 ? tr('pousse', 'lifts') : tr('freine', 'holds back')}</span>}
+            {block && (
+              <span className="dash-driver-sign muted">
+                {levelWords(data, r.key, block)}
+                {r.v >= 0 ? tr('monte la note', 'raises the score') : tr('baisse la note', 'lowers the score')}
+              </span>
+            )}
           </li>
         ))}
       </ul>
       <p className="dash-note muted">
         {block
-          ? tr('Les quatre couches qui ont le plus monté ou baissé la note de ce bloc (valeurs SHAP).', 'The four layers that raised or lowered this block’s score most (SHAP values).')
+          ? tr('Les quatre couches qui ont le plus monté ou baissé la note de ce bloc (valeurs SHAP), avec le niveau du bloc parmi ceux de Paris.', 'The four layers that raised or lowered this block’s score most (SHAP values), with the block’s level among Paris blocks.')
           : tr('Poids moyen de chaque couche dans les notes (SHAP). Choisissez un bloc pour voir les siennes.', 'Average weight of each layer in the scores (SHAP). Choose a block to see its own.')}
       </p>
     </>
@@ -1007,7 +972,7 @@ function Profiles(props: { data: Data; block: CellProps | null; profile: Profile
       </div>
       {block && (
         <div className="dash-mix">
-          <p className="dash-note muted">{tr('Pouvoir d’achat du bloc, Paris = 100', 'Block spending, Paris = 100')}</p>
+          <p className="dash-note muted">{tr('Indice de clientèle du bloc', 'Block customer index')}</p>
           {groups.map((g, i) => {
             const v = num(block, `demand_${g.key}`) ?? 0
             return (
@@ -1017,7 +982,7 @@ function Profiles(props: { data: Data; block: CellProps | null; profile: Profile
                   <span style={{ width: `${Math.min(v, 400) / 4}%`, background: coloursOf(rampFor('demand'))[2 + i] }} />
                   <span className="dash-mix-avg" aria-hidden="true" />
                 </span>
-                <span className="muted">{fmt(v)}</span>
+                <span className="muted">{fmt(v / 100, 1)}×</span>
               </p>
             )
           })}
@@ -1185,7 +1150,7 @@ function ArrRanking(props: { rows: Map<string, ArrRow>; profile: ProfileId; chos
               <span style={{ width: `${r.mean}%`, background: ramp[Math.min(4, Math.floor(r.mean / 20))] }} />
             </span>
             <span className="muted">{Math.round(r.mean)}</span>
-            <span className="dash-rank-dots" aria-label={`${r.open} ${tr('places libres', 'free spots')}`}>
+            <span className="dash-rank-dots" aria-label={`${r.open} ${tr('sites avec local vide (2023)', 'sites with an empty shop (2023)')}`}>
               {Array.from({ length: Math.min(r.open, 6) }, (_, i) => (
                 <span key={i} className="dash-rank-dot" />
               ))}
@@ -1217,15 +1182,40 @@ function WalkSwitch(props: { bands: number[]; minutes: number; onMinutes: (m: nu
   )
 }
 
+/** A titled block that opens its detail view from anywhere inside it, with the whole block lit on hover. */
+function Opens(props: { label: string; onOpen: () => void; children: ReactNode }) {
+  return (
+    <div
+      className="dash-opens"
+      role="button"
+      tabIndex={0}
+      aria-label={props.label}
+      onClick={props.onOpen}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          props.onOpen()
+        }
+      }}
+    >
+      <p className="dash-list-head">
+        <span className="dash-kicker">{props.label}</span>
+        <span className="dash-figure-open" aria-hidden="true">→</span>
+      </p>
+      {props.children}
+    </div>
+  )
+}
+
 /** The walk's four numbers, each opening its own view. */
-function WalkFigures(props: { z: ReturnType<typeof zoneStats>; onMetric: (m: Metric) => void }) {
-  const { z, onMetric } = props
+function WalkFigures(props: { z: ReturnType<typeof zoneStats>; sources: string[]; onMetric: (m: Metric) => void }) {
+  const { z, sources, onMetric } = props
   return (
     <div className="dash-tiles-2">
-      <Figure value={fmt(z.free)} label={tr('places libres', 'free spots')} accent onClick={() => onMetric('free')} />
-      <Figure value={fmt(z.boutiques)} label={tr('boutiques de ce type', 'boutiques of this type')} onClick={() => onMetric('boutiques')} />
-      <Figure value={kilo(z.entries)} label={tr('entrées en gare / jour', 'station entries / day')} onClick={() => onMetric('stations')} />
-      <Figure value={z.spendAvg === null ? '–' : `${fmt(z.spendAvg / 100, 1)}×`} label={tr('pouvoir d’achat vs Paris', 'spending vs Paris')} onClick={() => onMetric('spending')} />
+      <Figure value={fmt(z.free)} label={tr('sites avec local vide (2023)', 'sites with an empty shop (2023)')} source={sourceShort(sources, 'BDCOM', 'Apur')} accent onClick={() => onMetric('free')} />
+      <Figure value={fmt(z.boutiques)} label={tr('boutiques de ce type', 'boutiques of this type')} source={sourceShort(sources, 'Overture Maps Places', 'Overture')} onClick={() => onMetric('boutiques')} />
+      <Figure value={kilo(z.entries)} label={tr('validations / jour, gares de la zone', 'validations / day, stations in the walk')} source={sourceShort(sources, 'Mobilités', 'IDFM')} onClick={() => onMetric('stations')} />
+      <Figure value={z.spendAvg === null ? '–' : `${fmt(z.spendAvg / 100, 1)}×`} label={tr('indice de clientèle', 'customer index')} source="Insee, Sirene, Overture" onClick={() => onMetric('spending')} />
     </div>
   )
 }
@@ -1254,13 +1244,10 @@ function WalkCard(props: {
           <p className="dash-kicker">{tr('À pied, le long des rues', 'On foot, along the streets')}</p>
           <WalkSwitch bands={props.bands} minutes={props.minutes} onMinutes={props.onMinutes} />
         </div>
-        <WalkFigures z={z} onMetric={onMetric} />
+        <WalkFigures z={z} sources={props.data.meta.sources} onMetric={onMetric} />
       </section>
       <section className="dash-card dash-walk-lists">
-        <button className="dash-list-head" onClick={() => onMetric('stations')}>
-          <span className="dash-kicker">{tr('Gares les plus fréquentées', 'Busiest stations')}</span>
-          <span className="dash-figure-open" aria-hidden="true">→</span>
-        </button>
+        <Opens label={tr('Gares les plus fréquentées', 'Busiest stations')} onOpen={() => onMetric('stations')}>
         {z.near.length ? (
           <ul className="dash-stations">
             {z.near.slice(0, 3).map((s) => (
@@ -1274,10 +1261,8 @@ function WalkCard(props: {
         ) : (
           <p className="dash-empty">{tr('Aucune gare dans la zone.', 'No station in the walk.')}</p>
         )}
-        <button className="dash-list-head" onClick={() => onMetric('boutiques')}>
-          <span className="dash-kicker">{tr('Marques déjà là', 'Brands already there')}</span>
-          <span className="dash-figure-open" aria-hidden="true">→</span>
-        </button>
+        </Opens>
+        <Opens label={tr('Marques déjà là', 'Brands already there')} onOpen={() => onMetric('boutiques')}>
         {brands.length ? (
           <ul className="dash-chips">
             {brands.slice(0, 6).map(([b, n]) => (
@@ -1290,8 +1275,9 @@ function WalkCard(props: {
             {brands.length > 6 && <li className="muted">+{brands.length - 6}</li>}
           </ul>
         ) : (
-          <p className="dash-empty">{tr('Aucune de ce type : la place est libre.', 'None of this type: the field is open.')}</p>
+          <p className="dash-empty">{tr('Aucune boutique de ce type dans la zone.', 'No boutique of this type in the walk.')}</p>
         )}
+        </Opens>
       </section>
     </>
   )
@@ -1313,7 +1299,10 @@ function LayerRail(props: { data: Data; profile: ProfileId; layer: string; block
         return (
           <button key={l.id} role="radio" aria-checked={layer === l.id} onClick={() => props.onLayer(l.id)}>
             <span className="key-dot" style={{ background: colour }} aria-hidden="true" />
-            <span className="dash-rail-name">{l.label}</span>
+            <span className="dash-rail-name">
+              {l.label}
+              {block && 'area' in l && <span className="dash-rail-area">{l.area}</span>}
+            </span>
             {block && <span className="dash-rail-value">{valueText(k, v)}</span>}
             {block && (
               <span className="dash-rail-track" aria-hidden="true">

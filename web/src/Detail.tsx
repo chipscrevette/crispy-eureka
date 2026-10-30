@@ -6,7 +6,7 @@ import { openKey } from './dashboardData'
 import type { LonLat } from './geo'
 import type { CellProps } from './grid'
 import HeroMap, { type Mark } from './HeroMap'
-import { fmt, tr } from './i18n'
+import { fmt, sourceLabel, tr } from './i18n'
 import { badgeHtml, type LineColours, type Network } from './network'
 import { coloursOf, profileColour, rampFor, useTheme } from './palette'
 import { scoreKey } from './scores'
@@ -27,14 +27,14 @@ const METRICS: Record<
     layer: 'transit_entries_r2',
     value: (z) => z.entries,
     text: kilo,
-    label: () => tr('entrées en gare / jour', 'station entries / day'),
+    label: () => tr('validations / jour, gares de la zone', 'validations / day, stations in the walk'),
     colour: () => coloursOf(rampFor('transit'))[3],
   },
   free: {
     layer: 'score',
     value: (z) => z.free,
     text: (n) => fmt(n),
-    label: () => tr('places libres', 'free spots'),
+    label: () => tr('sites avec local vide (2023)', 'sites with an empty shop (2023)'),
     colour: (p) => coloursOf(rampFor(scoreKey(p)))[3],
   },
   boutiques: {
@@ -48,13 +48,13 @@ const METRICS: Record<
     layer: 'demand',
     value: (z) => z.spendAvg ?? 0,
     text: (n) => `${fmt(n / 100, 1)}×`,
-    label: () => tr('pouvoir d’achat vs Paris', 'spending vs Paris'),
+    label: () => tr('indice de clientèle', 'customer index'),
     colour: () => coloursOf(rampFor('demand'))[3],
   },
 }
 const ORDER: Metric[] = ['stations', 'free', 'boutiques', 'spending']
 
-const sourceOf = (data: Data, word: string) => data.meta.sources.find((s) => s.includes(word)) ?? ''
+const sourceOf = (data: Data, word: string) => sourceLabel(data.meta.sources.find((s) => s.includes(word)) ?? '')
 
 /**
  * One number of the walk, opened up: a map that shows only that subject around the chosen block,
@@ -293,17 +293,17 @@ function headline(metric: Metric, data: Data, profile: ProfileId, z: Stats) {
   const blocks = data.grid.features.map((f) => f.properties)
   if (metric === 'stations')
     return z.near.length
-      ? tr(`${z.near.length} gares de métro et RER dans la zone. Chiffre : entrées moyennes par jour.`, `${z.near.length} metro and RER stations in the walk. The figure: average entries a day.`)
+      ? tr(`${z.near.length} gares de métro et RER dans la zone. Chiffre : validations moyennes par jour (Île-de-France Mobilités).`, `${z.near.length} metro and RER stations in the walk. The figure: average ticket validations a day (Île-de-France Mobilités).`)
       : tr('Aucune gare dans la zone.', 'No station in the walk.')
   if (metric === 'free') {
     const all = blocks.filter((p) => p[openKey(scoreKey(profile))] === 1).length
-    return tr(`${fmt(z.free)} des ${fmt(all)} places libres de Paris pour ce type de marque sont dans la zone.`, `${fmt(z.free)} of the ${fmt(all)} free spots in Paris for this type of brand are in the walk.`)
+    return tr(`${fmt(z.free)} des ${fmt(all)} sites avec local vide (2023) de Paris pour ce type de marque sont dans la zone.`, `${fmt(z.free)} of the ${fmt(all)} sites with an empty shop (2023) in Paris for this type of brand are in the walk.`)
   }
   if (metric === 'boutiques') {
     const all = data.stores.features.filter((f) => f.properties.profile === profile).length
     return z.boutiques
       ? tr(`${fmt(z.boutiques)} des ${fmt(all)} boutiques de ce type à Paris, de ${z.brands.size} marques.`, `${fmt(z.boutiques)} of the ${fmt(all)} boutiques of this type in Paris, from ${z.brands.size} brands.`)
-      : tr('Aucune boutique de ce type dans la zone : la place est libre.', 'No boutique of this type in the walk: the field is open.')
+      : tr('Aucune boutique de ce type dans la zone.', 'No boutique of this type in the walk.')
   }
   return z.spendAvg === null
     ? tr('Pas de donnée de pouvoir d’achat ici.', 'No spending data here.')
@@ -318,7 +318,7 @@ function source(metric: Metric, data: Data) {
     metric === 'stations'
       ? sourceOf(data, 'Mobilités')
       : metric === 'spending'
-        ? [sourceOf(data, 'Filosofi'), sourceOf(data, 'Sirene'), sourceOf(data, 'hotels')].filter(Boolean).join(' · ')
+        ? [sourceOf(data, 'Filosofi'), sourceOf(data, 'Sirene'), sourceOf(data, 'Overture Maps Places')].filter(Boolean).join(' · ')
         : metric === 'boutiques'
           ? sourceOf(data, 'Overture Maps Places')
           : tr('Notre modèle, testé à l’aveugle (onglet Méthode)', 'Our model, blind-tested (Method tab)')
@@ -363,7 +363,7 @@ function StationsChart(props: { z: Stats; colours: LineColours | null }) {
 function FreeChart(props: { profile: ProfileId; inside: Spot[]; nearest: Spot[]; onBlock: (cell: string) => void }) {
   const key = scoreKey(props.profile)
   const rows = props.inside.length ? props.inside.slice(0, 8) : props.nearest
-  if (!rows.length) return <p className="dash-empty">{tr('Aucune place libre à Paris pour ce type de marque.', 'No free spot in Paris for this type of brand.')}</p>
+  if (!rows.length) return <p className="dash-empty">{tr('Aucun site avec local vide (2023) à Paris pour ce type de marque.', 'No site with an empty shop (2023) in Paris for this type of brand.')}</p>
   const ramp = coloursOf(rampFor(key))
   return (
     <>
@@ -394,7 +394,7 @@ function FreeChart(props: { profile: ProfileId; inside: Spot[]; nearest: Spot[];
 /** The brands already in the walk: one dot per boutique, the most present first. */
 function BrandsChart(props: { z: Stats; profile: ProfileId }) {
   const rows = [...props.z.brands].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-  if (!rows.length) return <p className="dash-empty">{tr('Aucune boutique de ce type : la place est libre.', 'No boutique of this type: the field is open.')}</p>
+  if (!rows.length) return <p className="dash-empty">{tr('Aucune boutique de ce type dans la zone.', 'No boutique of this type in the walk.')}</p>
   const shown = rows.slice(0, 10)
   const colour = profileColour(props.profile)
   return (

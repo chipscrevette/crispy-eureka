@@ -27,7 +27,7 @@ export default function Figures({ openCount, counts, profile, brands, tested }: 
   return (
     <ul className="figures" aria-label={tr('Ce type de marque en chiffres', 'This type of brand in numbers')}>
       <li>
-        <span className="figure-label">{tr('Places libres', 'Free spots')}</span>
+        <span className="figure-label">{tr('Sites avec local vide (2023)', 'Sites with an empty shop (2023)')}</span>
         <span className="figure-row">
           <span className="figure-value accent">{openCount}</span>
           <span className="figure-hexes" aria-hidden="true">

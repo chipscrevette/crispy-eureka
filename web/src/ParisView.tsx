@@ -4,7 +4,7 @@ import { ATLAS, atlasKey, useOutline } from './atlasLayers'
 import { kilo, num, short, type Placed } from './blocks'
 import type { Borders } from './borders'
 import { openKey } from './dashboardData'
-import { fmt, tr } from './i18n'
+import { fmt, sourceShort, tr } from './i18n'
 import { coloursOf, rampFor } from './palette'
 import { scoreKey } from './scores'
 import type { ProfileId } from './stores'
@@ -44,14 +44,14 @@ function compact(id: Layer, v: number) {
 function unit(id: Layer) {
   const u: Record<Layer, () => string> = {
     score: () => tr('note moyenne des blocs, sur 100', 'average block score, out of 100'),
-    demand: () => tr('pouvoir d’achat moyen, Paris = 1×', 'average spending, Paris = 1×'),
-    street_footfall: () => tr('passage moyen, rue type = 1×', 'average footfall, typical street = 1×'),
-    transit_entries_r2: () => tr('entrées en gare par jour', 'station entries a day'),
+    demand: () => tr('indice de clientèle moyen', 'average customer index'),
+    street_footfall: () => tr('centralité moyenne, rue type = 1×', 'average street centrality, typical street = 1×'),
+    transit_entries_r2: () => tr('validations par jour, gares de l’arrondissement', 'validations a day, stations in the arrondissement'),
     fashion_stores_r1: () => tr('boutiques de mode à 350 m, en moyenne', 'fashion shops within 350 m, on average'),
     luxury: () => tr('boutiques de ce type', 'boutiques of this type'),
     upscale_rooms_r1: () => tr('chambres haut de gamme à 350 m, en moyenne', 'upscale rooms within 350 m, on average'),
-    offices_r1: () => tr('entreprises à 350 m, en moyenne', 'companies within 350 m, on average'),
-    commercial_price_m2: () => tr('prix moyen des locaux, € / m²', 'average shop price, € / m²'),
+    offices_r1: () => tr('bureaux et banques à 350 m, en moyenne', 'offices and banks within 350 m, on average'),
+    commercial_price_m2: () => tr('prix de vente moyen des murs, € / m² (DVF)', 'average sale price of premises, € / m² (DVF)'),
   }
   return u[id]()
 }
@@ -164,13 +164,14 @@ export default function ParisView(props: {
   }, [data, chosen, key])
 
   if (!here) return null
-  const kpis: { value: string; label: string; layer: Layer }[] = [
-    { value: fmt(paris.free), label: tr('places libres', 'free spots'), layer: 'score' },
-    { value: fmt(paris.boutiques), label: tr(`boutiques de ce type, ${paris.brands} marques`, `boutiques of this type, ${paris.brands} brands`), layer: 'luxury' },
-    { value: fmt(paris.stations), label: tr('gares de métro et RER', 'metro and RER stations'), layer: 'transit_entries_r2' },
-    { value: mega(paris.entries), label: tr('entrées en gare par jour', 'station entries a day'), layer: 'transit_entries_r2' },
-    { value: nth(best.n), label: tr('meilleur potentiel moyen', 'best average potential'), layer: 'score' },
-    { value: fmt(paris.blocks), label: tr('blocs de 200 m étudiés', '200 m blocks studied'), layer: 'score' },
+  const src = (word: string, name: string) => sourceShort(data.meta.sources, word, name)
+  const kpis: { value: string; label: string; layer: Layer; source: string }[] = [
+    { value: fmt(paris.free), label: tr('sites avec local vide (2023)', 'sites with an empty shop (2023)'), layer: 'score', source: src('BDCOM', 'Apur') },
+    { value: fmt(paris.boutiques), label: tr(`boutiques de ce type, ${paris.brands} marques`, `boutiques of this type, ${paris.brands} brands`), layer: 'luxury', source: src('Overture Maps Places', 'Overture') },
+    { value: fmt(paris.stations), label: tr('gares de métro et RER', 'metro and RER stations'), layer: 'transit_entries_r2', source: src('Mobilités', 'IDFM') },
+    { value: mega(paris.entries), label: tr('validations par jour, gares de Paris', 'validations a day, Paris stations'), layer: 'transit_entries_r2', source: src('Mobilités', 'IDFM') },
+    { value: nth(best.n), label: tr('meilleure ressemblance moyenne', 'best average likeness'), layer: 'score', source: tr('notre modèle', 'our model') },
+    { value: fmt(paris.blocks), label: tr('blocs de 200 m étudiés', '200 m blocks studied'), layer: 'score', source: 'Uber H3' },
   ]
 
   return (
@@ -180,6 +181,7 @@ export default function ParisView(props: {
           <button key={k.label} className="paris-kpi" onClick={() => setLayer(k.layer)}>
             <span className="paris-kpi-value">{k.value}</span>
             <span className="paris-kpi-label">{k.label}</span>
+            <span className="dash-figure-source">{k.source}</span>
           </button>
         ))}
       </section>
@@ -212,11 +214,11 @@ export default function ParisView(props: {
           <div className="paris-side-figures">
             <span>
               <b>{fmt(here.values.score)}</b>
-              {tr('potentiel', 'potential')}
+              {tr('ressemblance', 'likeness')}
             </span>
             <span>
               <b>{fmt(here.free)}</b>
-              {tr('places libres', 'free spots')}
+              {tr('sites avec local vide (2023)', 'sites with an empty shop (2023)')}
             </span>
             <span>
               <b>{fmt(here.values.luxury)}</b>
@@ -227,11 +229,11 @@ export default function ParisView(props: {
         <Radar rows={rows} chosen={here} ramp={ramp} />
         {bestFree && (
           <button className="paris-open" onClick={() => props.onBlock(bestFree.cell)}>
-            {tr(`Voir sa meilleure place libre (${short(bestFree)}, ${Math.round(num(bestFree, key) ?? 0)}/100) →`, `See its best free spot (${short(bestFree)}, ${Math.round(num(bestFree, key) ?? 0)}/100) →`)}
+            {tr(`Voir son meilleur site avec local vide (${short(bestFree)}, ${Math.round(num(bestFree, key) ?? 0)}/100) →`, `See its best site with an empty shop (${short(bestFree)}, ${Math.round(num(bestFree, key) ?? 0)}/100) →`)}
           </button>
         )}
         <div className="paris-bubbles-head">
-          <p className="dash-kicker">{tr('Pouvoir d’achat et passage', 'Spending and footfall')}</p>
+          <p className="dash-kicker">{tr('Clientèle et centralité de la rue', 'Customers and street centrality')}</p>
           <p className="muted">{tr('Taille : boutiques de ce type', 'Size: boutiques of this type')}</p>
         </div>
         <Bubbles rows={rows} chosen={chosen} colourOf={colourOf} onPick={setChosen} />
@@ -426,14 +428,14 @@ function Bubbles(props: { rows: Arr[]; chosen: number; colourOf: (id: Layer, n: 
   const Y = (v: number) => h - pad - 14 - ((Math.log(Math.max(v, 0.01)) - y0) / (y1 - y0 || 1)) * (h - 2 * pad - 28)
   const order = [...props.rows].sort((a, b) => b.values.luxury - a.values.luxury)
   return (
-    <svg className="paris-bubbles" viewBox={`0 0 ${w} ${h}`} role="img" aria-label={tr('Pouvoir d’achat et passage', 'Spending and footfall')}>
+    <svg className="paris-bubbles" viewBox={`0 0 ${w} ${h}`} role="img" aria-label={tr('Clientèle et centralité de la rue', 'Customers and street centrality')}>
       <line x1={pad} y1={h - pad} x2={w - pad / 2} y2={h - pad} className="paris-axis" />
       <line x1={pad} y1={pad / 2} x2={pad} y2={h - pad} className="paris-axis" />
       <text x={w - pad / 2} y={h - 6} textAnchor="end" className="paris-axis-label">
-        {tr('pouvoir d’achat →', 'spending →')}
+        {tr('clientèle →', 'customers →')}
       </text>
       <text x={pad + 4} y={pad / 2 + 6} className="paris-axis-label">
-        {tr('↑ passage', '↑ footfall')}
+        {tr('↑ centralité', '↑ centrality')}
       </text>
       {order.map((r) => {
         const rad = 5 + 13 * Math.sqrt(r.values.luxury / maxB)
