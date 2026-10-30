@@ -14,7 +14,7 @@ const SET_WORDS_FR: [string, string][] = [
   ['open data', 'données ouvertes'],
   ['upscale hotel rooms', 'chambres d’hôtels haut de gamme'],
   ['international tourist zones', 'zones touristiques internationales'],
-  ['street footfall', 'passage piéton'],
+  ['street footfall', 'centralité de la rue'],
   ['luxury neighbours', 'luxe voisin'],
   ['components', 'composantes'],
   ['dims', 'dimensions'],
@@ -245,8 +245,8 @@ export default function Method({ scores, stores, meta, cells, onClose }: Props) 
             <li>{tr('La stratégie propre d’une marque, sa clientèle ou ses projets de flagship.', "A brand's own strategy, clientele or flagship plans.")}</li>
             <li>
               {tr(
-                'Le passage réel sur le trottoir. Il est estimé à partir du réseau de rues et des validations en gare, pas compté.',
-                'Footfall on the pavement. It is estimated from the street network and station entries, not counted.',
+                'Le passage réel sur le trottoir. La centralité de la rue est estimée à partir de la forme du réseau de rues, pas comptée.',
+                'Real footfall on the pavement. Street centrality is estimated from the shape of the street network, not counted.',
               )}
             </li>
             <li>

@@ -318,7 +318,7 @@ function source(metric: Metric, data: Data) {
     metric === 'stations'
       ? sourceOf(data, 'Mobilités')
       : metric === 'spending'
-        ? [sourceOf(data, 'Filosofi'), sourceOf(data, 'Sirene'), sourceOf(data, 'hotels')].filter(Boolean).join(' · ')
+        ? [sourceOf(data, 'Filosofi'), sourceOf(data, 'Sirene'), sourceOf(data, 'Overture Maps Places')].filter(Boolean).join(' · ')
         : metric === 'boutiques'
           ? sourceOf(data, 'Overture Maps Places')
           : tr('Notre modèle, testé à l’aveugle (onglet Méthode)', 'Our model, blind-tested (Method tab)')

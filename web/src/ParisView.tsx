@@ -233,7 +233,7 @@ export default function ParisView(props: {
           </button>
         )}
         <div className="paris-bubbles-head">
-          <p className="dash-kicker">{tr('Pouvoir d’achat et passage', 'Spending and footfall')}</p>
+          <p className="dash-kicker">{tr('Clientèle et centralité de la rue', 'Customers and street centrality')}</p>
           <p className="muted">{tr('Taille : boutiques de ce type', 'Size: boutiques of this type')}</p>
         </div>
         <Bubbles rows={rows} chosen={chosen} colourOf={colourOf} onPick={setChosen} />
@@ -428,14 +428,14 @@ function Bubbles(props: { rows: Arr[]; chosen: number; colourOf: (id: Layer, n: 
   const Y = (v: number) => h - pad - 14 - ((Math.log(Math.max(v, 0.01)) - y0) / (y1 - y0 || 1)) * (h - 2 * pad - 28)
   const order = [...props.rows].sort((a, b) => b.values.luxury - a.values.luxury)
   return (
-    <svg className="paris-bubbles" viewBox={`0 0 ${w} ${h}`} role="img" aria-label={tr('Pouvoir d’achat et passage', 'Spending and footfall')}>
+    <svg className="paris-bubbles" viewBox={`0 0 ${w} ${h}`} role="img" aria-label={tr('Clientèle et centralité de la rue', 'Customers and street centrality')}>
       <line x1={pad} y1={h - pad} x2={w - pad / 2} y2={h - pad} className="paris-axis" />
       <line x1={pad} y1={pad / 2} x2={pad} y2={h - pad} className="paris-axis" />
       <text x={w - pad / 2} y={h - 6} textAnchor="end" className="paris-axis-label">
-        {tr('pouvoir d’achat →', 'spending →')}
+        {tr('clientèle →', 'customers →')}
       </text>
       <text x={pad + 4} y={pad / 2 + 6} className="paris-axis-label">
-        {tr('↑ passage', '↑ footfall')}
+        {tr('↑ centralité', '↑ centrality')}
       </text>
       {order.map((r) => {
         const rad = 5 + 13 * Math.sqrt(r.values.luxury / maxB)

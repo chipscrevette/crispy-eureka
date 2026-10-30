@@ -1215,7 +1215,7 @@ function WalkFigures(props: { z: ReturnType<typeof zoneStats>; sources: string[]
       <Figure value={fmt(z.free)} label={tr('sites avec local vide (2023)', 'sites with an empty shop (2023)')} source={sourceShort(sources, 'BDCOM', 'Apur')} accent onClick={() => onMetric('free')} />
       <Figure value={fmt(z.boutiques)} label={tr('boutiques de ce type', 'boutiques of this type')} source={sourceShort(sources, 'Overture Maps Places', 'Overture')} onClick={() => onMetric('boutiques')} />
       <Figure value={kilo(z.entries)} label={tr('validations / jour, gares de la zone', 'validations / day, stations in the walk')} source={sourceShort(sources, 'Mobilités', 'IDFM')} onClick={() => onMetric('stations')} />
-      <Figure value={z.spendAvg === null ? '–' : `${fmt(z.spendAvg / 100, 1)}×`} label={tr('indice de clientèle', 'customer index')} source={sourceShort(sources, 'Filosofi', 'Insee')} onClick={() => onMetric('spending')} />
+      <Figure value={z.spendAvg === null ? '–' : `${fmt(z.spendAvg / 100, 1)}×`} label={tr('indice de clientèle', 'customer index')} source="Insee, Sirene, Overture" onClick={() => onMetric('spending')} />
     </div>
   )
 }
@@ -1301,7 +1301,7 @@ function LayerRail(props: { data: Data; profile: ProfileId; layer: string; block
             <span className="key-dot" style={{ background: colour }} aria-hidden="true" />
             <span className="dash-rail-name">
               {l.label}
-              {block && 'area' in l && <span className="dash-rail-area"> · {l.area}</span>}
+              {block && 'area' in l && <span className="dash-rail-area">{l.area}</span>}
             </span>
             {block && <span className="dash-rail-value">{valueText(k, v)}</span>}
             {block && (
