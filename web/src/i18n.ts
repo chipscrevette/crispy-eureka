@@ -119,6 +119,6 @@ export const sourceLabel = (en: string) => (lang() === 'en' ? en : SOURCES_FR.re
 export function sourceShort(sources: string[], word: string, name: string) {
   const s = sources.find((x) => x.includes(word))
   if (!s) return ''
-  const date = s.split(', ').pop()!.replace(/^(release|register of|stock of|Filosofi|BDCOM) /, '').replace(/\.0$/, '')
+  const date = s.split(', ').pop()!.replace(/^(release|register of|stock of|Filosofi|BDCOM) /, '').replace(/\.0$/, '').replace(/^(\d{4}-\d{2})-\d{2}$/, '$1')
   return `${name} ${sourceLabel(date)}`
 }

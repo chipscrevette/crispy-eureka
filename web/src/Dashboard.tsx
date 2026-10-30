@@ -982,7 +982,7 @@ function Profiles(props: { data: Data; block: CellProps | null; profile: Profile
                   <span style={{ width: `${Math.min(v, 400) / 4}%`, background: coloursOf(rampFor('demand'))[2 + i] }} />
                   <span className="dash-mix-avg" aria-hidden="true" />
                 </span>
-                <span className="muted">{fmt(v)}</span>
+                <span className="muted">{fmt(v / 100, 1)}×</span>
               </p>
             )
           })}
@@ -1299,7 +1299,10 @@ function LayerRail(props: { data: Data; profile: ProfileId; layer: string; block
         return (
           <button key={l.id} role="radio" aria-checked={layer === l.id} onClick={() => props.onLayer(l.id)}>
             <span className="key-dot" style={{ background: colour }} aria-hidden="true" />
-            <span className="dash-rail-name">{l.label}</span>
+            <span className="dash-rail-name">
+              {l.label}
+              {block && 'area' in l && <span className="dash-rail-area"> · {l.area}</span>}
+            </span>
             {block && <span className="dash-rail-value">{valueText(k, v)}</span>}
             {block && (
               <span className="dash-rail-track" aria-hidden="true">
